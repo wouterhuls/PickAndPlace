@@ -1,0 +1,127 @@
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
+#include <QLCDNumber>
+#include <QTimer>
+#include <QStyle>
+
+#include "MotionAxisWidget.h"
+#include "MotionAxis.h"
+
+MotionAxisWidget::MotionAxisWidget(MotionAxis& axis, QWidget *parent) :
+  QWidget(parent), m_axis(&axis)
+{
+  //
+  this->setObjectName( m_axis->name().c_str() ) ;
+  
+  //resize(400, 50);
+  setGeometry(QRect(10, 10, 400, 50));
+  auto widget = this ;
+  auto horizontalLayout = new QHBoxLayout(widget);
+  horizontalLayout->setObjectName(QStringLiteral("horizontalLayout"));
+  horizontalLayout->setContentsMargins(0, 0, 0, 0);
+  auto nameLabel = new QLabel(widget);
+  nameLabel->setObjectName(QStringLiteral("nameLabel"));
+  nameLabel->setText( m_axis->name().c_str() ) ;
+  horizontalLayout->addWidget(nameLabel);
+
+  auto downMoveButton = new QPushButton(widget);
+  downMoveButton->setObjectName(QStringLiteral("moveDownButton"));
+  //downMoveButton->setText("Down") ;
+  downMoveButton->setIcon(style()->standardIcon(QStyle::SP_MediaSeekBackward)) ;
+  horizontalLayout->addWidget(downMoveButton);
+  
+  auto downStepButton = new QPushButton(widget);
+  downStepButton->setObjectName(QStringLiteral("stepDownButton"));
+  downStepButton->setIcon(style()->standardIcon(QStyle::SP_ArrowLeft)) ;
+  horizontalLayout->addWidget(downStepButton);
+  
+  auto upStepButton = new QPushButton(widget);
+  upStepButton->setObjectName(QStringLiteral("stepUpButton"));
+  upStepButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay)) ;
+  horizontalLayout->addWidget(upStepButton);
+
+  auto moveUpButton = new QPushButton(widget);
+  moveUpButton->setObjectName(QStringLiteral("moveUpButton"));
+  moveUpButton->setIcon(style()->standardIcon(QStyle::SP_MediaSeekForward)) ;
+  horizontalLayout->addWidget(moveUpButton);
+
+  auto homeButton = new QPushButton(widget);
+  homeButton->setObjectName(QStringLiteral("homeButton"));
+  homeButton->setText("Home") ;
+  horizontalLayout->addWidget(homeButton);
+
+  m_positionLabel = new QLCDNumber(widget);
+  m_positionLabel->setObjectName(QStringLiteral("positionLabel"));
+  horizontalLayout->addWidget(m_positionLabel);
+
+  QTimer *timer = new QTimer(this);
+  connect(timer, SIGNAL(timeout()), this, SLOT(showPosition()));
+  timer->start(1000);
+
+  auto searchHomeButton = new QPushButton(widget);
+  searchHomeButton->setObjectName(QStringLiteral("searchHomeButton"));
+  searchHomeButton->setText("Search Home") ;
+  horizontalLayout->addWidget(searchHomeButton);
+
+  QMetaObject::connectSlotsByName(this);
+}
+
+MotionAxisWidget::~MotionAxisWidget()
+{
+}
+
+void MotionAxisWidget::on_stepDownButton_clicked()
+{
+   m_axis->step(Down) ;
+}
+
+void MotionAxisWidget::on_moveDownButton_pressed()
+{
+   m_axis->move(Down) ;
+}
+
+void MotionAxisWidget::on_moveDownButton_released()
+{
+   m_axis->stop() ;
+}
+
+void MotionAxisWidget::on_stepUpButton_clicked()
+{
+   m_axis->step(Up) ; // still need to set the stepsize!
+}
+
+void MotionAxisWidget::on_moveUpButton_pressed()
+{
+   m_axis->move(Up) ;
+}
+
+void MotionAxisWidget::on_moveUpButton_released()
+{
+   m_axis->stop() ;
+}
+
+void MotionAxisWidget::on_homeButton_clicked()
+{
+  m_axis->moveTo(0.0) ;
+}
+
+void MotionAxisWidget::on_searchHomeButton_clicked()
+{
+  m_axis->searchHome() ;
+}
+
+void MotionAxisWidget::showPosition()
+{
+  m_positionLabel->display( m_axis->position() ) ;
+  // change color if moving?
+  QPalette pal = m_positionLabel->palette();
+  if( m_axis->isMoving() ) {
+    m_positionLabel->setAutoFillBackground(true); // IMPORTANT!
+    pal.setColor(QPalette::Window, QColor(Qt::red));
+  } else {
+    m_positionLabel->setAutoFillBackground(true); // IMPORTANT!
+    pal.setColor(QPalette::Window, QColor(Qt::green));
+  }
+  m_positionLabel->setPalette(pal);   
+}
