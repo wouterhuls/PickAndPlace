@@ -1,17 +1,24 @@
 #ifndef MOTIONAXISPOSITIONWIDGET_H
 #define MOTIONAXISPOSITIONWIDGET_H
 
-#include <QWidget>
+#include <QLCDNumber>
+#include "MotionAxisParameters.h"
 
-class MotionAxisPositionWidget : public QWidget
+class MotionControllerWidget ;
+
+class MotionAxisPositionWidget : public QLCDNumber
 {
     Q_OBJECT
 public:
-    explicit MotionAxisPositionWidget(QWidget *parent = 0);
+    explicit MotionAxisPositionWidget(MotionControllerWidget *parent = 0);
 
 signals:
 
-public slots:
+private slots:
+    void showPosition() ;
+
+private:
+    MotionAxisID m_axisid ;
 };
 
 #endif // MOTIONAXISPOSITIONWIDGET_H

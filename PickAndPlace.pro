@@ -4,17 +4,46 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui serialport multimedia
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
 TARGET = PickAndPlace
 TEMPLATE = app
 
-
 SOURCES += main.cpp\
-        mainwindow.cpp
+    MotionControllerWidget.cpp \
+    MotionSystemSvc.cpp \
+    MotionAxis.cpp \
+    MotionAxisWidget.cpp \
+    MotionAxisSettingsDialog.cpp \
+    MotionController.cpp \
+    MotionSystemWidget.cpp \
+    Console.cpp \
+    SerialPortSettingsDialog.cpp \
+    PropertySvc.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += \  
+    NamedValue.h \
+    NamedValueInputWidget.h \
+    MotionControllerWidget.h \
+    MotionSystemSvc.h \
+    MotionSystemCommandLibrary.h \
+    MotionAxisParameters.h \
+    MotionAxis.h \
+    MotionAxisWidget.h \
+    MotionAxisSettingsDialog.h \
+    MotionController.h \
+    MotionSystemWidget.h \
+    Console.h \
+    SerialPortSettingsDialog.h \
+    Singleton.h \
+    PropertySvc.h 
 
-FORMS    += mainwindow.ui
+FORMS    += SerialPortSettingsDialog.ui
+
+#mainwindow.ui \
+#    MotionControllerWidget.ui
+
+RESOURCES += \
+    PickAndPlace.qrc
