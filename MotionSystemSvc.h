@@ -20,7 +20,6 @@ namespace PAP
   public:
     typedef std::map<MotionAxisID,MotionAxis*> AxisContainer ;
     typedef std::map<MotionControllerID,MotionController*> ControllerContainer ;
-    
   public:
 
     MotionSystemSvc() ;

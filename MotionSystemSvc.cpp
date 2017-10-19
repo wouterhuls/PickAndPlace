@@ -41,9 +41,9 @@ namespace PAP
     
     // for now, open with a hardcoded name. later we'll put this somewhere in a menu
     foreach (const QSerialPortInfo &info, QSerialPortInfo::availablePorts()) {
-      //qDebug() << "Name : " << info.portName();
-      //qDebug() << "Description : " << info.description();
-      //qDebug() << "Manufacturer: " << info.manufacturer();
+      qDebug() << "Name : " << info.portName();
+      qDebug() << "Description : " << info.description();
+      qDebug() << "Manufacturer: " << info.manufacturer();
       // Example use QSerialPort
       if( info.portName()=="cu.usbserial-PX1FXU5V" /*"cu.usbserial-PX9I7SZ6"*/) {
 	m_serialport.setPort(info)  ;
@@ -53,11 +53,11 @@ namespace PAP
     //m_serialport.setBaudRate(QSerialPort::Baud1200) ;
     //m_serialport.setPortName("cu.usbserial-PX9I7SZ6") ;
     if( m_serialport.open(QIODevice::ReadWrite) ) {
-      qDebug() << "MotionSystemSvs: Successfully opened port"
-               << m_serialport.baudRate() << " "
-               << m_serialport.errorString() << " "
-               << m_serialport.flowControl() << " "
-               << m_serialport.parity() ;
+      qInfo() << "MotionSystemSvs: Successfully opened port"
+	      << m_serialport.baudRate() << " "
+	      << m_serialport.errorString() << " "
+	      << m_serialport.flowControl() << " "
+	      << m_serialport.parity() ;
       
       // let's connect all output asynchroneously to the readData
       // function. unfortunately, that seems to be the only fool proof
@@ -77,18 +77,9 @@ namespace PAP
       QByteArray readData = m_serialport.readAll();
       while (m_serialport.waitForReadyRead(100))
 	readData.append(m_serialport.readAll());
-      qDebug() << readData ;
-      
-      // let's not actually enable the motors:-)
-      // write(4,"TE") ;
-      // auto data = read() ;
-      // qDebug() <<  "AA: " << data ;
-      // write(4,"TS") ;
-      // data = read() ;
-      // qDebug() <<  "AB: " << data ;
-
+      qInfo() << "Version of GPIB-USB interface: " << readData ;
     } else {
-      qDebug() << "MotionSystemSvc: Cannot open port" ;
+      qWarning() << "MotionSystemSvc: Cannot open serial port to motion controller." ;
     }
     
     // let's create the controllers and the axis. actally, we cannot do
@@ -111,7 +102,6 @@ namespace PAP
 	write( id.controller, acommand ) ;
 	atype = read().constData() ;
       }
-      qDebug() << id.controller << " " << id.axis ;
       m_axes[id] = new MotionAxis{id,axisname[i],atype,*(m_controllers[id.controller])} ;
     }
     
@@ -123,14 +113,12 @@ namespace PAP
       qDebug() << "status of controller 4: " << read() ;
       //motorsOff() ;
       //motorsOn() ;
+    
+      // create a QTimer that will update all information from the motion system
+      QTimer *timer = new QTimer(this);
+      QObject::connect(timer, SIGNAL(timeout()), this, SLOT(updateAllData()));
+      timer->start(5000);
     }
-    
-    // create a QTimer that will update all information from the motion system
-    QTimer *timer = new QTimer(this);
-    QObject::connect(timer, SIGNAL(timeout()), this, SLOT(updateAllData()));
-    timer->start(5000);
-    
-    qDebug() << "End of MotionSystemSvc constructor!" ;
   }
   
   MotionSystemSvc* MotionSystemSvc::instance()

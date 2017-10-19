@@ -4,19 +4,20 @@
 #include <QObject>
 #include <QString>
 #include <QVariant>
+#include <QDebug>
 
 /*
 class QValueChangedEmitter : public QObject
 {
  Q_OBJECT
- signals:
+   signals:
    void valueChanged() ;
 } ;
 */
 
 namespace PAP
 {
-
+  
   //template<typename T=QVariant, typename StringType = std::string>
   class NamedValue : public QObject
   {
@@ -26,17 +27,20 @@ namespace PAP
       using ValueType = QVariant ;
       using StringType = QString ;
       using NameType   = StringType ;
-      NamedValue( const StringType& name ) : m_name(name) {}
-      NamedValue( const StringType& name, const ValueType& v ) : m_value(v), m_name(name) {}
-      NamedValue( const char* name ) : m_name(name) {}
-      NamedValue( const char* name, const ValueType& v ) : m_value(v), m_name(name) {}
+      //NamedValue( const StringType& name ) : m_name(name) {}
+      //NamedValue( const StringType& name, const ValueType& v ) : m_value(v), m_name(name) {}
+      NamedValue( const QString& name, QVariant::Type type=QVariant::Invalid ) : m_name(name), m_value(type), m_min(type), m_max(type) {}
+      NamedValue( const QString& name, const ValueType& v) : m_name(name), m_value(v), m_min(v.type()), m_max(v.type()) {}
+      NamedValue( const QString& name, const ValueType& v, const ValueType& min, const ValueType& max)
+	: m_name(name), m_value(v) { setLimits(min,max) ; }
+      
       // QObject does not have a copy constructor. Let's hpoe that this works:-(
-      NamedValue(const NamedValue& rhs) : QObject(),m_value(rhs.m_value),m_name(rhs.m_name){}
+      NamedValue(const NamedValue& rhs) : QObject(),m_name(rhs.m_name),m_value(rhs.m_value),m_min(rhs.m_min),m_max(rhs.m_max) {}
       virtual ~NamedValue() {}
     
       //const char* name() const { return m_name.c_str() ; }
       const QString& name() const { return m_name ; }
-      const QStringRef shortname() const {
+        const QStringRef shortname() const {
 	int pos = m_name.lastIndexOf(".") ;
 	return m_name.rightRef(m_name.size()-pos-1 ) ;
       } ;
@@ -56,15 +60,31 @@ namespace PAP
       NamedValue& operator=(const ValueType& rhs) { setValue(rhs) ; return *this ; }
     
       QVariant::Type type() const { return m_value.type() ; }
-    
+
+      void setLimits( ValueType min, ValueType max)
+      {
+	if( min.convert( m_value.type() ) && max.convert( m_value.type() ) ) {
+	  m_min = min ; 
+	  m_max = max ;
+	} else {
+	  qWarning() << "NamedValue: Cannot convert limits to target type" ;
+	  abort() ;
+	}
+      }
+
+      const ValueType& min() const { return m_min; }
+      const ValueType& max() const { return m_max; }
+            
     signals:
       //void valueChanged( QVariant ) const ;
       void valueChanged() const ;
       //void valueChanged( const NamedValue* ) const ;
       
     private:
-      ValueType m_value ;
       StringType m_name ;
+      ValueType m_value ;
+      ValueType m_min ;
+      ValueType m_max ;
   } ;
 
 }

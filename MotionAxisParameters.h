@@ -24,8 +24,10 @@ namespace PAP
   class MSParameter : public NamedValue
   {
   public:
-    MSParameter( const char* name, const ValueType& v ) : NamedValue(name,v) {}
+    MSParameter( const QString& name, QVariant::Type type=QVariant::Invalid ) : NamedValue(name,type) {}
     MSParameter( const QString& name, const ValueType& v ) : NamedValue(name,v) {}
+    MSParameter( const QString& name, const ValueType& v, const ValueType& min, const ValueType& max)
+      : NamedValue(name,v,min,max) {}
     virtual ~MSParameter() {}
   } ;
   
