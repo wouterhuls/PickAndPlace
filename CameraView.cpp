@@ -22,6 +22,8 @@ namespace PAP
     : QGraphicsView(parent),
       m_camera(0),
       m_scene(0),
+      m_chipPixelSize(0.00345),
+      m_magnification("Cam.Magnification",5.03),
       m_numScheduledScalings(0)
   {
     resize(622, 512);

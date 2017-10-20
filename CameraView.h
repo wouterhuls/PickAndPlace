@@ -23,6 +23,9 @@ namespace PAP
     explicit CameraView(QWidget *parent = 0);
     ~CameraView();
     void setCamera(const QCameraInfo &cameraInfo) ;
+
+    double pixelSizeX() const { return m_chipPixelSize * m_magnification ; }
+    double pixelSizeY() const { return m_chipPixelSize * m_magnification ; }
     
   public slots:
     virtual void wheelEvent ( QWheelEvent * event ) ;
@@ -47,6 +50,13 @@ namespace PAP
         
     //QCameraViewfinder* m_viewfinder ;
     //QGraphicsTextItem m_cursorpos ;
+
+    // some info on camera
+    QPointF m_localOrigin ;
+    int m_numPixelsX ;
+    int m_numPixelsY ;
+    const double m_chipPixelSize ;
+    NamedValue m_magnification ;
     
     // needed for the smooth zoom function
     int m_numScheduledScalings ;
