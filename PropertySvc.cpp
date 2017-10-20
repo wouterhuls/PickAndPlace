@@ -13,7 +13,7 @@ namespace PAP
     
   Property* PropertySvc::find( const char* name )
   {
-    auto key = Property::NameType(name) ;
+    auto key = QString(name) ;
     auto it = std::find_if( std::begin(m_props),
 			    std::end(m_props),
 			    [key](Property* p)->bool { return p->name()==key; }  ) ;
@@ -37,10 +37,7 @@ namespace PAP
       if (! prop )
 	qDebug() << "Cannot find property read from file!" ;
       else {
-	QVariant asstring(value.toString()) ;
-	if( asstring.convert( prop->type() ) ) {
-	  prop->setValue( asstring ) ;
-	} else {
+	if( !prop->fromString( value.toString() ) ) {
 	  qDebug() << "Cannot convert property to target type!" ;
 	}
       }
@@ -56,7 +53,7 @@ namespace PAP
     
     QTextStream out(&file);
     for( const auto& i : m_props )
-      out << i->name() << "=" << i->value().toString() << endl ;
+      out << i->name() << "=" << i->toString() << endl ;
   }
 }
 

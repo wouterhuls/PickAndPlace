@@ -3,11 +3,10 @@
 
 #include <QWidget>
 #include <QLabel>
+#include "NamedValue.h"
 
 namespace PAP
 {
-  class NamedValue ;
-  
   class NamedValueInputWidget : public QWidget
   {
     Q_OBJECT  

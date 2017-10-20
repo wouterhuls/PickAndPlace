@@ -23,8 +23,11 @@ SOURCES += main.cpp \
     Console.cpp \
     SerialPortSettingsDialog.cpp \
     PropertySvc.cpp \
+    CameraView.cpp \
     CameraWindow.cpp \
-    NamedValueInputWidget.cpp
+    NamedValueInputWidget.cpp \
+    GeometrySvc.cpp \
+    NamedValue.cpp
 
 HEADERS  += \  
     NamedValue.h \
@@ -42,7 +45,8 @@ HEADERS  += \
     SerialPortSettingsDialog.h \
     Singleton.h \
     PropertySvc.h \
-    CameraWindow.h
+    CameraWindow.h \
+    CameraView.h
 
 FORMS    += SerialPortSettingsDialog.ui
 

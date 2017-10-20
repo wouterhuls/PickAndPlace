@@ -66,10 +66,13 @@ int main(int argc, char *argv[])
   // For now we put the camera window in a separate main window. In
   // the end, we'll always want the camera window, but the MS
   // controls we only need on demand.
-  QMainWindow mainwindow2 ;
-  mainwindow2.resize(700,600) ;
-  auto papwindow = new PAP::CameraWindow(&mainwindow2) ;
-  mainwindow2.show() ;
+  PAP::CameraWindow camerawindow ;
+  camerawindow.show() ;
+  
+  //QMainWindow mainwindow2 ;
+  //mainwindow2.resize(700,600) ;
+  //auto papwindow = new PAP::CameraWindow(&mainwindow2) ;
+  //mainwindow2.show() ;
   
   
   auto rc = a.exec() ;

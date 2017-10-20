@@ -13,7 +13,7 @@
 namespace PAP
 {
 
-  using Property=NamedValue ;
+  using Property=NamedValueBase ;
   
   class PropertySvc : public Singleton<PropertySvc>
   {
