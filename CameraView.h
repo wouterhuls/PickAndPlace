@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QMainWindow>
 #include <QGraphicsView>
+#include "NamedValue.h"
 
 class QGraphicsScene ;
 class QGraphicsView ;
@@ -11,6 +12,8 @@ class QGraphicsVideoItem ;
 class QCamera ;
 class QCameraInfo ;
 class QCameraViewfinder ;
+class QVideoProbe ;
+class QVideoFrame ;
 
 namespace PAP
 {
@@ -32,7 +35,8 @@ namespace PAP
     void scalingTime(qreal x) ;
     void animFinished() ;
     virtual void mousePressEvent( QMouseEvent* event) ;
-
+    void processFrame( const QVideoFrame& frame ) ;
+    void moveCameraTo( QPointF localpoint ) const ;
   private:
     QCamera* m_camera ;
     QGraphicsScene* m_scene ; // a graphics scene that
@@ -47,6 +51,7 @@ namespace PAP
     // requires some development.
     //QGraphicsView* m_view ;
     QGraphicsVideoItem* m_viewfinder ;
+    QVideoProbe* m_videoProbe ;
         
     //QCameraViewfinder* m_viewfinder ;
     //QGraphicsTextItem m_cursorpos ;
@@ -56,7 +61,8 @@ namespace PAP
     int m_numPixelsX ;
     int m_numPixelsY ;
     const double m_chipPixelSize ;
-    NamedValue m_magnification ;
+    NamedDouble m_magnification ;
+    NamedDouble m_rotation ;
     
     // needed for the smooth zoom function
     int m_numScheduledScalings ;

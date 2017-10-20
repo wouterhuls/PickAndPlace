@@ -17,6 +17,7 @@ namespace PAP
   
   struct MSMainCoordinates
   {
+    MSMainCoordinates( double _x, double _y ) : x(_x),y(_y) {}
     double x ;
     double y ;
   } ;
@@ -39,6 +40,9 @@ namespace PAP
   public:
     GeometrySvc() ;
     Coordinates2D toGlobal( const MSMainCoordinates& c) const;
+    Coordinates2D toGlobalDelta( const MSMainCoordinates& c) const;
+    MSMainCoordinates toMSMainDelta( const Coordinates2D& c) const ;
+
   private:
     // various calibration parameters
     NamedDouble m_mainX0 ;

@@ -17,7 +17,7 @@ namespace PAP
     QWidget(parent), m_axis(&axis)
   {
     //
-    this->setObjectName( m_axis->name().c_str() ) ;
+    this->setObjectName( m_axis->name() ) ;
     
     //resize(400, 50);
     setGeometry(QRect(10, 10, 400, 50));
@@ -27,7 +27,7 @@ namespace PAP
     horizontalLayout->setContentsMargins(0, 0, 0, 0);
     auto nameLabel = new QLabel(widget);
     nameLabel->setObjectName(QStringLiteral("nameLabel"));
-    nameLabel->setText( m_axis->name().c_str() ) ;
+    nameLabel->setText( m_axis->name() ) ;
     horizontalLayout->addWidget(nameLabel);
     
     auto downMoveButton = new QPushButton(widget);

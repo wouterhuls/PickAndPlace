@@ -1,5 +1,7 @@
 
 #include "CameraView.h"
+#include "GeometrySvc.h"
+#include "MotionSystemSvc.h"
 
 #include <QCamera>
 #include <QCameraInfo>
@@ -14,6 +16,12 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QGraphicsLineItem>
 #include <QMessageBox>
+#include <QVideoProbe>
+#include <QLabel>
+#include <QPushButton>
+#include <QDialogButtonBox>
+
+#include<cmath>
 
 namespace PAP
 {
@@ -24,6 +32,7 @@ namespace PAP
       m_scene(0),
       m_chipPixelSize(0.00345),
       m_magnification("Cam.Magnification",5.03),
+      m_rotation("Cam.Rotation",0.0),
       m_numScheduledScalings(0)
   {
     resize(622, 512);
@@ -39,20 +48,24 @@ namespace PAP
     m_scene = new QGraphicsScene{} ;
     m_viewfinder = new QGraphicsVideoItem{} ;
     m_viewfinder->setSize( QSize{622,512} ) ;
-    m_viewfinder->setSize( QSize{2448,2048} ) ;
+    m_numPixelsX = 2448 ;
+    m_numPixelsY = 2048 ;
+    m_viewfinder->setSize( QSize{m_numPixelsX,m_numPixelsY} ) ;
     scale(0.25,0.25) ;
-    
+	
     m_scene->addItem(m_viewfinder) ;
     this->setScene( m_scene ) ;
 
     // let's add a cross at (0,0) in the cameraview. here it would be
     // nice to have some size in 'absolute' coordinates. but for that
     // we need to know the pixel size, which I do not yet do.
-    qreal x0 = 2448/2 ;
-    qreal y0 = 2048/2 ;
-    qreal dl = 100 ;
-    auto yline = new QGraphicsLineItem(x0,y0-dl,x0,y0+dl) ;
-    auto xline = new QGraphicsLineItem(x0-dl,y0,x0+dl,y0) ;
+    m_localOrigin = QPointF(0.5*m_numPixelsX,0.5*m_numPixelsY) ;
+    qreal x0 = m_localOrigin.x() ;
+    qreal y0 = m_localOrigin.y() ;
+    qreal dx = 0.1/pixelSizeX() ; // make a line of 100 micron
+    qreal dy = 0.1/pixelSizeY() ;
+    auto yline = new QGraphicsLineItem(x0,y0-dy,x0,y0+dy) ;
+    auto xline = new QGraphicsLineItem(x0-dx,y0,x0+dx,y0) ;
     m_scene->addItem( xline ) ;
     m_scene->addItem( yline ) ;
     
@@ -108,7 +121,19 @@ namespace PAP
     }
     
     m_camera->setViewfinder(m_viewfinder);
-    
+
+    // FIXME: check that this line does not break anything!
+    m_viewfinder->setSize( m_camera->viewfinderSettings().resolution() ) ;
+
+    // also add a videoprobe such that we can in parallel analyze the
+    // image, e.g. for focusssing.
+    m_camera->setCaptureMode(QCamera::CaptureVideo);
+    m_videoProbe = new QVideoProbe(this);
+    m_videoProbe->setSource(m_camera) ;
+    // to analyze images we connect a function to the videoprobe signal
+    connect(m_videoProbe, SIGNAL(videoFrameProbed(QVideoFrame)),
+	    this, SLOT(processFrame(QVideoFrame)));
+
     m_camera->start();
     qDebug() << "CameraView E" ;
   }
@@ -156,18 +181,70 @@ namespace PAP
     // let's pop up a dialog with the cursos position
     if(event->button() == Qt::RightButton)
       {
-	QMessageBox dialog(this) ;
 	char message[256] ;
 	int x = event->pos().x() ;
 	int y = event->pos().y() ;
 	QPointF local = mapToScene( x,y ) ;
-	sprintf(message,"pos=(%d,%d)-->(%f,%f)",x,y,local.x(),local.y()) ;
-	dialog.setText(message) ;
-	//dialog.setText("hoi") ;
-	dialog.exec() ;
+	sprintf(message,"pos=(%d,%d)-->(%f,%f)",x,y,local.x()-m_localOrigin.x(),local.y()-m_localOrigin.y()) ;
+	
+	//QMessageBox dialog(this) ;
+	//dialog.setText(message) ;
+
+	QDialog dialog(this) ;
+	QVBoxLayout layout ;
+	QLabel label(&dialog) ;
+	label.setText(message) ;
+	layout.addWidget(&label) ;
+
+	QPushButton movebutton("Center",&dialog) ;
+	layout.addWidget(&movebutton) ;
+	QPushButton closebutton("Close",&dialog) ;
+	layout.addWidget(&closebutton) ;
+	connect(&movebutton, &QPushButton::clicked, &dialog, &QDialog::accept);
+	connect(&closebutton, &QPushButton::clicked, &dialog, &QDialog::reject);
+	dialog.setLayout( &layout ) ;
+	dialog.adjustSize() ;
+
+	// I don't understand how to do this properly if I have more types of actions
+	//QDialogButtonBox buttonBox(Qt::Horizontal);
+	//buttonBox.addButton("Center",QDialogButtonBox::ActionRole) ;
+	//buttonBox.addButton(QDialogButtonBox::Cancel) ;
+	//connect(&buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
+	//connect(&buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
+	//layout.addWidget(&buttonBox) ;
+
+	int ok = dialog.exec() ;
+	if( ok ) {
+	  moveCameraTo( local ) ;
+	}
+	//qInfo() << "CameraView: result=" << result << " " << QDialogButtonBox::ActionRole ;
       }
-    qDebug() << "why doesn't this work?" << event->button()
-	     << " "
-	     << dynamic_cast<QGraphicsSceneMouseEvent*>(event) ;
+  }
+
+  void CameraView::processFrame( const QVideoFrame& frame )
+  {
+    // compute image contrast ? maybe not on every call ...
+    
+  }
+  
+  void CameraView::moveCameraTo( QPointF localpoint ) const
+  {
+    // first compute the local change in microns
+    double localdx = ( localpoint.x() - m_localOrigin.x() ) * pixelSizeX() ;
+    double localdy = ( localpoint.y() - m_localOrigin.y() ) * pixelSizeY() ;
+    // now translate that into a change in global coordinates, taking
+    // into account that the camera view may be rotated
+    const double cosphi = std::cos( m_rotation )  ;
+    const double sinphi = std::sin( m_rotation ) ;
+    PAP::Coordinates2D globaldx{
+      localdx*cosphi + localdy*sinphi, -localdx*sinphi + localdy*cosphi} ;
+    // now translate that into a change in motor positions using the geosvc
+    auto mainstagedx = GeometrySvc::instance()->toMSMainDelta( globaldx ) ;
+    qInfo() << "Moving camera: "
+	    << "(" << localdx << "," << localdy << ") --> ("
+	    << mainstagedx.x << "," << mainstagedx.y << ")" ;
+    // finally, move the motors!
+    MotionSystemSvc::instance()->axis("MainX")->move(mainstagedx.x) ;
+    MotionSystemSvc::instance()->axis("MainY")->move(mainstagedx.y) ;
   }
 }

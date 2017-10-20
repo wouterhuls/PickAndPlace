@@ -17,17 +17,18 @@ namespace PAP
   public:
     using MSParameter = PAP::MSParameter ;
     using MotionAxisParameters = std::vector<MSParameter>  ;
-    MotionAxis( const MotionAxisID& id, const std::string& name, const std::string& type,
+    MotionAxis( const MotionAxisID& id, const QString& name, const QString& type,
 		const MotionController& c) ;
     void configure() const ;
     void searchHome() const ;
-    void step( Direction dir ) const ; // move stepsize in the direction dir
-    void move( Direction dir ) const ; // move until stoppped
+    void step( Direction dir ) const ;   // move default stepsize in the direction dir
+    void move( Direction dir ) const ;   // move until stoppped
+    void move( float delta ) const ;     // move by delta
     void moveTo( float position ) const ;
     void stop() const ;
     //float position() const { return m_position ; }
     //void setPosition( float p ) { m_position = p ; }
-    const std::string name() const { return m_name ; }
+    const QString name() const { return m_name ; }
     const MotionAxisID& id() const { return m_id ; }
     void setController( const MotionController* c) { m_controller = c ; }
     bool isMoving() const ;
@@ -52,8 +53,8 @@ namespace PAP
       float updatePosition() ;
   private:
       MotionAxisID m_id ;
-      std::string m_name ;
-      std::string m_type ;
+      QString m_name ;
+      QString m_type ;
       // measurements from the machine
       NamedValue m_position ;
       NamedValue m_stepsize ;

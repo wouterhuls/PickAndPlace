@@ -25,4 +25,20 @@ namespace PAP
       m_mainX0 + m_mainXA * c.x + m_mainXB * c.y,
 	m_mainY0 + m_mainYA * c.x + m_mainYB * c.y } ; 
   } ;
+
+  Coordinates2D GeometrySvc::toGlobalDelta( const MSMainCoordinates& c) const
+  {
+    return Coordinates2D{
+      m_mainXA * c.x + m_mainXB * c.y,
+	m_mainYA * c.x + m_mainYB * c.y } ; 
+  } ;
+  
+  MSMainCoordinates GeometrySvc::toMSMainDelta( const Coordinates2D& c) const
+  {
+    // now we need the inverse of the matrix
+    double D = m_mainYB*m_mainXA - m_mainXB * m_mainYA ;
+    double dx = (  m_mainYB * c.x - m_mainYA * c.y)/D ;
+    double dy = ( -m_mainXB * c.x + m_mainXA * c.y)/D ;
+    return MSMainCoordinates{ dx, dy } ;
+  }
 }

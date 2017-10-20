@@ -91,10 +91,10 @@ namespace PAP
     
     std::vector<int> controllerid = {4,4,2,2,4,2} ;
     std::vector<int> axisid       = {1,2,1,2,3,3} ;
-    std::vector<std::string> axisname  = { "MainX","MainY","StackX","StackY","StackR","Focus" } ;
+    std::vector<QString> axisname  = { "MainX","MainY","StackX","StackY","StackR","Focus" } ;
     for(int i=0; i<6; ++i) {
       MotionAxisID id(controllerid[i],axisid[i]) ;
-      std::string atype ;
+      QString atype ;
       // let's read the type, if we can
       if( m_serialport.isOpen() ) {
 	char acommand[256] ;
@@ -424,6 +424,18 @@ namespace PAP
       write(controllerid,"TB") ;
       parseData( read() ) ;
     }
+  }
+  
+  const MotionAxis* MotionSystemSvc::axis( const QString& name)
+  {
+    const MotionAxis* rc(0) ;
+    for( const auto& it : m_axes ) {
+      if(it.second->name() == name ) {
+	rc = it.second ;
+	break;
+      }
+    }
+    return rc ;
   }
 }
   

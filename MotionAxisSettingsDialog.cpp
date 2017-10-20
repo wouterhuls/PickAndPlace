@@ -14,8 +14,8 @@ namespace PAP
   MotionAxisSettingsDialog::MotionAxisSettingsDialog( MotionAxis& axis, QWidget *parent )
     : QDialog(parent),m_axis(&axis)
   {
-    this->setObjectName( axis.name().c_str() ) ;
-    this->setWindowTitle( axis.name().c_str()) ;
+    this->setObjectName( axis.name() ) ;
+    this->setWindowTitle( axis.name() ) ;
     
     //auto layout = new QGridLayout{} ;
     auto layout = new QVBoxLayout{} ;

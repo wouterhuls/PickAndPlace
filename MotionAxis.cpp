@@ -10,17 +10,17 @@
 namespace PAP
 {
 
-  MotionAxis::MotionAxis(const MotionAxisID& id, const std::string& name, const std::string& type,
+  MotionAxis::MotionAxis(const MotionAxisID& id, const QString& name, const QString& type,
 			 const MotionController& c) 
     : m_id{id}, m_name{name},
       m_type{type},
-      m_position{QString{name.c_str()} + ".Position",0.},
-      m_stepsize{QString{name.c_str()} + ".Stepsize",0.005,0.0,1.0},
+      m_position{name + ".Position",0.},
+      m_stepsize{name + ".Stepsize",0.005,0.0,1.0},
       m_controller{&c}
   {
     qInfo() << "MotionAxis: defined controller for "
 	    << id.controller << " " << id.axis << " "
-	    << m_name.c_str() << " " << m_type.c_str() ;
+	    << m_name << " " << m_type ;
     //m_position = MotionSystemSvc::instance()->readAxisFloat(m_id,"TP") ;
     //QObject::connect(&m_position,&QVariable::valueChanged,this,&MotionAxis::applyPosition);
     QTimer *timer = new QTimer(this);
@@ -31,7 +31,7 @@ namespace PAP
     m_parameters.reserve( MSCommandLibrary::Parameters.size() ) ;
     for( const auto& p: MSCommandLibrary::Parameters ) {
       if(p.configurable) {
-	m_parameters.push_back( MSParameter{ QString{name.c_str()} + "." + p.name,
+	m_parameters.push_back( MSParameter{ QString{name} + "." + p.name,
 					     QVariant{p.type},p.minvalue, p.maxvalue } ) ;
 	MSParameter& par = m_parameters.back() ;
 	// set the initial value:
@@ -89,7 +89,12 @@ namespace PAP
   
   void MotionAxis::step( Direction dir ) const
   {
-    MotionSystemSvc::instance()->applyAxisCommand(m_id,"PR",dir * m_stepsize.value().toDouble() ) ;
+    move( dir * m_stepsize.value().toDouble() ) ;
+  }
+
+  void MotionAxis::move( float delta ) const
+  {
+    MotionSystemSvc::instance()->applyAxisCommand(m_id,"PR",delta) ;
   }
   
   void MotionAxis::move( Direction dir ) const
