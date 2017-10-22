@@ -47,7 +47,7 @@ namespace PAP
     //if(true) {
     m_scene = new QGraphicsScene{} ;
     m_viewfinder = new QGraphicsVideoItem{} ;
-    m_viewfinder->setSize( QSize{622,512} ) ;
+    //m_viewfinder->setSize( QSize{622,512} ) ;
     m_numPixelsX = 2448 ;
     m_numPixelsY = 2048 ;
     m_viewfinder->setSize( QSize{m_numPixelsX,m_numPixelsY} ) ;
@@ -102,6 +102,7 @@ namespace PAP
   
   void CameraView::setCamera(const QCameraInfo &cameraInfo)
   {
+    qInfo() << "CamereView::setCamera" ;
     bool isDFKcamera = cameraInfo.description().contains("DFK") ;
     
     delete m_camera;
@@ -118,13 +119,24 @@ namespace PAP
       settings.setMinimumFrameRate(5) ;
       settings.setPixelFormat(QVideoFrame::Format_BGR32) ;
       m_camera->setViewfinderSettings( settings ) ;
+    } else {
+      QCameraViewfinderSettings settings ;
+      settings.setResolution(1280,720) ;
+      settings.setMaximumFrameRate(5) ;
+      settings.setMinimumFrameRate(5) ;
+      settings.setPixelFormat(QVideoFrame::Format_BGR32) ;
+      m_camera->setViewfinderSettings( settings ) ;    
     }
     
     m_camera->setViewfinder(m_viewfinder);
 
     // FIXME: check that this line does not break anything!
     m_viewfinder->setSize( m_camera->viewfinderSettings().resolution() ) ;
+    qDebug() << "Resolution is now: "
+	     << m_camera->viewfinderSettings().resolution()
+	     << m_viewfinder->size() ;
 
+    
     // also add a videoprobe such that we can in parallel analyze the
     // image, e.g. for focusssing.
     m_camera->setCaptureMode(QCamera::CaptureVideo);
@@ -133,9 +145,10 @@ namespace PAP
     // to analyze images we connect a function to the videoprobe signal
     connect(m_videoProbe, SIGNAL(videoFrameProbed(QVideoFrame)),
 	    this, SLOT(processFrame(QVideoFrame)));
-
+    
     m_camera->start();
     qDebug() << "CameraView E" ;
+    
   }
   
   void CameraView::wheelEvent ( QWheelEvent * event )
@@ -221,9 +234,68 @@ namespace PAP
       }
   }
 
-  void CameraView::processFrame( const QVideoFrame& frame )
+  void CameraView::processFrame( QVideoFrame& frame )
   {
-    // compute image contrast ? maybe not on every call ...
+    // compute image contrast ? maybe not on every call!
+    qDebug() << "Frame size: " << frame.size() ;
+    static bool doOnce = true ;
+    if( doOnce ) {
+      computeContrast(frame) ;
+    }
+  }
+
+  double CameraView::computeContrast( QVideoFrame& frame ) const
+  {
+    // right now we'll 'just' compute the contrast in a 100x100 pixel
+    // size area around the center.
+    //
+    // one standard measure is 'constrast per pixel'
+    // * 8 copmute the difference between a pixel and it's 8 neighours
+    // * all up all of those in squares
+    //
+    
+    // I am not sure what is a fast way to do this, but we should
+    // definitely use as few points as we can. it probably also makes
+    // sense to first copy the data such that it fits in the cache.
+
+    // first call the 'map' to copy the contents to accessible memory
+    frame.map(QAbstractVideoBuffer::ReadOnly) ;
+
+    qDebug() << "VideoFrame: "
+	     << frame.size() << " "
+	     << frame.width() << " "
+	     << frame.height() << " "
+	     << frame.bytesPerLine() << " "
+	     << frame.mappedBytes() ;
+
+    /*
+      // the following should also allow to change the format
+    QImage::Format imageFormat =
+      QVideoFrame::imageFormatFromPixelFormat(frame.pixelFormat());
+    QImage img( frame.bits(),
+		frame.width(),
+		frame.height(),
+		frame.bytesPerLine(),
+		imageFormat);
+    */
+    
+    const int centralPixelX = m_numPixelsX/2 ;
+    const int centralPixelY = m_numPixelsY/2 ;
+    const int numPixelX = 100 ; // 30x30 microns.
+    const int numPixelY = 100 ;
+    const int firstPixelX = centralPixelX - numPixelX/2 ;
+    const int lastPixelX  = centralPixelX + numPixelX/2 ;
+    const int firstPixelY = centralPixelY - numPixelY/2 ;
+    const int lastPixelY  = centralPixelY + numPixelY/2 ;
+    
+    double sum2(0) ;
+    for(int xbin = firstPixelX ; xbin<lastPixelX ; ++xbin)
+      for(int ybin = firstPixelY ; ybin<lastPixelY ; ++ybin) {
+	// how to I get pixel intensity? I am a bit worried that I am
+	// now mixing up pixels with different color ...
+      }
+    // unmap in order to free the memory
+    frame.unmap() ;
     
   }
   
