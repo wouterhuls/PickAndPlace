@@ -32,10 +32,11 @@ namespace PAP
       m_scene(0),
       m_chipPixelSize(0.00345),
       m_magnification("Cam.Magnification",5.03),
-      m_rotation("Cam.Rotation",0.0),
+      m_rotation("Cam.Rotation",+M_PI/2),
       m_numScheduledScalings(0)
   {
     resize(622, 512);
+    //resize(2*622, 2*512) ;
 
     //auto layout = new QGridLayout(centralwidget) ;
     // if(false) {
@@ -51,7 +52,8 @@ namespace PAP
     m_numPixelsX = 2448 ;
     m_numPixelsY = 2048 ;
     m_viewfinder->setSize( QSize{m_numPixelsX,m_numPixelsY} ) ;
-    scale(0.25,0.25) ;
+    double maxscale = size().width() / double(m_viewfinder->size().width()) ;
+    scale(maxscale,maxscale) ;
 	
     m_scene->addItem(m_viewfinder) ;
     this->setScene( m_scene ) ;
@@ -234,17 +236,18 @@ namespace PAP
       }
   }
 
-  void CameraView::processFrame( QVideoFrame& frame )
+  void CameraView::processFrame( const QVideoFrame& frame )
   {
     // compute image contrast ? maybe not on every call!
     qDebug() << "Frame size: " << frame.size() ;
-    static bool doOnce = true ;
-    if( doOnce ) {
+    static int numtries=10 ;
+    if( --numtries>0 ) {
       computeContrast(frame) ;
+      
     }
   }
 
-  double CameraView::computeContrast( QVideoFrame& frame ) const
+  double CameraView::computeContrast( const QVideoFrame& frame ) const
   {
     // right now we'll 'just' compute the contrast in a 100x100 pixel
     // size area around the center.
@@ -258,15 +261,21 @@ namespace PAP
     // definitely use as few points as we can. it probably also makes
     // sense to first copy the data such that it fits in the cache.
 
-    // first call the 'map' to copy the contents to accessible memory
-    frame.map(QAbstractVideoBuffer::ReadOnly) ;
+    // I thikn that I need to use the colours in "HSV" mode. The V componess is the brightness, which is probablaby good for computing a contract. I cna also convert to grayscale.
 
-    qDebug() << "VideoFrame: "
-	     << frame.size() << " "
-	     << frame.width() << " "
-	     << frame.height() << " "
-	     << frame.bytesPerLine() << " "
-	     << frame.mappedBytes() ;
+    // rather than 'contrast per pixel', we can also use 'entropy'
+    // E = - sum p * log2(p)
+    // where the sum runs over all pixels and p is again intensity.
+
+    // first call the 'map' to copy the contents to accessible memory
+    const_cast<QVideoFrame&>(frame).map(QAbstractVideoBuffer::ReadOnly) ;
+
+    qInfo() << "VideoFrame: "
+	    << frame.size() << " "
+	    << frame.width() << " "
+	    << frame.height() << " "
+	    << frame.bytesPerLine() << " "
+	    << frame.mappedBytes() ;
 
     /*
       // the following should also allow to change the format
@@ -287,15 +296,24 @@ namespace PAP
     const int lastPixelX  = centralPixelX + numPixelX/2 ;
     const int firstPixelY = centralPixelY - numPixelY/2 ;
     const int lastPixelY  = centralPixelY + numPixelY/2 ;
-    
+
+    // make sure that x is the inner loop
     double sum2(0) ;
-    for(int xbin = firstPixelX ; xbin<lastPixelX ; ++xbin)
-      for(int ybin = firstPixelY ; ybin<lastPixelY ; ++ybin) {
+    // fill histogram with intensity values
+    double histogram[256] ;
+    int* bgr32 = reinterprete_cast<int*>(frame.bits()) ;
+        
+    for(int ybin = firstPixelY ; ybin<lastPixelY ; ++ybin) {
+      for(int xbin = firstPixelX ; xbin<lastPixelX ; ++xbin) {
 	// how to I get pixel intensity? I am a bit worried that I am
 	// now mixing up pixels with different color ...
+	//QRgb pixel = frame.bits()[ybin*frame.height()+xbin] ;
+	
+	
       }
+    }
     // unmap in order to free the memory
-    frame.unmap() ;
+    const_cast<QVideoFrame&>(frame).unmap() ;
     
   }
   

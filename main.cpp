@@ -21,7 +21,7 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
   switch (type) {
   case QtDebugMsg:
     //fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
-    fprintf(stderr, "Debug: %s\n", localMsg.constData()) ;
+    //fprintf(stderr, "Debug: %s\n", localMsg.constData()) ;
     break;
   case QtInfoMsg:
     fprintf(stderr, "Info: %s\n", localMsg.constData()) ;
@@ -66,14 +66,9 @@ int main(int argc, char *argv[])
   // For now we put the camera window in a separate main window. In
   // the end, we'll always want the camera window, but the MS
   // controls we only need on demand.
+  
   PAP::CameraWindow camerawindow ;
   camerawindow.show() ;
-  
-  //QMainWindow mainwindow2 ;
-  //mainwindow2.resize(700,600) ;
-  //auto papwindow = new PAP::CameraWindow(&mainwindow2) ;
-  //mainwindow2.show() ;
-  
   
   auto rc = a.exec() ;
   

@@ -71,12 +71,12 @@ namespace PAP
   
   
   GeometrySvc::GeometrySvc()
-    : m_mainX0( "Geo.mainX0", 10. ),
+    : m_mainX0( "Geo.mainX0", 0. ),
       m_mainXA( "Geo.mainXA", 1.0 ),
       m_mainXB( "Geo.mainXB", 0.0 ),
-      m_mainY0( "Geo.mainY0", 20. ),
+      m_mainY0( "Geo.mainY0", 0. ),
       m_mainYA( "Geo.mainYA", 0.0 ),
-      m_mainYB( "Geo.mainYB", 1.0 )
+      m_mainYB( "Geo.mainYB", -1.0 )
   {
     PAP::PropertySvc::instance()->add( m_mainX0 ) ;
     PAP::PropertySvc::instance()->add( m_mainXA ) ;

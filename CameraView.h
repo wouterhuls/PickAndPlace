@@ -30,13 +30,13 @@ namespace PAP
     double pixelSizeX() const { return m_chipPixelSize / m_magnification ; }
     double pixelSizeY() const { return m_chipPixelSize / m_magnification ; }
 
-    double computeContrast( QVideoFrame& frame ) const ;
+    double computeContrast( const QVideoFrame& frame ) const ;
   public slots:
     virtual void wheelEvent ( QWheelEvent * event ) ;
     void scalingTime(qreal x) ;
     void animFinished() ;
     virtual void mousePressEvent( QMouseEvent* event) ;
-    void processFrame( QVideoFrame& frame ) ;
+    void processFrame( const QVideoFrame& frame ) ;
     void moveCameraTo( QPointF localpoint ) const ;
   private:
     QCamera* m_camera ;

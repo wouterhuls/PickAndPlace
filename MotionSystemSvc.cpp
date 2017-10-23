@@ -40,18 +40,22 @@ namespace PAP
     //  that I will use the 'terminal' in the example.
     
     // for now, open with a hardcoded name. later we'll put this somewhere in a menu
+    qInfo() << "Listing available ports:" ;
     foreach (const QSerialPortInfo &info, QSerialPortInfo::availablePorts()) {
-      qDebug() << "Name : " << info.portName();
-      qDebug() << "Description : " << info.description();
-      qDebug() << "Manufacturer: " << info.manufacturer();
+      qInfo() << "Name : " << info.portName();
+      qInfo() << "Description : " << info.description();
+      qInfo() << "Manufacturer: " << info.manufacturer();
       // Example use QSerialPort
-      if( info.portName()=="cu.usbserial-PX1FXU5V" /*"cu.usbserial-PX9I7SZ6"*/) {
+      if( QString(info.description()).contains("GPIB") ) {
+	qInfo() << "Choosing this port" ;
+	//if( info.portName()=="cu.usbserial-PX1FXU5V" /*"cu.usbserial-PX9I7SZ6"*/) {
 	m_serialport.setPort(info)  ;
       }
     }
-    m_serialport.setBaudRate(QSerialPort::Baud115200) ;
+    //m_serialport.setBaudRate(QSerialPort::Baud115200) ;
     //m_serialport.setBaudRate(QSerialPort::Baud1200) ;
     //m_serialport.setPortName("cu.usbserial-PX9I7SZ6") ;
+    
     if( m_serialport.open(QIODevice::ReadWrite) ) {
       qInfo() << "MotionSystemSvs: Successfully opened port"
 	      << m_serialport.baudRate() << " "
@@ -79,7 +83,8 @@ namespace PAP
 	readData.append(m_serialport.readAll());
       qInfo() << "Version of GPIB-USB interface: " << readData ;
     } else {
-      qWarning() << "MotionSystemSvc: Cannot open serial port to motion controller." ;
+      qWarning() << "MotionSystemSvc: Cannot open serial port to motion controller."
+		 << m_serialport.portName() ;
     }
     
     // let's create the controllers and the axis. actally, we cannot do
@@ -117,7 +122,7 @@ namespace PAP
       // create a QTimer that will update all information from the motion system
       QTimer *timer = new QTimer(this);
       QObject::connect(timer, SIGNAL(timeout()), this, SLOT(updateAllData()));
-      timer->start(5000);
+      timer->start(10000);
     }
   }
   
@@ -174,7 +179,7 @@ namespace PAP
       // while (m_serialport.waitForReadyRead(m_timeout))
       //   readData.append(m_serialport.readAll());
       // and this is how I want to try it:
-      /*bool success = */ m_serialport.waitForReadyRead(500) ;
+      /*bool success = */ m_serialport.waitForReadyRead(200) ;
       readData = m_serialport.readAll();
     }
     //qDebug() << "Read: \"" << readData << "\"" ; //<< std::endl ;

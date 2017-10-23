@@ -25,7 +25,7 @@ namespace PAP
     //QObject::connect(&m_position,&QVariable::valueChanged,this,&MotionAxis::applyPosition);
     QTimer *timer = new QTimer(this);
     QObject::connect(timer, SIGNAL(timeout()), this, SLOT(readPosition()));
-    timer->start(1000);
+    timer->start(5000);
     
     // connect some of the slots
     m_parameters.reserve( MSCommandLibrary::Parameters.size() ) ;
