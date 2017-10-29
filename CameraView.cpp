@@ -21,7 +21,8 @@
 #include <QPushButton>
 #include <QDialogButtonBox>
 
-#include<cmath>
+#include <cmath>
+#include <iostream>
 
 namespace PAP
 {
@@ -30,6 +31,9 @@ namespace PAP
     : QGraphicsView(parent),
       m_camera(0),
       m_scene(0),
+      m_viewfinder(0),
+      m_videoProbe(0),
+      m_frame(0),
       m_chipPixelSize(0.00345),
       m_magnification("Cam.Magnification",5.03),
       m_rotation("Cam.Rotation",+M_PI/2),
@@ -121,16 +125,16 @@ namespace PAP
       settings.setMinimumFrameRate(5) ;
       settings.setPixelFormat(QVideoFrame::Format_BGR32) ;
       m_camera->setViewfinderSettings( settings ) ;
+      m_camera->setViewfinder(m_viewfinder);
     } else {
       QCameraViewfinderSettings settings ;
       settings.setResolution(1280,720) ;
-      settings.setMaximumFrameRate(5) ;
-      settings.setMinimumFrameRate(5) ;
-      settings.setPixelFormat(QVideoFrame::Format_BGR32) ;
+      settings.setPixelFormat(QVideoFrame::Format_UYVY) ;
       m_camera->setViewfinderSettings( settings ) ;    
     }
-    
-    m_camera->setViewfinder(m_viewfinder);
+
+
+    // m_camera->setViewfinder(m_viewfinder);
 
     // FIXME: check that this line does not break anything!
     m_viewfinder->setSize( m_camera->viewfinderSettings().resolution() ) ;
@@ -240,6 +244,7 @@ namespace PAP
   {
     // compute image contrast ? maybe not on every call!
     qDebug() << "Frame size: " << frame.size() ;
+    m_frame = const_cast< QVideoFrame* >(&frame) ;
     static int numtries=10 ;
     if( --numtries>0 ) {
       computeContrast(frame) ;
@@ -270,51 +275,74 @@ namespace PAP
     // first call the 'map' to copy the contents to accessible memory
     const_cast<QVideoFrame&>(frame).map(QAbstractVideoBuffer::ReadOnly) ;
 
-    qInfo() << "VideoFrame: "
-	    << frame.size() << " "
-	    << frame.width() << " "
-	    << frame.height() << " "
-	    << frame.bytesPerLine() << " "
-	    << frame.mappedBytes() ;
-
-    /*
+    // My laptop camera uses "UYVY", which means that UVY for two
+    // adjacent pixels is stored with common U and V values. The Y
+    // value is for brightness, which is all we need here. Of course,
+    // as long as the camera anyway doesn't work, it makes little
+    // sense to adapt the code for this.
+    qDebug() << "VideoFrame: "
+	     << frame.size() << " "
+	     << frame.width() << " "
+	     << frame.height() << " "
+	     << frame.bytesPerLine() << " "
+	     << frame.mappedBytes() << " "
+	     << frame.pixelFormat() ;
+    double rc = 0 ;
+    if( frame.bits() && frame.pixelFormat() ==QVideoFrame::Format_BGR32) {
+      /*
       // the following should also allow to change the format
-    QImage::Format imageFormat =
+      QImage::Format imageFormat =
       QVideoFrame::imageFormatFromPixelFormat(frame.pixelFormat());
-    QImage img( frame.bits(),
-		frame.width(),
-		frame.height(),
-		frame.bytesPerLine(),
-		imageFormat);
-    */
-    
-    const int centralPixelX = m_numPixelsX/2 ;
-    const int centralPixelY = m_numPixelsY/2 ;
-    const int numPixelX = 100 ; // 30x30 microns.
-    const int numPixelY = 100 ;
-    const int firstPixelX = centralPixelX - numPixelX/2 ;
-    const int lastPixelX  = centralPixelX + numPixelX/2 ;
-    const int firstPixelY = centralPixelY - numPixelY/2 ;
-    const int lastPixelY  = centralPixelY + numPixelY/2 ;
-
-    // make sure that x is the inner loop
-    double sum2(0) ;
-    // fill histogram with intensity values
-    double histogram[256] ;
-    int* bgr32 = reinterprete_cast<int*>(frame.bits()) ;
-        
-    for(int ybin = firstPixelY ; ybin<lastPixelY ; ++ybin) {
-      for(int xbin = firstPixelX ; xbin<lastPixelX ; ++xbin) {
-	// how to I get pixel intensity? I am a bit worried that I am
-	// now mixing up pixels with different color ...
-	//QRgb pixel = frame.bits()[ybin*frame.height()+xbin] ;
-	
-	
+      QImage img( frame.bits(),
+      frame.width(),
+      frame.height(),
+      frame.bytesPerLine(),
+      imageFormat);
+      */
+      
+      const int centralPixelX = m_numPixelsX/2 ;
+      const int centralPixelY = m_numPixelsY/2 ;
+      const int numPixelX = 100 ; // 30x30 microns.
+      const int numPixelY = 100 ;
+      const int firstPixelX = centralPixelX - numPixelX/2 ;
+      const int lastPixelX  = centralPixelX + numPixelX/2 ;
+      const int firstPixelY = centralPixelY - numPixelY/2 ;
+      const int lastPixelY  = centralPixelY + numPixelY/2 ;
+      
+      // fill histogram with intensity values
+      double histogram[256] ;
+      for(int i=0; i<256; ++i) histogram[i]=0 ;
+      const unsigned int* bgr32 = reinterpret_cast<const unsigned int*>(frame.bits()) ;
+      // for now we'll just use entropy. try fancier things later.
+      for(int ybin = firstPixelY ; ybin<lastPixelY ; ++ybin) {
+	int xbin0 = ybin*frame.height() ;
+	for(int xbin = firstPixelX ; xbin<lastPixelX ; ++xbin) {
+	  unsigned int bbggrrff = bgr32[ xbin0+xbin ] ;
+	  unsigned char B  = (bbggrrff >> 24 ) & 0xff ;
+	  unsigned char R  = (bbggrrff >> 16 ) & 0xff ;
+	  unsigned char G  = (bbggrrff >> 8 )  & 0xff ;
+	  unsigned char F  = bbggrrff & 0xff ;
+	  if( ybin==firstPixelY && xbin==firstPixelX)
+	    std::cout << "B,G,R: " << int(B) << " " << int(R) << " " << int(G) << " " << int(F) << std::endl ;
+	  // many ways to turn this into an intensity. 
+	  //https://stackoverflow.com/questions/687261/converting-rgb-to-grayscale-intensity
+	  // https://stackoverflow.com/questions/596216/formula-to-determine-brightness-of-rgb-color
+	  // onw that runs very quickly is:
+	  unsigned char Y = (R+R+R+B+G+G+G+G)>>3 ;
+	  histogram[Y] += 1 ;
+	}
       }
+      // compute entropy
+      double norm = numPixelX*numPixelY ;
+      double entropy = 0 ;
+      for(int i=0; i<256; ++i) entropy -= histogram[i] * std::log2(histogram[i]) ;
+      //qDebug() << "Entropy = "
+      //<< entropy ;
+      // unmap in order to free the memory
+      const_cast<QVideoFrame&>(frame).unmap() ;
+      rc = entropy ;
     }
-    // unmap in order to free the memory
-    const_cast<QVideoFrame&>(frame).unmap() ;
-    
+    return rc ;
   }
   
   void CameraView::moveCameraTo( QPointF localpoint ) const

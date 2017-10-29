@@ -6,23 +6,18 @@
 #include <QVariant>
 #include <QDebug>
 
-/*
-class QValueChangedEmitter : public QObject
-{
- Q_OBJECT
-   signals:
-   void valueChanged() ;
-} ;
-*/
+#include "MonitoredValue.h"
+
 
 namespace PAP
 {
-  class NamedValueBase : public QObject
+  
+  class NamedValueBase : public ValueChangedEmitter
   {
-    Q_OBJECT
+   Q_OBJECT 
   public:
     NamedValueBase( const QString& name ) : m_name(name) {}
-    NamedValueBase(const NamedValueBase& rhs) : QObject(),m_name(rhs.m_name) {}
+    NamedValueBase(const NamedValueBase& rhs) : m_name(rhs.m_name) {}
     // make sure that we have a v-table
     virtual ~NamedValueBase() {}
     //const char* name() const { return m_name.c_str() ; }

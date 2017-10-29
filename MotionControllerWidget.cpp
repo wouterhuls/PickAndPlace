@@ -40,10 +40,12 @@ namespace PAP
     m_errorlabel = new QLabel(this) ;
     m_errorlabel->setText("error unknown") ;
     layout->addWidget( m_errorlabel) ;
-    
-    QTimer *timer = new QTimer(this);
-    connect(timer, SIGNAL(timeout()), this, SLOT(update()));
-    timer->start(100);
+
+    // FIXME: this should just work with signals!
+    connect( m_controller, SIGNAL(statusChanged()), this, SLOT(update()));
+    //QTimer *timer = new QTimer(this);
+    //connect(timer, SIGNAL(timeout()), this, SLOT(update()));
+    //timer->start(100);
     
     QMetaObject::connectSlotsByName(this);
   }
@@ -64,6 +66,6 @@ namespace PAP
     QPalette pal = m_statuslabel->palette();
     pal.setColor(QPalette::Window, QColor(m_controller->hasMotorsOn() ? Qt::green : Qt::red));
     m_statuslabel->setPalette(pal);  
-    m_errorlabel->setText( QString("error=") + m_controller->error().c_str() ) ;
+    m_errorlabel->setText( QString("error=") + m_controller->error() ) ;
   }
 }

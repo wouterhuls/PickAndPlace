@@ -5,6 +5,7 @@
 #include "MotionSystemSvc.h"
 #include "PropertySvc.h"
 #include "MotionSystemCommandLibrary.h"
+#include "NamedValue.h"
 
 // Let;s make a list of all parameters. Perhaps we are not dealing with so much
 namespace PAP
@@ -12,10 +13,12 @@ namespace PAP
 
   MotionAxis::MotionAxis(const MotionAxisID& id, const QString& name, const QString& type,
 			 const MotionController& c) 
-    : m_id{id}, m_name{name},
+    : m_id{id},
+      m_name{name},
       m_type{type},
       m_position{name + ".Position",0.},
       m_stepsize{name + ".Stepsize",0.005,0.0,1.0},
+      m_isMoving(false),
       m_controller{&c}
   {
     qInfo() << "MotionAxis: defined controller for "
@@ -23,9 +26,13 @@ namespace PAP
 	    << m_name << " " << m_type ;
     //m_position = MotionSystemSvc::instance()->readAxisFloat(m_id,"TP") ;
     //QObject::connect(&m_position,&QVariable::valueChanged,this,&MotionAxis::applyPosition);
-    QTimer *timer = new QTimer(this);
-    QObject::connect(timer, SIGNAL(timeout()), this, SLOT(readPosition()));
-    timer->start(5000);
+    if( MotionSystemSvc::instance()->isReady() ) {
+      QTimer *timer = new QTimer(this);
+      QObject::connect(timer, SIGNAL(timeout()), this, SLOT(readPosition()));
+      timer->start(1000);
+    }
+    // read the position every time the motors have stopped
+    QObject::connect(this,&MotionAxis::movementStopped,this,&MotionAxis::readPosition);
     
     // connect some of the slots
     m_parameters.reserve( MSCommandLibrary::Parameters.size() ) ;
@@ -86,40 +93,53 @@ namespace PAP
   {
     m_position = MotionSystemSvc::instance()->readAxisFloat(m_id,"TP") ;
   }
+
+  bool MotionAxis::hasMotorOn() const {
+    return m_controller->hasMotorsOn() ;
+  }
   
-  void MotionAxis::step( Direction dir ) const
+  void MotionAxis::step( Direction dir )
   {
-    move( dir * m_stepsize.value().toDouble() ) ;
+    setIsMoving( true ) ;
+    move( dir * m_stepsize ) ;
   }
 
-  void MotionAxis::move( float delta ) const
+  void MotionAxis::move( float delta )
   {
+    setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PR",delta) ;
   }
   
-  void MotionAxis::move( Direction dir ) const
+  void MotionAxis::move( Direction dir )
   {
+    setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"MT",dir == Up ? "+" : "-") ;
   }
   
-  void MotionAxis::stop() const
+  void MotionAxis::stop()
   {
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"ST") ;
   }
   
-  void MotionAxis::moveTo( float position ) const
+  void MotionAxis::moveTo( float position )
   {
+    setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PA",position) ;
   }
   
-  void MotionAxis::searchHome() const
+  void MotionAxis::searchHome()
   {
+    setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"OR") ;
   }
   
-  bool MotionAxis::isMoving() const
+  void MotionAxis::setIsMoving(bool ismoving)
   {
-    return m_controller->status() & (1 << (m_id.axis-1) ) ;
+    if(  ismoving && !m_isMoving )
+      emit movementStarted() ;
+    else if( !ismoving && m_isMoving )
+      emit movementStopped() ;
+    m_isMoving = ismoving ;
   }
 }
   

@@ -4,8 +4,10 @@
 #
 #-------------------------------------------------
 
-QT       += core gui serialport multimedia multimediawidgets
+QT       += core gui serialport multimedia multimediawidgets testlib
 
+#INCLUDEPATH+=$HOME/surfdrive/QtProjects
+INCLUDEPATH+=/Users/wouter/surfdrive/QtProjects
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -29,7 +31,8 @@ SOURCES += main.cpp \
     GeometrySvc.cpp \
     NamedValue.cpp
 
-HEADERS  += \  
+HEADERS  += \
+    MonitoredValue.h \
     NamedValue.h \
     NamedValueInputWidget.h \
     MotionControllerWidget.h \

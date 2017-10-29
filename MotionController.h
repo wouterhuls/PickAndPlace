@@ -2,28 +2,36 @@
 #define MOTIONCONTROLLER_H
 
 //#include "MotionAxis.h"
-#include <string>
+#include <QString>
+#include <QObject>
 
 namespace PAP
 {
-
-  class MotionController
+  class MotionAxis ;
+  
+  class MotionController : public QObject
   {
+    Q_OBJECT
   public:
     MotionController( const int& id, const std::string& name ) ;
+    virtual ~MotionController() {}
     void switchMotorsOn(bool on = true) const ;
     bool hasMotorsOn() const ;
     const std::string name() const { return m_name ; }
     int id() const { return m_id ; }
-    char status() const { return m_status ; }
-    const std::string& error() const { return m_error; }
-    void setStatus( unsigned int status ) { m_status = status ; }
-    void setError( const std::string& error ) { m_error = error ; }
+    const unsigned int& status() const { return m_status ; }
+    const QString& error() const { return m_error; }
+    void setStatus( unsigned int status ) ;
+    void setError( const QString& error ) ;
+    void addAxis( MotionAxis* a) { m_axes.push_back(a); }
+  signals:
+    void statusChanged() ;
   private:
     int m_id ;
     std::string m_name ;
     unsigned int m_status ;
-    std::string m_error ;
+    QString m_error ;
+    std::vector<MotionAxis*> m_axes ;
   };
 }
 

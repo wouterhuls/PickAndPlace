@@ -59,6 +59,8 @@ namespace PAP
     //connect(timer, SIGNAL(timeout()), this, SLOT(showPosition()));
     //timer->start(1000);
     connect(&(m_axis->position()),&NamedValue::valueChanged,this,&MotionAxisWidget::showPosition) ;
+    connect(m_axis,&MotionAxis::movementStarted,this,&MotionAxisWidget::showPosition) ;
+    connect(m_axis,&MotionAxis::movementStopped,this,&MotionAxisWidget::showPosition) ;
     showPosition() ;
     
     auto settingsButton = new QPushButton(QIcon("images/settings.png"),"settings",widget) ;
@@ -113,7 +115,7 @@ namespace PAP
   {
     //auto pos = dynamic_cast<const NamedValue*>(sender()) ;
     auto pos = m_axis->position() ;
-    m_positionLabel->display( pos.value().toFloat() ) ;
+    m_positionLabel->display( pos ) ;
     // change color if moving?
     QPalette pal = m_positionLabel->palette();
     if( m_axis->isMoving() ) {

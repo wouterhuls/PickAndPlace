@@ -52,13 +52,16 @@ namespace PAP
     //const AxisContainer& axes() const { return m_axes ; }
     AxisContainer& axes() { return m_axes ; }
     ControllerContainer& controllers() { return m_controllers; }
-    
+
+    // switch all motors on or off
     void switchMotorsOn(MotionControllerID id, bool on = true) const ;
+    // tell if the serial port is ready and the system connected
+    bool isReady() const { return m_serialport.isOpen() && m_isReady ; }
     
     void setConsole( Console* console ) { m_console = console ; }
     
-    const MotionAxis* axis( const QString& name ) ;
-    
+    MotionAxis* axis( const QString& name ) ;
+
     private slots:
       void updateAllData() ;
       
@@ -86,6 +89,7 @@ namespace PAP
       mutable int m_currentcontrollerid ;
       // Console for monitoring in and output.
       Console *m_console ;
+      bool m_isReady ;
   };
 }
 

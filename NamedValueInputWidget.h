@@ -11,13 +11,13 @@ namespace PAP
   {
     Q_OBJECT  
   public:
-    NamedValueInputWidget(NamedValue& v, QWidget *parent = 0) ;
+    NamedValueInputWidget(NamedValueBase& v, QWidget *parent = 0) ;
     virtual ~NamedValueInputWidget() {}
   public slots:
     void updateLabel() ;
     void buttonpressed() ;  
   private:
-    NamedValue* m_v ;
+    NamedValueBase* m_v ;
     QLabel m_label ;
   } ;
 }

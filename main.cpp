@@ -21,7 +21,7 @@ void myMessageOutput(QtMsgType type, const QMessageLogContext &context, const QS
   switch (type) {
   case QtDebugMsg:
     //fprintf(stderr, "Debug: %s (%s:%u, %s)\n", localMsg.constData(), context.file, context.line, context.function);
-    //fprintf(stderr, "Debug: %s\n", localMsg.constData()) ;
+    fprintf(stderr, "Debug: %s\n", localMsg.constData()) ;
     break;
   case QtInfoMsg:
     fprintf(stderr, "Info: %s\n", localMsg.constData()) ;
@@ -56,6 +56,7 @@ int main(int argc, char *argv[])
   
   QMainWindow mainwindow;
   mainwindow.resize(600,500) ;
+  mainwindow.move(0,0) ;
   
   // auto centralWidget =
   new PAP::MotionSystemWidget(&mainwindow);
@@ -68,6 +69,7 @@ int main(int argc, char *argv[])
   // controls we only need on demand.
   
   PAP::CameraWindow camerawindow ;
+  camerawindow.move(700,0) ;
   camerawindow.show() ;
   
   auto rc = a.exec() ;

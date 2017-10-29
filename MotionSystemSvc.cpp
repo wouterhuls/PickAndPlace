@@ -22,7 +22,7 @@ namespace PAP
   void MotionSystemSvc::dummyfunction() {}
   
   MotionSystemSvc::MotionSystemSvc()
-    :  m_currentcontrollerid(-1), m_console(0)
+    :  m_currentcontrollerid(-1), m_console(0), m_isReady(false)
   {
     if( gInstance==0 ) gInstance = this ;
     
@@ -93,7 +93,27 @@ namespace PAP
     // but I'll fix it once I really know what I need.
     m_controllers[2] = new MotionController(2,"Controller A") ;
     m_controllers[4] = new MotionController(4,"Controller B") ;
-    
+    if( m_serialport.isOpen() ) {
+      // let's first just read the status
+      write(2,"TS") ;
+      qDebug() << "status of controller 2: " << read() ;
+      write(4,"TS") ;
+      qDebug() << "status of controller 4: " << read() ;
+      // FIXME: soon only set 'ready' if we actually see the controllers
+      m_isReady = m_controllers[2]->status()!=0 && m_controllers[4]->status()!=0 ;
+      //motorsOff() ;
+      //motorsOn() ;
+      
+      // create a QTimer that will update all information from the
+      // motion system. will replace this once we issue everything on
+      // separate thread.
+      if( m_isReady ) {
+	QTimer *timer = new QTimer(this);
+	QObject::connect(timer, SIGNAL(timeout()), this, SLOT(updateAllData()));
+	timer->start(1000);
+      }
+    }
+
     std::vector<int> controllerid = {4,4,2,2,4,2} ;
     std::vector<int> axisid       = {1,2,1,2,3,3} ;
     std::vector<QString> axisname  = { "MainX","MainY","StackX","StackY","StackR","Focus" } ;
@@ -108,22 +128,10 @@ namespace PAP
 	atype = read().constData() ;
       }
       m_axes[id] = new MotionAxis{id,axisname[i],atype,*(m_controllers[id.controller])} ;
+      m_controllers[controllerid[i]]->addAxis( m_axes[id] ) ;
     }
     
-    if( m_serialport.isOpen() ) {
-      // let's first just read the status
-      write(2,"TS") ;
-      qDebug() << "status of controller 2: " << read() ;
-      write(4,"TS") ;
-      qDebug() << "status of controller 4: " << read() ;
-      //motorsOff() ;
-      //motorsOn() ;
     
-      // create a QTimer that will update all information from the motion system
-      QTimer *timer = new QTimer(this);
-      QObject::connect(timer, SIGNAL(timeout()), this, SLOT(updateAllData()));
-      timer->start(10000);
-    }
   }
   
   MotionSystemSvc* MotionSystemSvc::instance()
@@ -270,7 +278,7 @@ namespace PAP
 	QStringRef errorstring = line.rightRef(line.size() - 2 ) ;
 	//QChar statusbyte = line[2] ;
 	//qDebug() << "Reading a error string: " << errorstring  ;
-	m_controllers[ m_currentcontrollerid ]->setError( std::string(errorstring.toLocal8Bit().constData()) ) ;
+	m_controllers[ m_currentcontrollerid ]->setError(errorstring.toString() )  ;
       } else if( line.contains("TS") ) {
 	int pos = line.indexOf("TS") ;
 	QChar errorbyte = line[pos+2] ;
@@ -295,7 +303,7 @@ namespace PAP
   
   int MotionSystemSvc::statusFlag( int motioncontrollerid )
   {
-    // We should also use "MS" which is the "motor status"
+    // We could also use "MS" which is the "motor status"
     write(motioncontrollerid,"TS") ;
     auto line = QString(read()) ;
     //if( line.contains("TS") ) {
@@ -420,7 +428,7 @@ namespace PAP
   /* THIS DOES NOT WORK: the controller does not buffer, it seems. On read it only sends the data from the last request. */
   void MotionSystemSvc::updateAllData()
   {
-    qDebug() << "updateAllData is called!" ;
+    qInfo() << "updateAllData is called!" ;
     // very tricky. let's see where this goes then fix it.
     std::vector<int> controllers = {2,4} ;
     for(int controllerid : controllers ) {
@@ -431,10 +439,10 @@ namespace PAP
     }
   }
   
-  const MotionAxis* MotionSystemSvc::axis( const QString& name)
+  MotionAxis* MotionSystemSvc::axis( const QString& name)
   {
-    const MotionAxis* rc(0) ;
-    for( const auto& it : m_axes ) {
+    MotionAxis* rc(0) ;
+    for(  auto& it : m_axes ) {
       if(it.second->name() == name ) {
 	rc = it.second ;
 	break;

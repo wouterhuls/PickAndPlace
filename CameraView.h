@@ -31,6 +31,8 @@ namespace PAP
     double pixelSizeY() const { return m_chipPixelSize / m_magnification ; }
 
     double computeContrast( const QVideoFrame& frame ) const ;
+    double computeContrast() const { return m_frame ? computeContrast(*m_frame) : 0 ; }
+    
   public slots:
     virtual void wheelEvent ( QWheelEvent * event ) ;
     void scalingTime(qreal x) ;
@@ -53,6 +55,7 @@ namespace PAP
     //QGraphicsView* m_view ;
     QGraphicsVideoItem* m_viewfinder ;
     QVideoProbe* m_videoProbe ;
+    QVideoFrame* m_frame ;
         
     //QCameraViewfinder* m_viewfinder ;
     //QGraphicsTextItem m_cursorpos ;

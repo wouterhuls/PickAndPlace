@@ -9,7 +9,7 @@
 namespace PAP
 {
 
-  NamedValueInputWidget::NamedValueInputWidget(NamedValue& v, QWidget *parent)
+  NamedValueInputWidget::NamedValueInputWidget(NamedValueBase& v, QWidget *parent)
     : QWidget(parent), m_v(&v), m_label(this)
   {
     auto layout = new QHBoxLayout{} ;
@@ -26,51 +26,54 @@ namespace PAP
     
   void NamedValueInputWidget::updateLabel()
   {
-    m_label.setText( m_v->value().toString() ) ;
+    m_label.setText( m_v->toString() ) ;
   }
   
   void NamedValueInputWidget::buttonpressed()
   {
     bool ok;
-    // get the current velocity
-    if(       m_v->type() == QVariant::Double ) {
-      // let's see if we can find it:
-      //double xmin(-2147483647),xmax(2147483647);
-      int decimals = 3 ;
-      auto par = MSCommandLibrary::findParDef( m_v->shortname().toString() ) ;
-      if(par) {
-	//xmin = par->minvalue ;
-	//xmax = par->maxvalue ;
-	decimals = par->decimals ;
+    NamedValue* v ;
+    NamedDouble* vd ;
+    // FIXME: still need to find a better solution for this!
+    int decimals=3 ;
+    auto par = MSCommandLibrary::findParDef( m_v->shortname().toString() ) ;
+    if(par) decimals = par->decimals ;
+        
+    if( (v = dynamic_cast<NamedValue*>(m_v) ) ) {
+      if(       v->type() == QVariant::Double ) {
+	double d = QInputDialog::getDouble(this,v->name(),v->name(),
+					   v->value().toDouble(),
+					   v->min().toDouble(),
+					   v->max().toDouble(),
+					   decimals,
+					   &ok) ;
+	if(ok) v->setValue( d ) ;
+      } else if( v->type() == QVariant::Int ) {
+	int d = QInputDialog::getInt(this,v->name(),v->name(),
+				     -64000,
+				     64000,
+				     1,
+				     v->value().toInt(), &ok) ;
+	if(ok) v->setValue( d ) ;
+      } else if( v->type() == QVariant::String ) {
+	QString d = QInputDialog::getText(this,v->name(),v->name(),
+					  QLineEdit::Normal,
+					  v->value().toString(), &ok) ;
+	if(ok) v->setValue( d ) ;
+      } else {
+	qDebug() << "NamedValueInputQWidget: do not know this type: "
+		 << v->type() ; 
       }
-      double d = QInputDialog::getDouble(this,
-					 m_v->name(),
-					 m_v->name(),
-					 m_v->value().toDouble(),
-					 m_v->min().toDouble(),
-					 m_v->max().toDouble(),
+    } else if( (vd = dynamic_cast<NamedDouble*>(m_v) ) ) {
+      double d = QInputDialog::getDouble(this,vd->name(),vd->name(),
+					 vd->value(),
+					 vd->min(),
+					 vd->max(),
 					 decimals,
 					 &ok) ;
-      if(ok) m_v->setValue( d ) ;
-    } else if( m_v->type() == QVariant::Int ) {
-      int d = QInputDialog::getInt(this,
-				   m_v->name(),
-				   m_v->name(),
-				   -64000,
-				   64000,
-				   1,
-				   m_v->value().toInt(), &ok) ;
-      if(ok) m_v->setValue( d ) ;
-    } else if( m_v->type() == QVariant::String ) {
-      QString d = QInputDialog::getText(this,
-					m_v->name(),
-					m_v->name(),
-					QLineEdit::Normal,
-					m_v->value().toString(), &ok) ;
-      if(ok) m_v->setValue( d ) ;
+      if(ok) vd->setValue( d ) ;
     } else {
-      qDebug() << "NamedValueInputQWidget: do not know this type: "
-	       << m_v->type() ; 
+      qWarning() << "NamedValueInputQWidget: cannot deduce type of NamedValue." ;
     }
   }
 }
