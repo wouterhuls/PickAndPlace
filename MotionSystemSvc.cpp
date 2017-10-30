@@ -86,13 +86,16 @@ namespace PAP
       qWarning() << "MotionSystemSvc: Cannot open serial port to motion controller."
 		 << m_serialport.portName() ;
     }
+
+    // tell the system we are in remote mode
+    m_serialport.write("MR") ;
     
     // let's create the controllers and the axis. actally, we cannot do
     // anything with them without a serial port, but it is convenient to
     // have them for developing the widgets. this looks still very ugly,
     // but I'll fix it once I really know what I need.
-    m_controllers[2] = new MotionController(2,"Controller A") ;
-    m_controllers[4] = new MotionController(4,"Controller B") ;
+    m_controllers[2] = new MotionController(2,"Controller RIGHT") ;
+    m_controllers[4] = new MotionController(4,"Controller LEFT") ;
 
     std::vector<int> controllerid = {4,4,2,2,4,2} ;
     std::vector<int> axisid       = {1,2,1,2,3,3} ;
@@ -116,7 +119,7 @@ namespace PAP
       qDebug() << "status of controller 2: " << m_controllers[2]->status() ;
       qDebug() << "status of controller 4: " << m_controllers[4]->status() ;
       // FIXME: soon only set 'ready' if we actually see the controllers
-      m_isReady = m_controllers[2]->status()!=0 && m_controllers[4]->status()!=0 ;
+      m_isReady = true; //m_controllers[2]->status()!=0 && m_controllers[4]->status()!=0 ;
       //motorsOff() ;
       //motorsOn() ;
       
@@ -171,7 +174,7 @@ namespace PAP
       // comes too early. The default time-out is 500 ms, which you
       // would think is enough. We could perhaps try with a 'wait' call
       // right here:
-      QThread::msleep(50) ;
+      QThread::msleep(100) ;
       m_serialport.write("++read eoi\n") ;
       
       // the sleep call is very annoying because it pauses the event
@@ -276,6 +279,7 @@ namespace PAP
   void MotionSystemSvc::parseData(int controllerid, const QByteArray& data )
   {
     // this all assumes that we receive data for the current controller.
+    qDebug() << "MotionSystemSvc, parsing message: " << data ;
     QStringList lines = QString(data).split(QRegExp("\n|\r\n|\r"));
     for( const auto& line : lines )
       if( line.size()>0 ) {
@@ -434,7 +438,7 @@ namespace PAP
   /* THIS DOES NOT WORK: the controller does not buffer, it seems. On read it only sends the data from the last request. */
   void MotionSystemSvc::updateAllData()
   {
-    //qInfo() << "updateAllData is called!" ;
+    qInfo() << "updateAllData is called!" ;
     // very tricky. let's see where this goes then fix it.
     std::vector<int> controllers = {2,4} ;
     for(int controllerid : controllers ) {
