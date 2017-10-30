@@ -116,7 +116,7 @@ namespace PAP
     
     // let's do something special for our gstreamer camera:
     if( isDFKcamera ) {
-      qDebug() << "Found a DFK camera" ;
+      qInfo() << "Found a DFK camera" ;
       QCameraViewfinderSettings settings ;
       const int xsize = 2448 ;
       const int ysize = 2048 ;
@@ -243,12 +243,14 @@ namespace PAP
   void CameraView::processFrame( const QVideoFrame& frame )
   {
     // compute image contrast ? maybe not on every call!
-    qDebug() << "Frame size: " << frame.size() ;
+    //qDebug() << "Frame size: " << frame.size() ;
     m_frame = const_cast< QVideoFrame* >(&frame) ;
-    static int numtries=10 ;
-    if( --numtries>0 ) {
-      computeContrast(frame) ;
-      
+    //qDebug() << "Pointer to frame: " << m_frame ;
+    static int numtries=0 ;
+    if( ++numtries==10 ) {
+      double contrast = computeContrast(frame) ;
+      qDebug() << "Value of constrast: " << contrast ;
+      numtries=0;
     }
   }
 
@@ -288,7 +290,9 @@ namespace PAP
 	     << frame.mappedBytes() << " "
 	     << frame.pixelFormat() ;
     double rc = 0 ;
-    if( frame.bits() && frame.pixelFormat() ==QVideoFrame::Format_BGR32) {
+    if( frame.bits() &&
+	//(frame.pixelFormat() == QVideoFrame::Format_BGR32||
+	frame.pixelFormat() == QVideoFrame::Format_RGB32 ) {
       /*
       // the following should also allow to change the format
       QImage::Format imageFormat =
@@ -318,10 +322,10 @@ namespace PAP
 	int xbin0 = ybin*frame.height() ;
 	for(int xbin = firstPixelX ; xbin<lastPixelX ; ++xbin) {
 	  unsigned int bbggrrff = bgr32[ xbin0+xbin ] ;
-	  unsigned char B  = (bbggrrff >> 24 ) & 0xff ;
+	  unsigned char F  = (bbggrrff >> 24 ) & 0xff ;
 	  unsigned char R  = (bbggrrff >> 16 ) & 0xff ;
 	  unsigned char G  = (bbggrrff >> 8 )  & 0xff ;
-	  unsigned char F  = bbggrrff & 0xff ;
+	  unsigned char B  = bbggrrff & 0xff ;
 	  if( ybin==firstPixelY && xbin==firstPixelX)
 	    std::cout << "B,G,R: " << int(B) << " " << int(R) << " " << int(G) << " " << int(F) << std::endl ;
 	  // many ways to turn this into an intensity. 
@@ -335,7 +339,9 @@ namespace PAP
       // compute entropy
       double norm = numPixelX*numPixelY ;
       double entropy = 0 ;
-      for(int i=0; i<256; ++i) entropy -= histogram[i] * std::log2(histogram[i]) ;
+      for(int i=0; i<256; ++i)
+	if( histogram[i]>0 )
+	  entropy -= histogram[i]/norm * std::log2(histogram[i]/norm) ;
       //qDebug() << "Entropy = "
       //<< entropy ;
       // unmap in order to free the memory

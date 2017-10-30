@@ -93,26 +93,6 @@ namespace PAP
     // but I'll fix it once I really know what I need.
     m_controllers[2] = new MotionController(2,"Controller A") ;
     m_controllers[4] = new MotionController(4,"Controller B") ;
-    if( m_serialport.isOpen() ) {
-      // let's first just read the status
-      write(2,"TS") ;
-      qDebug() << "status of controller 2: " << read() ;
-      write(4,"TS") ;
-      qDebug() << "status of controller 4: " << read() ;
-      // FIXME: soon only set 'ready' if we actually see the controllers
-      m_isReady = m_controllers[2]->status()!=0 && m_controllers[4]->status()!=0 ;
-      //motorsOff() ;
-      //motorsOn() ;
-      
-      // create a QTimer that will update all information from the
-      // motion system. will replace this once we issue everything on
-      // separate thread.
-      if( m_isReady ) {
-	QTimer *timer = new QTimer(this);
-	QObject::connect(timer, SIGNAL(timeout()), this, SLOT(updateAllData()));
-	timer->start(1000);
-      }
-    }
 
     std::vector<int> controllerid = {4,4,2,2,4,2} ;
     std::vector<int> axisid       = {1,2,1,2,3,3} ;
@@ -129,6 +109,25 @@ namespace PAP
       }
       m_axes[id] = new MotionAxis{id,axisname[i],atype,*(m_controllers[id.controller])} ;
       m_controllers[controllerid[i]]->addAxis( m_axes[id] ) ;
+    }
+    if( m_serialport.isOpen() ) {
+      // let's first just read the status
+      updateAllData() ;
+      qDebug() << "status of controller 2: " << m_controllers[2]->status() ;
+      qDebug() << "status of controller 4: " << m_controllers[4]->status() ;
+      // FIXME: soon only set 'ready' if we actually see the controllers
+      m_isReady = m_controllers[2]->status()!=0 && m_controllers[4]->status()!=0 ;
+      //motorsOff() ;
+      //motorsOn() ;
+      
+      // create a QTimer that will update all information from the
+      // motion system. will replace this once we issue everything on
+      // separate thread.
+      if( m_isReady ) {
+	QTimer *timer = new QTimer(this);
+	QObject::connect(timer, SIGNAL(timeout()), this, SLOT(updateAllData()));
+	timer->start(1000);
+      }
     }
     
     
@@ -268,31 +267,38 @@ namespace PAP
       return axis ;
     }
   }
-  
+
   void MotionSystemSvc::parseData( const QByteArray& data )
+  {
+    parseData( m_currentcontrollerid, data ) ;
+  }
+  
+  void MotionSystemSvc::parseData(int controllerid, const QByteArray& data )
   {
     // this all assumes that we receive data for the current controller.
     QStringList lines = QString(data).split(QRegExp("\n|\r\n|\r"));
-    for( const auto& line : lines ) {
-      if( line.startsWith("TE") || line.startsWith("TB") ) {
-	QStringRef errorstring = line.rightRef(line.size() - 2 ) ;
-	//QChar statusbyte = line[2] ;
-	//qDebug() << "Reading a error string: " << errorstring  ;
-	m_controllers[ m_currentcontrollerid ]->setError(errorstring.toString() )  ;
-      } else if( line.contains("TS") ) {
-	int pos = line.indexOf("TS") ;
-	QChar errorbyte = line[pos+2] ;
-	m_controllers[ m_currentcontrollerid ]->setStatus(errorbyte.toLatin1()) ;
-	//qDebug() << "Reading an error string: " << errorbyte ;
-      } else if( line.contains("TP") ) {
-	// now we need some serious parsing. this needs to be improved:
-	float position ;
-	int axis = extractAxisFloat( "TP", line, position) ;
-	m_axes[ MotionAxisID( m_currentcontrollerid, axis ) ]->position().setValue( position ) ; 
-	//qDebug() << "Read position: " << line << " --> "
-	//<< axis << " : " << position ;
-      } 
-    }
+    for( const auto& line : lines )
+      if( line.size()>0 ) {
+	qDebug() << "MotionSystemSvc, parsing line: " << line ;
+	if( line.startsWith("TE") || line.startsWith("TB") ) {
+	  QStringRef errorstring = line.rightRef(line.size() - 2 ) ;
+	  //QChar statusbyte = line[2] ;
+	  //qDebug() << "Reading a error string: " << errorstring  ;
+	  m_controllers[ controllerid ]->setError(errorstring.toString() )  ;
+	} else if( line.contains("TS") ) {
+	  int pos = line.indexOf("TS") ;
+	  QChar errorbyte = line[pos+2] ;
+	  m_controllers[ controllerid ]->setStatus(errorbyte.toLatin1()) ;
+	  //qDebug() << "Reading an error string: " << errorbyte ;
+	} else if( line.contains("TP") ) {
+	  // now we need some serious parsing. this needs to be improved:
+	  float position ;
+	  int axis = extractAxisFloat( "TP", line, position) ;
+	  m_axes[ MotionAxisID( controllerid, axis ) ]->position().setValue( position ) ; 
+	  //qDebug() << "Read position: " << line << " --> "
+	  //<< axis << " : " << position ;
+	} 
+      }
   }
   
   
@@ -421,14 +427,14 @@ namespace PAP
   
   void MotionSystemSvc::switchMotorsOn( int controllerid, bool on ) const
   {
-    qDebug() << "Switching motors on for controller " << controllerid << " " << on ;
+    qInfo() << "Switching motors on/off for controller " << controllerid << " " << on ;
     write( controllerid, on ? "MO" : "MF") ;
   }
   
   /* THIS DOES NOT WORK: the controller does not buffer, it seems. On read it only sends the data from the last request. */
   void MotionSystemSvc::updateAllData()
   {
-    qInfo() << "updateAllData is called!" ;
+    //qInfo() << "updateAllData is called!" ;
     // very tricky. let's see where this goes then fix it.
     std::vector<int> controllers = {2,4} ;
     for(int controllerid : controllers ) {

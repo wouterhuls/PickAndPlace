@@ -7,7 +7,7 @@
 QT       += core gui serialport multimedia multimediawidgets testlib
 
 #INCLUDEPATH+=$HOME/surfdrive/QtProjects
-INCLUDEPATH+=/Users/wouter/surfdrive/QtProjects
+INCLUDEPATH+=/usr/local/include
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -15,6 +15,7 @@ TARGET = PickAndPlace
 TEMPLATE = app
 
 SOURCES += main.cpp \
+    MotionSystemSerialPort.cpp \
     MotionControllerWidget.cpp \
     MotionSystemSvc.cpp \
     MotionAxis.cpp \
@@ -31,7 +32,8 @@ SOURCES += main.cpp \
     GeometrySvc.cpp \
     NamedValue.cpp
 
-HEADERS  += \
+ HEADERS  += \
+    MotionSystemSerialPort.h \
     MonitoredValue.h \
     NamedValue.h \
     NamedValueInputWidget.h \

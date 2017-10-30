@@ -26,12 +26,13 @@ namespace PAP
 	    << m_name << " " << m_type ;
     //m_position = MotionSystemSvc::instance()->readAxisFloat(m_id,"TP") ;
     //QObject::connect(&m_position,&QVariable::valueChanged,this,&MotionAxis::applyPosition);
-    if( MotionSystemSvc::instance()->isReady() ) {
+    if( false && MotionSystemSvc::instance()->isReady() ) {
       QTimer *timer = new QTimer(this);
       QObject::connect(timer, SIGNAL(timeout()), this, SLOT(readPosition()));
       timer->start(1000);
     }
-    // read the position every time the motors have stopped
+    // read the position now and again every time the motors have stopped
+    readPosition() ;
     QObject::connect(this,&MotionAxis::movementStopped,this,&MotionAxis::readPosition);
     
     // connect some of the slots

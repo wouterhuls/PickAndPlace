@@ -62,9 +62,12 @@ namespace PAP
     
     MotionAxis* axis( const QString& name ) ;
 
+    void parseData( int controllerid, const QByteArray& data ) ;
+
     private slots:
       void updateAllData() ;
-      
+
+
   private:
       void write( int motioncontrollerid, const char* command ) const ;
       void write( const char* command ) const ;
