@@ -43,7 +43,7 @@ namespace PAP
 					     QVariant{p.type},p.minvalue, p.maxvalue } ) ;
 	MSParameter& par = m_parameters.back() ;
 	// set the initial value:
-	readParameter( par ) ;    
+	// readParameter( par ) ;    
 	QObject::connect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
 	PAP::PropertySvc::instance()->add( par ) ;
       }
@@ -79,15 +79,25 @@ namespace PAP
       qDebug() << "applyParameter: Cannot find parameter definition for: " << par.shortname() ;
     }
   }
+
+  void MotionAxis::readParameters()
+  {
+    for(auto& par : m_parameters ) readParameter( par ) ;
+  }
   
   void MotionAxis::readParameter( MSParameter& par )
   {
-    // note: at the moment this bypasses the 
+    // make sure to disable the callback
+    QObject::disconnect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
+    // note: at the moment this bypasses the parser
     auto pardef = MSCommandLibrary::findParDef(par.shortname()) ;
     if(pardef)
-      MotionSystemSvc::instance()->readAxisVariable(m_id,pardef->getcmd,par) ;
+      //MotionSystemSvc::instance()->readAxisVariable(m_id,pardef->getcmd,par) ;
+      MotionSystemSvc::instance()->applyAxisReadCommand(m_id,pardef->getcmd) ;
     else 
-      qDebug() << "readParameter: Cannot find parameter definition for: " << par.shortname() ; 
+      qDebug() << "readParameter: Cannot find parameter definition for: " << par.shortname() ;
+    // enable the callback again
+    QObject::connect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
   }
 
   void MotionAxis::readPosition()
@@ -101,19 +111,19 @@ namespace PAP
   
   void MotionAxis::step( Direction dir )
   {
-    setIsMoving( true ) ;
+    //setIsMoving( true ) ;
     move( dir * m_stepsize ) ;
   }
 
   void MotionAxis::move( float delta )
   {
-    setIsMoving( true ) ;
+    //setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PR",delta) ;
   }
   
   void MotionAxis::move( Direction dir )
   {
-    setIsMoving( true ) ;
+    //setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"MT",dir == Up ? "+" : "-") ;
   }
   
@@ -124,13 +134,13 @@ namespace PAP
   
   void MotionAxis::moveTo( float position )
   {
-    setIsMoving( true ) ;
+    //setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PA",position) ;
   }
   
   void MotionAxis::searchHome()
   {
-    setIsMoving( true ) ;
+    //setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"OR") ;
   }
   
@@ -141,6 +151,37 @@ namespace PAP
     else if( !ismoving && m_isMoving )
       emit movementStopped() ;
     m_isMoving = ismoving ;
+  }
+
+  bool MotionAxis::parseData( const QString& cmd, const QString& value) {
+    bool success = true ;
+    if( cmd == "TP" ) {
+      m_position = value.toFloat() ;
+    } else if (cmd == "MS") {
+      // it may be that this doesn't work, because we need to go via a char
+      //m_status = value.toUInt() ;
+      m_status = value[0].toLatin1() ;
+    } else {
+      // finally, go through list of parameters. far too slow ..
+      success = false ;
+      for( auto& p : m_parameters ) {
+	auto pardef = MSCommandLibrary::findParDef(p.shortname()) ;
+	if( !pardef ) {
+	  qWarning() << "Strange: cannot find pardef: "
+		   << p.shortname() ;
+	} else if( cmd == pardef->getcmd ) {
+	  QVariant var{value} ;
+	  if( var.convert( pardef->type ) ) {
+	    p.set( var );
+	    success = true ;
+	  }
+	  break ;
+	}
+      }
+    }
+    if( !success ) 
+	qWarning() << "MotionAxis: Could not parse data " << cmd << value ;
+    return success ;
   }
 }
   

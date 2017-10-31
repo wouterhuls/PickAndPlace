@@ -30,8 +30,14 @@ namespace PAP
     double pixelSizeX() const { return m_chipPixelSize / m_magnification ; }
     double pixelSizeY() const { return m_chipPixelSize / m_magnification ; }
 
-    double computeContrast( const QVideoFrame& frame ) const ;
-    double computeContrast() const { return m_frame ? computeContrast(*m_frame) : 0 ; }
+    double computeContrast() { return m_frame ? computeContrast(*m_frame) : 0 ; }
+
+    QVideoProbe* videoProbe() { return m_videoProbe ; }
+
+    double focusMeasure() const { return m_focusMeasure ; }
+    
+  signals:
+    void focusMeasureUpdated() ;
     
   public slots:
     virtual void wheelEvent ( QWheelEvent * event ) ;
@@ -39,6 +45,7 @@ namespace PAP
     void animFinished() ;
     virtual void mousePressEvent( QMouseEvent* event) ;
     void processFrame( const QVideoFrame& frame ) ;
+    double computeContrast( const QVideoFrame& frame ) ;
     void moveCameraTo( QPointF localpoint ) const ;
   private:
     QCamera* m_camera ;
@@ -67,6 +74,9 @@ namespace PAP
     const double m_chipPixelSize ;
     NamedDouble m_magnification ;
     NamedDouble m_rotation ;
+
+    // current value of picture contrast or entropy or whatever
+    double m_focusMeasure ;
     
     // needed for the smooth zoom function
     int m_numScheduledScalings ;

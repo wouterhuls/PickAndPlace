@@ -7,6 +7,7 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QVideoProbe>
 
 namespace PAP
 {
@@ -99,7 +100,7 @@ namespace PAP
 				     MotionAxis& axis, double zpos )
     {
       // move the camera to position zpos
-      if( axis.hasMotorOn() ) {
+      if( true ||  axis.hasMotorOn() ) {
 	axis.moveTo( zpos ) ;
 	// wait until it is no longer moving
 	if( axis.isMoving() ) {
@@ -110,11 +111,19 @@ namespace PAP
 	  //   http://doc.qt.io/qt-5/qsignalspy.html#wait
 	  // the problem with this one is that it starts a separate event loop. if it waits for-ever in this 
 	  QSignalSpy spy( &axis, SIGNAL(movementStopped())) ;
-	  spy.wait( 10000 ) ;
+	  spy.wait( 1000 ) ;
 	}
+      } else {
+	qDebug() << "Cannot focus because Motor is not on" ;
       }
       // make the measurement
-      return FocusMeasurement( axis.position(), camview.computeContrast() ) ;
+      qDebug() << "Will now call computeContrast" ;
+      
+      QSignalSpy spy(&camview, &CameraView::focusMeasureUpdated) ;
+      spy.wait(10000) ;
+      qDebug() << "CReating focus measurement: " << axis.position() << " "
+	       << camview.focusMeasure() ;
+      return FocusMeasurement( axis.position(), camview.focusMeasure() ) ;
     }
   }
   
@@ -136,6 +145,7 @@ namespace PAP
       const double zstart = axis->position() ;
       std::vector< FocusMeasurement > measurements ;
       measurements.reserve(64) ;
+      qDebug() << "Ready to take focus measurements" ;
       // 1. compute three points, around the current z-position
       {
 	double zpositions[] = { zstart - maxstepsize, zstart, zstart + maxstepsize } ;

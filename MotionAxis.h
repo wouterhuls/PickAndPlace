@@ -30,10 +30,12 @@ namespace PAP
     //void setPosition( float p ) { m_position = p ; }
     const QString name() const { return m_name ; }
     const MotionAxisID& id() const { return m_id ; }
+    const MotionController& controller() const { return *m_controller ; }
     void setController( const MotionController* c) { m_controller = c ; }
     bool isMoving() const { return m_isMoving ; }
     void setIsMoving( bool ismoving ) ;
     bool hasMotorOn() const ;
+    bool parseData( const QString& cmd, const QString& value ) ;
     
     const MotionAxisParameters& parameters() const { return m_parameters ; }
     MotionAxisParameters& parameters() { return m_parameters ; }
@@ -42,6 +44,8 @@ namespace PAP
     NamedDouble& position() { return m_position ; }
     const NamedDouble& stepsize() const { return m_stepsize ; }
     NamedDouble& stepsize() { return m_stepsize ; }
+
+    void readParameters() ;
 
     signals:
       void movementStarted() ;
@@ -66,6 +70,7 @@ namespace PAP
       NamedDouble m_stepsize ;
       MotionAxisParameters m_parameters ;
       bool m_isMoving ;
+      unsigned int m_status ;
       const MotionController* m_controller ;
   };
 }

@@ -20,9 +20,11 @@ namespace PAP
     const std::string name() const { return m_name ; }
     int id() const { return m_id ; }
     const unsigned int& status() const { return m_status ; }
-    const QString& error() const { return m_error; }
+    const QString& errorMsg() const { return m_error; }
+    const unsigned int& errorCode() const { return m_errorcode ; }
     void setStatus( unsigned int status ) ;
-    void setError( const QString& error ) ;
+    void setErrorMsg( const QString& error ) ;
+    void setErrorCode( unsigned int errorcode ) ;
     void addAxis( MotionAxis* a) { m_axes.push_back(a); }
   signals:
     void statusChanged() ;
@@ -30,6 +32,7 @@ namespace PAP
     int m_id ;
     std::string m_name ;
     unsigned int m_status ;
+    unsigned int m_errorcode ;
     QString m_error ;
     std::vector<MotionAxis*> m_axes ;
   };

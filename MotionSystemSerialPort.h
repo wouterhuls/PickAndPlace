@@ -7,15 +7,18 @@ class QSerialPortInfo ;
 namespace PAP
 {
   class MotionSystemSvc ;
+  class NamedValueBase ;
   
   struct MSCommand
   {
+    MSCommand() : controller(0),isreadcommand(false), target(0) {}
     template<class T>
-    MSCommand( int c, const T& acmd, bool _isreadcommand ) :
-    controller(c), cmd(acmd), isreadcommand(_isreadcommand) {}
+    MSCommand( int c, const T& acmd, bool _isreadcommand, NamedValueBase* _target=0 ) :
+    controller(c), cmd(acmd), isreadcommand(_isreadcommand), target(_target) {}
     int controller ;
     std::string cmd ;
     bool isreadcommand ;
+    NamedValueBase* target ;
   } ;
 
   struct MSResult
@@ -30,7 +33,7 @@ namespace PAP
   public:
     MSWorker( QSerialPort& port,
 	    int sleeptimeaddresschange = 100,
-	    int sleeptimereadcommand = 50 ) :
+	    int sleeptimereadcommand = 100 ) :
     m_serialport(&port),
       m_currentcontrollerid(-1),
       m_sleeptimeaddresschange( sleeptimeaddresschange ),
@@ -61,7 +64,7 @@ namespace PAP
     MotionSystemSerialPort( MotionSystemSvc& parent,
 			    const QSerialPortInfo &info) ;
     // This is how the motionsystemsvc adds commands to the queue
-    void addCommand( int controller, const char* cmd, bool isreadcommand ) ;
+    void addCommand( int controller, const char* cmd, bool isreadcommand=false, NamedValueBase* target=0 ) ;
     // check that we are actually ready
     bool isOpen() const { return m_serialport.isOpen() ; }
 
@@ -76,6 +79,7 @@ namespace PAP
     QSerialPort m_serialport ;
     std::deque<MSCommand> m_commandqueue ;
     QThread m_workerthread ;
+    MSCommand m_lastcommand ;
   } ;
 
 }

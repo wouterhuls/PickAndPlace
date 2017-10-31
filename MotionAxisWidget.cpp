@@ -8,6 +8,7 @@
 
 #include "MotionAxisWidget.h"
 #include "MotionAxis.h"
+#include "MotionController.h"
 #include "MotionAxisSettingsDialog.h"
 
 namespace PAP
@@ -61,6 +62,8 @@ namespace PAP
     connect(&(m_axis->position()),&NamedValue::valueChanged,this,&MotionAxisWidget::showPosition) ;
     connect(m_axis,&MotionAxis::movementStarted,this,&MotionAxisWidget::showPosition) ;
     connect(m_axis,&MotionAxis::movementStopped,this,&MotionAxisWidget::showPosition) ;
+    // this one we should not need, but for some reason the started and stopped signals are not enough:-(
+    connect(&(m_axis->controller()),&MotionController::statusChanged,this,&MotionAxisWidget::showPosition) ;
     showPosition() ;
     
     auto settingsButton = new QPushButton(QIcon("images/settings.png"),"settings",widget) ;
@@ -120,7 +123,7 @@ namespace PAP
     QPalette pal = m_positionLabel->palette();
     if( m_axis->isMoving() ) {
       m_positionLabel->setAutoFillBackground(true); // IMPORTANT!
-      pal.setColor(QPalette::Window, QColor(Qt::red));
+      pal.setColor(QPalette::Window, QColor(Qt::yellow));
     } else {
       m_positionLabel->setAutoFillBackground(true); // IMPORTANT!
       pal.setColor(QPalette::Window, QColor(Qt::green));

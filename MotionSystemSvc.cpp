@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <QSerialPortInfo>
 #include <QThread>
+#include <QRegularExpression>
 #include "Console.h"
 
 #include <QObject>
@@ -88,7 +89,8 @@ namespace PAP
     }
 
     // tell the system we are in remote mode
-    m_serialport.write("MR") ;
+    write(2,"ML") ;
+    write(4,"ML") ;
     
     // let's create the controllers and the axis. actally, we cannot do
     // anything with them without a serial port, but it is convenient to
@@ -114,6 +116,9 @@ namespace PAP
       m_controllers[controllerid[i]]->addAxis( m_axes[id] ) ;
     }
     if( m_serialport.isOpen() ) {
+      // read parameter values for all axis
+      for( auto& axis : m_axes) axis.second->readParameters() ;
+      
       // let's first just read the status
       updateAllData() ;
       qDebug() << "status of controller 2: " << m_controllers[2]->status() ;
@@ -149,6 +154,7 @@ namespace PAP
       sprintf(controlleridcommand,"++addr %d",motioncontrollerid) ;
       write(controlleridcommand) ;
       m_currentcontrollerid = motioncontrollerid ;
+      // for some reason the interface has a problem if there is not sufficient timeafter after an address change. the weird thing is that this appears after 'waitForBytesWritten'. so is perhaps the real problem not the read? no ... it seems that we need more time after a change of address. how much time?
       QThread::msleep(100) ;
     }
     write(command) ;
@@ -280,28 +286,44 @@ namespace PAP
   {
     // this all assumes that we receive data for the current controller.
     qDebug() << "MotionSystemSvc, parsing message: " << data ;
-    QStringList lines = QString(data).split(QRegExp("\n|\r\n|\r"));
+    QStringList lines = QString(data).split(QRegularExpression("\n|\r\n|\r|\\,"));
     for( const auto& line : lines )
       if( line.size()>0 ) {
-	qDebug() << "MotionSystemSvc, parsing line: " << line ;
-	if( line.startsWith("TE") || line.startsWith("TB") ) {
-	  QStringRef errorstring = line.rightRef(line.size() - 2 ) ;
-	  //QChar statusbyte = line[2] ;
-	  //qDebug() << "Reading a error string: " << errorstring  ;
-	  m_controllers[ controllerid ]->setError(errorstring.toString() )  ;
-	} else if( line.contains("TS") ) {
-	  int pos = line.indexOf("TS") ;
-	  QChar errorbyte = line[pos+2] ;
-	  m_controllers[ controllerid ]->setStatus(errorbyte.toLatin1()) ;
-	  //qDebug() << "Reading an error string: " << errorbyte ;
-	} else if( line.contains("TP") ) {
-	  // now we need some serious parsing. this needs to be improved:
-	  float position ;
-	  int axis = extractAxisFloat( "TP", line, position) ;
-	  m_axes[ MotionAxisID( controllerid, axis ) ]->position().setValue( position ) ; 
-	  //qDebug() << "Read position: " << line << " --> "
-	  //<< axis << " : " << position ;
-	} 
+	//qDebug() << "MotionSystemSvc, parsing line: " << line ;
+	QRegularExpression re{"^(\\d*)(\\w\\w)(.+)"} ;
+	QRegularExpressionMatch match = re.match( line ) ;
+	if( match.hasMatch() ) {
+	  //qDebug() << "Matched a regularexpression!"
+	  //	   << match.captured(1) << " "
+	  //	   << match.captured(2) << " "
+	  //	   << match.captured(3) ;
+	  QString axisstr = match.captured(1) ;
+	  QString command = match.captured(2) ;
+	  QString result  = match.captured(3) ;
+	  if( axisstr.size()==0 ) {
+	    MotionController* controller = m_controllers[ controllerid ] ;
+	    if(       command.startsWith("TS") ) {
+	      QChar statusbyte = result[0] ;
+	      controller->setStatus(statusbyte.toLatin1() )  ;
+	    } else if(command.startsWith("TE") || command.startsWith("TB") ) {
+	      QChar errorbyte = result[0] ;
+	      controller->setErrorCode(errorbyte.toLatin1() )  ;
+	      controller->setErrorMsg(result) ;
+	    }
+	  } else {
+	    int axis = match.captured(1).toInt() ;
+	    auto it = m_axes.find( MotionAxisID( controllerid, axis ) ) ;
+	    if( it != m_axes.end() ) {
+	      if( !(it->second->parseData( command, result )) ) {
+		qWarning() << "Problem parsing data for axis: "
+			   << line ;
+	      }
+	    }
+	  }
+	} else {
+	  qWarning() << "Don't know how to parse this line: "
+		     << line ;
+	}
       }
   }
   
@@ -366,6 +388,15 @@ namespace PAP
     char acommand[256] ;
     sprintf(acommand,"%d%s",id.axis,command) ;
     write(id.controller,acommand) ;
+  }
+
+  void MotionSystemSvc::applyAxisReadCommand( const MotionAxisID& id,
+					      const char* command )
+  {
+    char acommand[256] ;
+    sprintf(acommand,"%d%s",id.axis,command) ;
+    write(id.controller,acommand) ;
+    parseData( read() ) ;
   }
   
   double MotionSystemSvc::readAxisFloat( const MotionAxisID& id,
@@ -446,6 +477,10 @@ namespace PAP
       parseData( read() ) ;
       write(controllerid,"TB") ;
       parseData( read() ) ;
+      write(controllerid,"MS") ;
+      parseData( read() ) ;
+      //write(controllerid,"1TP") ;
+      //parseData( read() ) ;
     }
   }
   

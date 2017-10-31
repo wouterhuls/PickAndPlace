@@ -1,6 +1,8 @@
 #include "MotionSystemSerialPort.h"
 #include "MotionSystemSvc.h"
 
+#include <QRegularExpression>
+  
 namespace PAP
 {
   
@@ -158,6 +160,10 @@ namespace PAP
       //connect( worker, &Worker::resultReady, this, &MotionSystemSerialPort::handleOutput) ;
       connect( worker, SIGNAL(MSWorker::resultReady()), this, SLOT(MotionSystemSerialPort::handleOutput())) ;
 
+      // start the thread
+      m_workerthread.setPriority(QThread::LowPriority) ;
+      m_workerthread.start() ;
+      
       // to get the circus going, we now need to start the loop
       next() ;
       
@@ -166,10 +172,11 @@ namespace PAP
     }
   }
 
-  void MotionSystemSerialPort::addCommand( int controller, const char* cmd, bool isreadcommand )
+  void MotionSystemSerialPort::addCommand( int controller, const char* cmd, bool isreadcommand,
+					   NamedValueBase* target)
   {
     // first add it to the queue
-    m_commandqueue.push_back( MSCommand(controller,cmd,isreadcommand) ) ;
+    m_commandqueue.push_back( MSCommand(controller,cmd,isreadcommand,target) ) ;
     // should we now emit a signal to the worker? perhaps better not?
     // I don't have a clue ... perhaps my design is still wrong.
   }
@@ -179,19 +186,43 @@ namespace PAP
     // if the queu is empty, then request just status and errors
     // FIXME: make sure it orders these such that we don't need to change controller id more than once. 
     if( m_commandqueue.empty() ) {
-      addCommand(2,"TS",true) ;
-      addCommand(2,"TB",true) ;
-      addCommand(4,"TS",true) ;
-      addCommand(4,"TB",true) ;
+      const int c1 = m_lastcommand.controller==4 ? 4 : 2 ;
+      const int c2 = m_lastcommand.controller==4 ? 2 : 4 ;
+      addCommand(c1,"TS",true) ;
+      addCommand(c1,"TB",true) ;
+      addCommand(c2,"TS",true) ;
+      addCommand(c2,"TB",true) ;
     }
-    MSCommand cmd = m_commandqueue.front() ;
+    m_lastcommand = m_commandqueue.front() ;
     m_commandqueue.pop_front() ;
-    emit operate( cmd ) ;
+    emit operate( m_lastcommand ) ;
   }
 
   void MotionSystemSerialPort::handleOutput(const MSResult& result)
   {
-    m_parent->parseData( result.controller, result.data ) ;
+    // it would be very good to check that the output that we
+    // receive actually corresponds to the last issued command!
+    qDebug() << "Test handleOutput: " << m_lastcommand.cmd.c_str() << " " << result.data ;
+    if( m_lastcommand.target==0 )
+      m_parent->parseData( result.controller, result.data ) ;
+    else {
+      // this code should be moved to MotionSystemSvc.
+      // check that the command is actually part of the result!
+      QString line{result.data} ;
+      if( line.contains( m_lastcommand.cmd.c_str() ) ) {
+	QRegularExpression re{"^(\\d*)(\\w\\w)(.+)"} ;
+	QRegularExpressionMatch match = re.match( line ) ;
+	if( match.hasMatch() ) {
+	  m_lastcommand.target->fromString( match.captured(3) ) ;
+	} else {
+	  qWarning() << "MotionSystemSerialPort cannot parse string!" ;
+	}
+      } else {
+	qWarning() << "MotionSystemSerialPort command and result do not match: "
+		   << m_lastcommand.cmd.c_str()
+		   << result.data ;
+      }
+    }
   }
   
 }

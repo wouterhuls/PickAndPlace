@@ -10,6 +10,7 @@ namespace PAP
     : m_id(id),
       m_name(name),
       m_status(0),
+      m_errorcode(0),
       m_error("none")
   {
   }
@@ -31,11 +32,20 @@ namespace PAP
       m_status = status ;
       for(auto& axis : m_axes)
 	axis->setIsMoving( status & (1 << (axis->id().axis-1) ) ) ;
+      //emit statusChanged() ;
+    }
+    emit statusChanged() ;
+  }
+  
+  void MotionController::setErrorCode( unsigned int errorcode )
+  {
+    if( m_errorcode != errorcode ) {
+      m_errorcode = errorcode ;
       emit statusChanged() ;
     }
   }
   
-  void MotionController::setError( const QString& error )
+  void MotionController::setErrorMsg( const QString& error )
   {
     if( error != m_error ) {
       m_error = error ;

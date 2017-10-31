@@ -245,17 +245,21 @@ namespace PAP
     // compute image contrast ? maybe not on every call!
     //qDebug() << "Frame size: " << frame.size() ;
     m_frame = const_cast< QVideoFrame* >(&frame) ;
-    //qDebug() << "Pointer to frame: " << m_frame ;
+    //qDebug() << "Pointer to frame A: " << m_frame ;
     static int numtries=0 ;
-    if( ++numtries==10 ) {
+    if( ++numtries==20 ) {
       double contrast = computeContrast(frame) ;
       qDebug() << "Value of constrast: " << contrast ;
       numtries=0;
     }
   }
 
-  double CameraView::computeContrast( const QVideoFrame& frame ) const
+  double CameraView::computeContrast( const QVideoFrame& frame )
   {
+    /*qDebug()
+      << "Pointer to frame B: "
+      << m_frame << " "
+      << &frame ; */
     // right now we'll 'just' compute the contrast in a 100x100 pixel
     // size area around the center.
     //
@@ -275,8 +279,9 @@ namespace PAP
     // where the sum runs over all pixels and p is again intensity.
 
     // first call the 'map' to copy the contents to accessible memory
-    const_cast<QVideoFrame&>(frame).map(QAbstractVideoBuffer::ReadOnly) ;
-
+							    qDebug() << "Before calling QVideoFrame::map" ;
+		const_cast<QVideoFrame&>(frame).map(QAbstractVideoBuffer::ReadOnly) ;
+    qDebug() << "After calling QVideoFrame::map" ;
     // My laptop camera uses "UYVY", which means that UVY for two
     // adjacent pixels is stored with common U and V values. The Y
     // value is for brightness, which is all we need here. Of course,
@@ -348,6 +353,8 @@ namespace PAP
       const_cast<QVideoFrame&>(frame).unmap() ;
       rc = entropy ;
     }
+    m_focusMeasure = rc ;
+    emit focusMeasureUpdated() ;
     return rc ;
   }
   

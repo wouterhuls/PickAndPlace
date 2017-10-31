@@ -39,6 +39,7 @@ namespace PAP
     layout->addWidget( m_statuslabel) ;
     
     m_errorlabel = new QLabel(this) ;
+    m_errorlabel = new QLabel(this) ;
     m_errorlabel->setText("error unknown") ;
     layout->addWidget( m_errorlabel) ;
 
@@ -71,13 +72,13 @@ namespace PAP
 	     << m_controller->hasMotorsOn() ;
     
     QString s ;
-    s.sprintf("status = %02X",m_controller->status()) ;
+    s.sprintf("status = %02X\n error=%02X",m_controller->status(),m_controller->errorCode()) ;
     m_statuslabel->setText( s ) ;
     m_statuslabel->setAutoFillBackground(true); // IMPORTANT!
     QPalette pal = m_statuslabel->palette();
     pal.setColor(QPalette::Window, QColor(m_controller->hasMotorsOn() ? Qt::green : Qt::red));
     m_statuslabel->setPalette(pal);  
-    m_errorlabel->setText( QString("error=") + m_controller->error() ) ;
+    m_errorlabel->setText( QString("errormsg=") + m_controller->errorMsg() ) ;
     
     m_motorsonbutton->setText( m_controller->hasMotorsOn() ? "ON" : "OFF" ) ;
   }
