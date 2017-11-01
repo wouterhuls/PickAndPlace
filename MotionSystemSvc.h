@@ -2,10 +2,12 @@
 #define MOTIONSYSTEMSVC_H
 
 //#include <QObject>
-#include <QSerialPort>
+
 #include "Singleton.h"
 #include "MotionAxis.h"
 #include "MotionController.h"
+#include "MotionSystemSerialPort.h"
+
 class Console ;
 
 // singleton class for interfacing to the motion system This needs to
@@ -43,11 +45,9 @@ namespace PAP
     void applyAxisCommand( const MotionAxisID& id, const char* command, const char* nn ) const ;
     void applyAxisCommand( const MotionAxisID& id, const char* command ) const ;
     void applyAxisReadCommand( const MotionAxisID& id, const char* command ) ;
-    double readAxisFloat( const MotionAxisID& id, const char* command ) const ;
-    void readAxisVariable( const MotionAxisID& id, const char* command, NamedValue& ) const ;
+    void readAxisVariable( const MotionAxisID& id, const char* command, NamedValueBase& ) const ;
     
     float position( const MotionAxisID& id ) const ;
-    int statusFlag( int motioncontrollerid ) ;
     std::string name( const MotionAxisID& id ) const ;
 
     //const AxisContainer& axes() const { return m_axes ; }
@@ -57,7 +57,7 @@ namespace PAP
     // switch all motors on or off
     void switchMotorsOn(MotionControllerID id, bool on = true) const ;
     // tell if the serial port is ready and the system connected
-    bool isReady() const { return m_serialport.isOpen() && m_isReady ; }
+    bool isReady() const { return m_serialport->isOpen() && m_isReady ; }
     
     void setConsole( Console* console ) { m_console = console ; }
     
@@ -65,32 +65,26 @@ namespace PAP
 
     void parseData( int controllerid, const QByteArray& data ) ;
 
-    private slots:
-      void updateAllData() ;
-
-
   private:
       void write( int motioncontrollerid, const char* command ) const ;
       void write( const char* command ) const ;
       QByteArray read() const ;
       
-      virtual void dummyfunction() ;
-      
       //private slots:
       // this is new for asynchronous read/write
-      void writeData( const QByteArray& data ) ;
-      void readData() ;
-      void parseData( const QByteArray& data ) ;
+      /*
+	void writeData( const QByteArray& data ) ;
+	void readData() ;
+	void parseData( const QByteArray& data ) ;
+      */
       
   private:
       static MotionSystemSvc* gInstance ;
-      mutable QSerialPort m_serialport ;
-      const double m_timeout = 500 ;
+      MotionSystemSerialPort* m_serialport ;
       // we should actually separate this, but let's keep it here for now
       AxisContainer m_axes ;
       ControllerContainer m_controllers ;
       
-      mutable int m_currentcontrollerid ;
       // Console for monitoring in and output.
       Console *m_console ;
       bool m_isReady ;

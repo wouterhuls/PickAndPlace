@@ -224,6 +224,7 @@ namespace PAP
 	dialog.setLayout( &layout ) ;
 	dialog.adjustSize() ;
 
+	// To do this properly, use QSignalMapper!
 	// I don't understand how to do this properly if I have more types of actions
 	//QDialogButtonBox buttonBox(Qt::Horizontal);
 	//buttonBox.addButton("Center",QDialogButtonBox::ActionRole) ;
@@ -279,21 +280,21 @@ namespace PAP
     // where the sum runs over all pixels and p is again intensity.
 
     // first call the 'map' to copy the contents to accessible memory
-							    qDebug() << "Before calling QVideoFrame::map" ;
-		const_cast<QVideoFrame&>(frame).map(QAbstractVideoBuffer::ReadOnly) ;
-    qDebug() << "After calling QVideoFrame::map" ;
+    //qDebug() << "Before calling QVideoFrame::map" ;
+    const_cast<QVideoFrame&>(frame).map(QAbstractVideoBuffer::ReadOnly) ;
+    //qDebug() << "After calling QVideoFrame::map" ;
     // My laptop camera uses "UYVY", which means that UVY for two
     // adjacent pixels is stored with common U and V values. The Y
     // value is for brightness, which is all we need here. Of course,
     // as long as the camera anyway doesn't work, it makes little
     // sense to adapt the code for this.
-    qDebug() << "VideoFrame: "
-	     << frame.size() << " "
-	     << frame.width() << " "
-	     << frame.height() << " "
-	     << frame.bytesPerLine() << " "
-	     << frame.mappedBytes() << " "
-	     << frame.pixelFormat() ;
+    // qDebug() << "VideoFrame: "
+    // 	     << frame.size() << " "
+    // 	     << frame.width() << " "
+    // 	     << frame.height() << " "
+    // 	     << frame.bytesPerLine() << " "
+    // 	     << frame.mappedBytes() << " "
+    // 	     << frame.pixelFormat() ;
     double rc = 0 ;
     if( frame.bits() &&
 	//(frame.pixelFormat() == QVideoFrame::Format_BGR32||
@@ -331,8 +332,8 @@ namespace PAP
 	  unsigned char R  = (bbggrrff >> 16 ) & 0xff ;
 	  unsigned char G  = (bbggrrff >> 8 )  & 0xff ;
 	  unsigned char B  = bbggrrff & 0xff ;
-	  if( ybin==firstPixelY && xbin==firstPixelX)
-	    std::cout << "B,G,R: " << int(B) << " " << int(R) << " " << int(G) << " " << int(F) << std::endl ;
+	  //if( ybin==firstPixelY && xbin==firstPixelX)
+	  //std::cout << "B,G,R: " << int(B) << " " << int(R) << " " << int(G) << " " << int(F) << std::endl ;
 	  // many ways to turn this into an intensity. 
 	  //https://stackoverflow.com/questions/687261/converting-rgb-to-grayscale-intensity
 	  // https://stackoverflow.com/questions/596216/formula-to-determine-brightness-of-rgb-color

@@ -32,7 +32,7 @@ namespace PAP
       timer->start(1000);
     }
     // read the position now and again every time the motors have stopped
-    readPosition() ;
+    //    readPosition() ;
     QObject::connect(this,&MotionAxis::movementStopped,this,&MotionAxis::readPosition);
     
     // connect some of the slots
@@ -43,8 +43,9 @@ namespace PAP
 					     QVariant{p.type},p.minvalue, p.maxvalue } ) ;
 	MSParameter& par = m_parameters.back() ;
 	// set the initial value:
-	// readParameter( par ) ;    
-	QObject::connect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
+	// readParameter( par ) ;
+	// for now, disable the callbacks!
+	// QObject::connect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
 	PAP::PropertySvc::instance()->add( par ) ;
       }
     }
@@ -83,6 +84,8 @@ namespace PAP
   void MotionAxis::readParameters()
   {
     for(auto& par : m_parameters ) readParameter( par ) ;
+    MotionSystemSvc::instance()->applyAxisReadCommand(m_id,"TA") ;
+    MotionSystemSvc::instance()->applyAxisReadCommand(m_id,"TP") ;
   }
   
   void MotionAxis::readParameter( MSParameter& par )
@@ -97,12 +100,12 @@ namespace PAP
     else 
       qDebug() << "readParameter: Cannot find parameter definition for: " << par.shortname() ;
     // enable the callback again
-    QObject::connect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
+    // QObject::connect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
   }
 
   void MotionAxis::readPosition()
   {
-    m_position = MotionSystemSvc::instance()->readAxisFloat(m_id,"TP") ;
+    MotionSystemSvc::instance()->readAxisVariable(m_id,"TP",m_position) ;
   }
 
   bool MotionAxis::hasMotorOn() const {
@@ -161,6 +164,8 @@ namespace PAP
       // it may be that this doesn't work, because we need to go via a char
       //m_status = value.toUInt() ;
       m_status = value[0].toLatin1() ;
+    } else if (cmd == "TA") {
+      m_type = value ;
     } else {
       // finally, go through list of parameters. far too slow ..
       success = false ;

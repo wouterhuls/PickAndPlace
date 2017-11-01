@@ -3,11 +3,13 @@
 #include "MotionSystemSvc.h"
 #include "Eigen/Dense"
 #include <iostream>
+#include <sstream>
 #include <QSignalSpy>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QVideoProbe>
+
 
 namespace PAP
 {
@@ -91,7 +93,14 @@ namespace PAP
       // now solve
       Eigen::Vector3d pars = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar);
       qDebug() << "Solution: " << pars(0) << " " << pars(1) << " " << pars(2)  ;
-      bool success = pars(2) < 0 ;
+      bool success = pars(2) > 0 ;
+      if( !success ) {
+	std::stringstream str ;
+	str << "Vector: " << halfdchi2dpar << std::endl
+	    << "Matrix: " << halfd2chi2dpar2 ;
+	qDebug() << str.str().c_str() ;
+	
+      }
       if( success ) z0 = zref - 0.5*pars(1)/pars(2) ;
       return success ;
     }
@@ -121,9 +130,12 @@ namespace PAP
       
       QSignalSpy spy(&camview, &CameraView::focusMeasureUpdated) ;
       spy.wait(10000) ;
-      qDebug() << "CReating focus measurement: " << axis.position() << " "
+      //FIXME: the position is not updated, unfortunately. let's take the setposition.
+      qDebug() << "CReating focus measurement: "
+	       << zpos << " "
+	       << axis.position() << " "
 	       << camview.focusMeasure() ;
-      return FocusMeasurement( axis.position(), camview.focusMeasure() ) ;
+      return FocusMeasurement( zpos, camview.focusMeasure() ) ;
     }
   }
   
@@ -134,7 +146,7 @@ namespace PAP
       qDebug() << "In focussing routine" ;
       // perhaps we should use 'minuit' for this. we don't actually know
       // the shape of the function very well.
-      const float maxstepsize = 0.05 ; // 30 micron?
+      const float maxstepsize = 0.10 ; // 30 micron?
       const float minstepsize = 0.01 ;
       MotionAxis* axis = MotionSystemSvc::instance()->axis("Focus") ;
       // tricky: need to make sure this is up-to-date. that will turn
@@ -176,6 +188,9 @@ namespace PAP
       // if not successful, move back to where we started
       if( !success ) {
 	qWarning() << "Focussing failed!" ;
+	qDebug() << "Measurements: " << measurements.size() ;
+	for( const auto& m : measurements )
+	  qDebug() << m.z << " " << m.I ;
 	axis->moveTo( zstart ) ;
       }
       m_isFocussing = false ;

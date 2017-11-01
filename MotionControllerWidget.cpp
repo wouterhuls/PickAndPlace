@@ -66,10 +66,10 @@ namespace PAP
   
   void MotionControllerWidget::update()
   {
-    qInfo() << "MotionControllerWidget::update "
-	     << m_controller->id() << " "
-	     << m_controller->status() << " "
-	     << m_controller->hasMotorsOn() ;
+    // qInfo() << "MotionControllerWidget::update "
+    // 	     << m_controller->id() << " "
+    // 	     << m_controller->status() << " "
+    // 	     << m_controller->hasMotorsOn() ;
     
     QString s ;
     s.sprintf("status = %02X\n error=%02X",m_controller->status(),m_controller->errorCode()) ;
