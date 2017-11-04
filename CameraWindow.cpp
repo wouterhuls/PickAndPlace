@@ -9,6 +9,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QVideoProbe>
+#include <QSlider>
 
 
 namespace PAP
@@ -18,20 +19,23 @@ namespace PAP
       m_isFocussing(false)
   {
     resize(700,700);
-
+    m_cameraview = new CameraView{} ;
+    
     // add a vertical layout. if we derive from 'mainwindow', then
     // layout must be set to the central widget.
     // Set layout in QWidget
     QWidget *window = new QWidget{this};
-    auto layout = new QVBoxLayout{window} ;//(widget);
-    layout->setObjectName(QStringLiteral("layout"));
+    auto layout = new QVBoxLayout{} ;//(widget);
+    layout->setObjectName(QStringLiteral("CamWindow::layout"));
     layout->setContentsMargins(0, 0, 0, 0);
 
     setCentralWidget(window);
     window->setLayout(layout);
 
     //for now add a horizontal bar with buttons
-    auto hlayout = new QHBoxLayout{window} ;
+    auto hlayout = new QHBoxLayout{} ;
+    layout->addLayout( hlayout) ;
+    hlayout->setObjectName(QStringLiteral("CamWindow::hlayout"));
     auto focusbutton = new QPushButton("Focus",this) ;
     focusbutton->setObjectName(QStringLiteral("focusButton"));
     hlayout->addWidget( focusbutton ) ;
@@ -39,10 +43,30 @@ namespace PAP
     auto quitbutton = new QPushButton("Quit",this) ;
     quitbutton->setObjectName(QStringLiteral("quitButton"));
     hlayout->addWidget( quitbutton ) ;
-    layout->addLayout( hlayout) ;
+   
+    auto resetzoombutton = new QPushButton("Reset zoom",this) ;
+    connect( resetzoombutton, &QPushButton::clicked,  m_cameraview, &CameraView::zoomReset ) ;
+    hlayout->addWidget( resetzoombutton ) ;
+    
+    auto zoomoutbutton = new QPushButton("Zoom out",this) ;
+    connect( zoomoutbutton, &QPushButton::clicked,  m_cameraview, &CameraView::zoomOut ) ;
+    hlayout->addWidget( zoomoutbutton ) ;
 
-    m_cameraview = new CameraView{} ;
-    m_cameraview->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Ignored);
+    /*
+    auto viewtogglebutton = new QSlider{ Qt::Horizontal, this } ;
+    viewtogglebutton->setRange(0,1) ;
+    viewtogglebutton->setValue(0) ;
+    viewtogglebutton->resize(100,20) ;
+    connect( viewtogglebutton, &QAbstractSlider::sliderMoved,  m_cameraview, &CameraView::setViewDirection ) ;
+    
+    */
+
+    auto viewtogglebutton = new QPushButton{"N/C-side",this} ;
+    viewtogglebutton->setCheckable(true) ;
+    connect( viewtogglebutton, &QAbstractButton::toggled,  m_cameraview, &CameraView::setViewDirection ) ;
+    hlayout->addWidget(viewtogglebutton) ;
+    
+    //m_cameraview->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Ignored);
     //m_cameraview->setGeometry(200,200,200,200);
     layout->addWidget( m_cameraview ) ;
     //m_cameraview->show() ;

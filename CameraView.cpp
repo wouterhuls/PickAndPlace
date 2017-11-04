@@ -2,6 +2,7 @@
 #include "CameraView.h"
 #include "GeometrySvc.h"
 #include "MotionSystemSvc.h"
+#include "GraphicsItems.h"
 
 #include <QCamera>
 #include <QCameraInfo>
@@ -20,6 +21,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QDialogButtonBox>
+#include <QGraphicsItemGroup>
 
 #include <cmath>
 #include <iostream>
@@ -39,7 +41,12 @@ namespace PAP
       m_rotation("Cam.Rotation",+M_PI/2),
       m_numScheduledScalings(0)
   {
-    resize(622, 512);
+    this->resize(622, 512);
+    this->setMinimumSize( 622, 512 ) ;
+    this->setMaximumSize( 622, 512 ) ;
+    QSizePolicy sizepolicy{QSizePolicy::Fixed, QSizePolicy::Fixed} ;
+    sizepolicy.setHeightForWidth(true) ;
+    this->setSizePolicy(sizepolicy) ;
     //resize(2*622, 2*512) ;
 
     //auto layout = new QGridLayout(centralwidget) ;
@@ -50,30 +57,82 @@ namespace PAP
     //layout->addWidget( m_viewfinder,0,0,1,1 ) ;
     //centralwidget->setLayout( layout ) ;
     //if(true) {
+
+    // Create the scene for this graphics view
     m_scene = new QGraphicsScene{} ;
+
+    // Add the camera viewfinder
     m_viewfinder = new QGraphicsVideoItem{} ;
     //m_viewfinder->setSize( QSize{622,512} ) ;
     m_numPixelsX = 2448 ;
     m_numPixelsY = 2048 ;
     m_viewfinder->setSize( QSize{m_numPixelsX,m_numPixelsY} ) ;
-    double maxscale = size().width() / double(m_viewfinder->size().width()) ;
-    scale(maxscale,maxscale) ;
-	
     m_scene->addItem(m_viewfinder) ;
+    // I still do not understand how to do this properly
+    //resize( m_viewfinder->size().width(),  m_viewfinder->size().height()) ;
+    m_nominalscale = size().width() / double(m_viewfinder->size().width()) ;
+    scale(m_nominalscale,m_nominalscale) ;
     this->setScene( m_scene ) ;
-
+    
+    // Add a rectangle such that we always now where the camerawindow ends (also on my laptop)
+    m_viewfinderborder = new QGraphicsRectItem{QRectF{0,0,double(m_numPixelsX),double(m_numPixelsY)}} ;
+    {
+      QPen pen ;
+      pen.setWidth( 10 ) ;
+      m_viewfinderborder->setPen(pen) ;
+    }
+    m_scene->addItem( m_viewfinderborder ) ;
+		      
     // let's add a cross at (0,0) in the cameraview. here it would be
     // nice to have some size in 'absolute' coordinates. but for that
     // we need to know the pixel size, which I do not yet do.
     m_localOrigin = QPointF(0.5*m_numPixelsX,0.5*m_numPixelsY) ;
+
+    // add a 'sight' of 100 micron in size
     qreal x0 = m_localOrigin.x() ;
     qreal y0 = m_localOrigin.y() ;
-    qreal dx = 0.1/pixelSizeX() ; // make a line of 100 micron
-    qreal dy = 0.1/pixelSizeY() ;
-    auto yline = new QGraphicsLineItem(x0,y0-dy,x0,y0+dy) ;
-    auto xline = new QGraphicsLineItem(x0-dx,y0,x0+dx,y0) ;
-    m_scene->addItem( xline ) ;
-    m_scene->addItem( yline ) ;
+    auto targetsight = new SightMarker( FiducialDefinition{"Center",x0,y0}, 0.110 ) ;
+    targetsight->setScale( 1/pixelSize() ) ;
+    m_scene->addItem( targetsight ) ;
+
+    //qreal dx = 0.1/pixelSizeX() ; // make a line of 100 micron
+    //qreal dy = 0.1/pixelSizeY() ;
+    //auto yline = new QGraphicsLineItem(x0,y0-dy,x0,y0+dy) ;
+    //auto xline = new QGraphicsLineItem(x0-dx,y0,x0+dx,y0) ;
+    //m_scene->addItem( xline ) ;
+    //m_scene->addItem( yline ) ;
+
+    // we'll add all the markers in the 'Module' frame. then we'll
+    // deal with the transformation of the groups later.
+
+    m_detectorgeometry = new QGraphicsItemGroup{} ;
+    m_scene->addItem( m_detectorgeometry ) ;
+
+    m_detectorgeometry->addToGroup( new Substrate() ) ;
+    for( const auto& m : GeometrySvc::instance()->jigmarkers() )
+      m_detectorgeometry->addToGroup( new JigMarker{m,m_detectorgeometry} ) ;
+
+    auto m_nsidemarkers = new QGraphicsItemGroup{} ;
+    m_detectorgeometry->addToGroup( m_nsidemarkers ) ;
+    m_nsidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersNSI() ) ) ;
+    m_nsidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersNLO() ) ) ;
+    for( const auto& m : GeometrySvc::instance()->velopixmarkersNSide() )
+      m_nsidemarkers->addToGroup( new VelopixMarker{m,m_nsidemarkers} ) ;
+    
+    auto m_csidemarkers = new QGraphicsItemGroup{} ;
+    m_detectorgeometry->addToGroup( m_csidemarkers ) ;
+    m_csidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersCLI() ) ) ;
+    m_csidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersCSO() ) ) ;
+    for( const auto& m : GeometrySvc::instance()->velopixmarkersCSide() )
+      m_csidemarkers->addToGroup( new VelopixMarker{m,m_csidemarkers} ) ;
+    
+    m_detectorgeometry->setScale( 1/pixelSize() ) ;
+    m_detectorgeometry->setPos( x0, y0 ) ;
+
+
+    //marker->setScale(2) ;
+    //marker->setScale( 0.001/pixelSize() ) ;
+    //m_scene->addItem( marker ) ;
     
     //m_cursor = new QGraphicsTextItem("0, 0", 0, this); //Fixed at 0, 0
 
@@ -126,22 +185,17 @@ namespace PAP
       settings.setPixelFormat(QVideoFrame::Format_BGR32) ;
       m_camera->setViewfinderSettings( settings ) ;
       m_camera->setViewfinder(m_viewfinder);
-    } else {
-      QCameraViewfinderSettings settings ;
-      settings.setResolution(1280,720) ;
-      settings.setPixelFormat(QVideoFrame::Format_UYVY) ;
-      m_camera->setViewfinderSettings( settings ) ;    
-    }
+      m_viewfinder->setSize( m_camera->viewfinderSettings().resolution() ) ;
+      qDebug() << "Resolution is now: "
+	       << m_camera->viewfinderSettings().resolution()
+	       << m_viewfinder->size() ;
+    
 
 
     // m_camera->setViewfinder(m_viewfinder);
 
     // FIXME: check that this line does not break anything!
-    m_viewfinder->setSize( m_camera->viewfinderSettings().resolution() ) ;
-    qDebug() << "Resolution is now: "
-	     << m_camera->viewfinderSettings().resolution()
-	     << m_viewfinder->size() ;
-
+    
     
     // also add a videoprobe such that we can in parallel analyze the
     // image, e.g. for focusssing.
@@ -154,8 +208,56 @@ namespace PAP
     
     m_camera->start();
     qDebug() << "CameraView E" ;
-    
+
+    } else {
+      QCameraViewfinderSettings settings ;
+      settings.setResolution(1280,720) ;
+      settings.setPixelFormat(QVideoFrame::Format_UYVY) ;
+      m_camera->setViewfinderSettings( settings ) ;
+      m_viewfinder->setSize( QSize{2448, 2048} ) ;
+    }
   }
+
+  void CameraView::setViewDirection( int dir)
+  {
+    if( m_currentViewDirection != dir ) {
+      // reverse the Y axis
+      QTransform T = m_detectorgeometry->transform() ;
+      T.scale(1,-1) ;
+      m_detectorgeometry->setTransform( T ) ;
+      m_currentViewDirection = dir > 0 ? NSideView : CSideView ;
+    }
+  } 
+  
+  void CameraView::zoomReset()
+  {
+    /*
+    qDebug() << "Camera view size is: "
+	     << size() << " "
+	     << sizePolicy() ;
+
+    //QTransform t ;
+    //t.scale(m_nominalscale,m_nominalscale) ;
+    //setTransform(t) ;
+    qDebug() << "Position of local origin: "
+	     << mapFromScene(m_localOrigin) ;
+    qDebug() << "Scale: "
+	     << transform().m11() 
+	     << transform().m22()  ;
+    centerOn( mapFromScene(m_localOrigin) ) ;//622/2,512/2) ;
+
+    qDebug() << "Position of local origin after: "
+	     << mapFromScene(m_localOrigin) ;
+    */
+
+    fitInView( m_viewfinder,Qt::KeepAspectRatio ) ;
+  }
+
+  void CameraView::zoomOut()
+  {
+    fitInView( sceneRect(),Qt::KeepAspectRatio ) ;
+  }
+  
   
   void CameraView::wheelEvent ( QWheelEvent * event )
   {
@@ -204,7 +306,11 @@ namespace PAP
 	int x = event->pos().x() ;
 	int y = event->pos().y() ;
 	QPointF local = mapToScene( x,y ) ;
-	sprintf(message,"pos=(%d,%d)-->(%f,%f)",x,y,local.x()-m_localOrigin.x(),local.y()-m_localOrigin.y()) ;
+	sprintf(message,"pos=(%d,%d) --> (%f,%f) pixels --> (%f,%f) mm",x,y,
+		local.x()-m_localOrigin.x(),local.y()-m_localOrigin.y(),
+		(local.x()-m_localOrigin.x())*pixelSize(),
+		(local.y()-m_localOrigin.y())*pixelSize()
+		) ;
 	
 	//QMessageBox dialog(this) ;
 	//dialog.setText(message) ;

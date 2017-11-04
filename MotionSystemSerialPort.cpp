@@ -82,24 +82,26 @@ namespace PAP
   MSWorker::~MSWorker() {}
 
   void MSWorker::doWork( const MSCommand& command ) {
-    write( command.controller, command.cmd.c_str() ) ;
-    if( command.isreadcommand ) {
-      MSResult result ;
-      result.controller = command.controller ;
-      result.data = read() ;
-      //qDebug() << "Result ready! "
-      //<< command.cmd.c_str()
-      //	       << result.data.size() ;
-      // let's temporarily try the reset here (before doing it the right way)
-      if( !QString{result.data}.contains(command.cmd.c_str()) ) {
-	qWarning() << "Trying to reopen port!" ;
-	m_serialport.close() ;
-	m_serialport.open(QIODevice::ReadWrite)  ;
+    if( m_serialport.isOpen() ) {
+      write( command.controller, command.cmd.c_str() ) ;
+      if( command.isreadcommand ) {
+	MSResult result ;
+	result.controller = command.controller ;
+	result.data = read() ;
+	//qDebug() << "Result ready! "
+	//<< command.cmd.c_str()
+	//	       << result.data.size() ;
+	// let's temporarily try the reset here (before doing it the right way)
+	//if( !QString{result.data}.contains(command.cmd.c_str()) ) {
+	//qWarning() << "Trying to reopen port!" ;
+	//m_serialport.close() ;
+	//m_serialport.open(QIODevice::ReadWrite)  ;
+	//}
+	
+	emit resultReady(result) ;
       }
-      
-      emit resultReady(result) ;
+      emit ready() ;
     }
-    emit ready() ;
   }
   
   void MSWorker::write( int motioncontrollerid, const char* command )
@@ -192,9 +194,6 @@ qInfo() << "MotionSystemSvs: Successfully opened port"
       // register types used for signals
       int id1 = qRegisterMetaType<PAP::MSCommand>() ;
       int id2 = qRegisterMetaType<PAP::MSResult>() ;
-      qDebug() << "Result of qRegisterMetaType: "
-	       << id1 << id2 ;
-      
       // from now on only the worker can communicate to the serialport!
       MSWorker* worker = new MSWorker(portinfo) ;
       worker->moveToThread(&m_workerthread) ;

@@ -1,52 +1,9 @@
 #include "GeometrySvc.h"
 #include "PropertySvc.h"
+#include "NominalMarkers.h"
 
 namespace PAP
 {
-  struct VelopixFiducialDefinition
-  {
-    VelopixFiducialDefinition( QString _name, double _x, double _y)
-      : name(_name),x(_x),y(_y) {}
-    QString name ;
-    double x ;
-    double y ;
-  } ;
-
-  std::vector<VelopixFiducialDefinition> markers()
-  {
-    std::vector<VelopixFiducialDefinition>
-      defs{
-      // CLI CS VP0
-      {"CLI_VP00_Fid1",-11.069,41.433},
-      {"CLI_VP00_Fid2", -1.152,31.516},
-      {"CLI_VP01_Fid1", -0.997,31.361},
-      {"CLI_VP01_Fid2",  8.920,21.444},
-      {"CLI_VP02_Fid1",  9.076,21.288},
-      {"CLI_VP02_Fid2", 18.993,11.371},
-      // CSO VP3
-      {"CSO_VP30_Fid1", 51.273,  1.464},
-      {"CSO_VP30_Fid2", 41.355, -8.454},
-      {"CSO_VP31_Fid1", 41.200, -8.609},
-      {"CSO_VP31_Fid2", 31.283,-18.526},
-      {"CSO_VP32_Fid1", 31.127,-18.682},
-      {"CSO_VP32_Fid2", 21.210,-28.599},
-      // NSI
-      {"NSI_VP20_Fid1", 11.487,-18.676},
-      {"NSI_VP20_Fid2", 21.404, -8.959},
-      {"NSI_VP21_Fid1", 21.560, -8.804},
-      {"NSI_VP21_Fid2", 31.477,  1.113},
-      {"NSI_VP22_Fid1", 31.633,  1.269},
-      {"NSI_VP22_Fid2", 41.550, 11.186},
-      // NLO
-      {"NLO_VP10_Fid1", 27.744, 22.066},
-      {"NLO_VP10_Fid2", 17.826, 31.983},
-      {"NLO_VP11_Fid1", 17.671, 32.138},
-      {"NLO_VP11_Fid2",  7.754, 42.055},
-      {"NLO_VP12_Fid1",  7.598, 42.211},
-      {"NLO_VP12_Fid2", -2.319, 52.128}
-    } ;
-    return defs ;
-  }
 
   // functions to implement:
   // * get all fiducial markers for a particular chip/side
@@ -108,4 +65,38 @@ namespace PAP
     double dy = ( -m_mainXB * c.x + m_mainXA * c.y)/D ;
     return MSMainCoordinates{ dx, dy } ;
   }
+
+  std::vector<FiducialDefinition>
+  GeometrySvc::velopixmarkersNSI() { return Markers::velopixNSI() ; }
+  
+  std::vector<FiducialDefinition>
+  GeometrySvc::velopixmarkersNLO() { return Markers::velopixNLO() ; }
+  
+  std::vector<FiducialDefinition>
+  GeometrySvc::velopixmarkersCLI() { return Markers::velopixCLI() ; }
+  
+  std::vector<FiducialDefinition>
+  GeometrySvc::velopixmarkersCSO() { return Markers::velopixCSO() ; }
+
+  std::vector<FiducialDefinition>
+  GeometrySvc::velopixmarkersNSide()
+  {
+    auto rc = velopixmarkersNSI() ;
+    auto rc2 = velopixmarkersNLO() ;
+    rc.insert(rc.end(),rc2.begin(),rc2.end()) ;
+    return rc ;
+  }
+
+  std::vector<FiducialDefinition>
+  GeometrySvc::velopixmarkersCSide()
+  {
+    auto rc = velopixmarkersCLI() ;
+    auto rc2 = velopixmarkersCSO() ;
+    rc.insert(rc.end(),rc2.begin(),rc2.end()) ;
+    return rc ;
+  }
+  
+  std::vector<FiducialDefinition>
+  GeometrySvc::jigmarkers() { return Markers::jigNCSide() ; }
+  
 }

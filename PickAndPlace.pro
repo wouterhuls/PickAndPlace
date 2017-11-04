@@ -32,7 +32,9 @@ SOURCES += main.cpp \
     GeometrySvc.cpp \
     NamedValue.cpp
 
- HEADERS  += \
+HEADERS  += \
+    NominalMarkers.h \
+    GraphicsItems.h \
     MotionSystemSerialPort.h \
     MonitoredValue.h \
     NamedValue.h \
