@@ -172,13 +172,13 @@ namespace PAP
       // the shape of the function very well.
       const float maxstepsize = 0.10 ; // 30 micron?
       const float minstepsize = 0.01 ;
-      MotionAxis* axis = MotionSystemSvc::instance()->axis("Focus") ;
+      MotionAxis& axis = MotionSystemSvc::instance()->focusAxis() ;
       // tricky: need to make sure this is up-to-date. that will turn
       // out the problem all over this routine: how do we make sure that
       // we have an up-to-date position measurement?
-      if(! axis ) { qDebug() << "Cannot find axis!" ; return ; }
+      //if(! axis ) { qDebug() << "Cannot find axis!" ; return ; }
       
-      const double zstart = axis->position() ;
+      const double zstart = axis.position() ;
       std::vector< FocusMeasurement > measurements ;
       measurements.reserve(64) ;
       qDebug() << "Ready to take focus measurements" ;
@@ -186,7 +186,7 @@ namespace PAP
       {
 	double zpositions[] = { zstart - maxstepsize, zstart, zstart + maxstepsize } ;
 	for( auto zpos : zpositions )
-	  measurements.push_back( takeMeasurement(*m_cameraview, *axis, zpos ) ) ;
+	  measurements.push_back( takeMeasurement(*m_cameraview, axis, zpos ) ) ;
       }
       // 2. extrapolate to the estimated minimum. we actually want to enclose the minimum ...
       double z0 = zstart ;
@@ -203,7 +203,7 @@ namespace PAP
 	    z0 = measurements.front().z - maxstepsize ;
 	  deltaz0 = z0 - z0prev ;
 	  // move to the new position and take a new focus measurement
-	  measurements.push_back( takeMeasurement(*m_cameraview, *axis, z0 ) ) ;
+	  measurements.push_back( takeMeasurement(*m_cameraview, axis, z0 ) ) ;
 	  std::sort( measurements.begin(), measurements.end() ) ;
 	  qDebug() << "Number of focussing measurements: " << measurements.size() ;
 	}
@@ -215,7 +215,7 @@ namespace PAP
 	qDebug() << "Measurements: " << measurements.size() ;
 	for( const auto& m : measurements )
 	  qDebug() << m.z << " " << m.I ;
-	axis->moveTo( zstart ) ;
+	axis.moveTo( zstart ) ;
       }
       m_isFocussing = false ;
     }

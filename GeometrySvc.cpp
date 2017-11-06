@@ -1,5 +1,6 @@
 #include "GeometrySvc.h"
 #include "PropertySvc.h"
+#include "MotionSystemSvc.h"
 #include "NominalMarkers.h"
 
 namespace PAP
@@ -65,7 +66,16 @@ namespace PAP
     double dy = ( -m_mainXB * c.x + m_mainXA * c.y)/D ;
     return MSMainCoordinates{ dx, dy } ;
   }
-
+  
+  QTransform GeometrySvc::computeGlobalToModule( int view )
+  {
+    // we need to start with something, right?
+    QTransform rc ;
+    rc.translate( MotionSystemSvc::instance()->mainXAxis().position(),
+		  MotionSystemSvc::instance()->mainYAxis().position() * (view == NSideView ? 1 : -1) ) ;
+    return rc ;
+  }
+  
   std::vector<FiducialDefinition>
   GeometrySvc::velopixmarkersNSI() { return Markers::velopixNSI() ; }
   

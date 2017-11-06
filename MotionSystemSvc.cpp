@@ -4,8 +4,6 @@
 #include <QSerialPortInfo>
 #include <QThread>
 #include <QRegularExpression>
-#include "Console.h"
-
 #include <QObject>
 #include <QTimer>
 //#include <iostream>
@@ -21,7 +19,7 @@ namespace PAP
   }
   
   MotionSystemSvc::MotionSystemSvc()
-    :  m_serialport(0), m_console(0), m_isReady(false)
+    :  m_serialport(0), m_isReady(false)
   {
     if( gInstance==0 ) gInstance = this ;
     
@@ -32,7 +30,6 @@ namespace PAP
     // but I'll fix it once I really know what I need.
     m_controllers[2] = new MotionController(2,"Controller RIGHT") ;
     m_controllers[4] = new MotionController(4,"Controller LEFT") ;
-
     std::vector<int> controllerid = {4,4,2,2,4,2} ;
     std::vector<int> axisid       = {1,2,1,2,3,3} ;
     std::vector<QString> axisname  = { "MainX","MainY","StackX","StackY","StackR","Focus" } ;
@@ -42,7 +39,17 @@ namespace PAP
       m_axes[id] = new MotionAxis{id,axisname[i],atype,*(m_controllers[id.controller])} ;
       m_controllers[controllerid[i]]->addAxis( m_axes[id] ) ;
     }
-
+    m_mainXAxis = axis("MainX") ;
+    m_mainYAxis = axis("MainY") ;
+    m_focusAxis = axis("Focus") ;
+    m_stackXAxis = axis("StackX") ;
+    m_stackYAxis = axis("StackY") ;
+    m_stackRAxis = axis("StackR") ;
+    
+    // some signal 'forwarding'
+    connect(&(m_mainXAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::mainStageMoved) ;
+    
+    
     // This explains who to do this in c
     //https://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c
     
@@ -273,6 +280,18 @@ namespace PAP
     qInfo() << "Switching motors on/off for controller " << controllerid << " " << on ;
     m_serialport->addCommand(2, on ? "MO" : "MF") ;
     m_serialport->addCommand(4, on ? "MO" : "MF") ;
+  }
+
+  MSCoordinates MotionSystemSvc::coordinates() const
+  {
+    MSCoordinates rc ;
+    rc.main.x = m_mainXAxis->position() ;
+    rc.main.y = m_mainYAxis->position() ;
+    rc.stack.x = m_stackXAxis->position() ;
+    rc.stack.y = m_stackYAxis->position() ;
+    rc.stack.phi = m_stackRAxis->position() ;
+    rc.focus = m_focusAxis->position() ;
+    return rc ;
   }
   
   MotionAxis* MotionSystemSvc::axis( const QString& name)

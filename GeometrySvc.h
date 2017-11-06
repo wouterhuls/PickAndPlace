@@ -3,55 +3,43 @@
 
 #include "Singleton.h"
 #include "NamedValue.h"
+#include "Coordinates.h"
+#include <QTransform>
 
 namespace PAP
 {
 
   /* class that holds a total set of axis coordinates from the motion system */
-  struct Coordinates2D
-  {
-    Coordinates2D( double _x, double _y ) : x(_x),y(_y) {}
-    double x ;
-    double y ;
-  } ;
   
-  struct MSMainCoordinates
-  {
-    MSMainCoordinates( double _x, double _y ) : x(_x),y(_y) {}
-    double x ;
-    double y ;
-  } ;
-
-  struct MSStackCoordinates
-  {
-    double x ;
-    double y ;
-    double phi ;
-  } ;
-  
-  struct MSCoordinates
-  {
-    MSMainCoordinates main ;
-    MSStackCoordinates stack ;
-  } ;
-
-  struct FiducialDefinition
-  {
-    FiducialDefinition( QString _name, double _x, double _y)
-    : name(_name),x(_x),y(_y) {}
-    QString name ;
-    double x ;
-    double y ;
-  } ;
 
   class GeometrySvc : public PAP::Singleton<GeometrySvc>
   {
+    public:
+    enum ViewDirection { CSideView=0, NSideView=1 } ;
   public:
+    // - the 'global' frame is the frame of the cameraview
+    // - the 'MS' frame has coordinates of the main stage X and Y axis
+    // - the 'module' frame is the frame of the module (jig)
+    
     GeometrySvc() ;
+    // these translate a point to a point. but I need more: for the
+    // transforms I also need the rotations.
     Coordinates2D toGlobal( const MSMainCoordinates& c) const;
     Coordinates2D toGlobalDelta( const MSMainCoordinates& c) const;
     MSMainCoordinates toMSMainDelta( const Coordinates2D& c) const ;
 
+    QTransform computeMSToGlobal() const {
+      // this needs to take into account the angles of the camera
+      // system with the motion system arms. we also need a definition
+      // of the origin. it may be useful if this corresponds to the
+      // rotation axis of the small stack, for certain values of small
+      // stack X and Y. but then it may be better if it is the nominal
+      // origin
+      return QTransform{} ;
+    }
+    
+    QTransform computeGlobalToModule( int view ) ;
+    
   public:
     // access to various marker positions in the 'Module' frame. these
     // have already been corrected for the 'view'.

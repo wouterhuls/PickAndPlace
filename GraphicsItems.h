@@ -89,15 +89,15 @@ namespace PAP
 	{ Px + Lx - 77.01, Py + Ly },
 	{ Px             , Py + 83 },     // top point
 	{ Px + 36.575    , Py + 46.425 }, // closest to IP
-	{0,0},
-	{ Px + 36.575    , Py + 46.425 }, // closest to IP
+	//{0,0},
+	//{ Px + 36.575    , Py + 46.425 }, // closest to IP
 	{ Px + Lx - 86.82, Py + 34.40 }
       } ;
       QPen pen ;
       //      pen.setColor( QColor{65,80,244} ) ;
       pen.setWidthF(0.2);
       painter->setPen(pen) ;
-      painter->drawPolygon( points, 11 ) ;
+      painter->drawPolygon( points, 9 ) ;
     }
      virtual QRectF boundingRect() const
      { 
@@ -121,22 +121,6 @@ namespace PAP
       double dx = markerdefs.back().x - markerdefs.front().x ;
       double dy = markerdefs.back().y - markerdefs.front().y ;
       double angle = std::atan2( dy, dx ) ;
-      qDebug() << "Tile: " << markerdefs.front().name << " " << angle*180.0/M_PI ;
-      double d = std::sqrt(dx*dx+dy*dy) ;
-      for(const auto& m : markerdefs ) {
-	double adx = m.x - markerdefs.front().x ;
-	double ady = m.y - markerdefs.front().y ;
-	double dot = (adx * dx + ady * dy ) / d ;
-	double bdx = adx - dot * dx/d ;
-	double bdy = ady - dot * dy/d ;
-	
-	double len = std::sqrt( adx*adx+ady*ady - dot*dot ) ;
-	qDebug()
-	  << "distance: "
-	  << m.name
-	  << len << " " << bdx << " " << bdy << " " << std::sqrt(bdx*bdx+bdy*bdy) ; 
-      }
-      
       setRotation( angle * 180.0 / M_PI ) ;
     } ;
 

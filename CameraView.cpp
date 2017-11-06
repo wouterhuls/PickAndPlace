@@ -323,14 +323,19 @@ namespace PAP
 
 	QPushButton movebutton("Center",&dialog) ;
 	layout.addWidget(&movebutton) ;
+	QPushButton recordbutton("Record",&dialog) ;
+	layout.addWidget(&recordbutton) ;
 	QPushButton closebutton("Close",&dialog) ;
 	layout.addWidget(&closebutton) ;
 	connect(&movebutton, &QPushButton::clicked, &dialog, &QDialog::accept);
+	connect(&recordbutton, &QPushButton::clicked, &dialog, &QDialog::accept);
+	connect(&movebutton, SIGNAL(QPushButton::clicked()), this, SLOT(moveCameraTo(local) ) ) ;
+	connect(&recordbutton, SIGNAL(QPushButton::clicked()), this, SLOT(record(local) ) ) ;
 	connect(&closebutton, &QPushButton::clicked, &dialog, &QDialog::reject);
 	dialog.setLayout( &layout ) ;
 	dialog.adjustSize() ;
 
-	// To do this properly, use QSignalMapper!
+	// To do this properly, use QSignalMapper?
 	// I don't understand how to do this properly if I have more types of actions
 	//QDialogButtonBox buttonBox(Qt::Horizontal);
 	//buttonBox.addButton("Center",QDialogButtonBox::ActionRole) ;
@@ -340,9 +345,9 @@ namespace PAP
 	//layout.addWidget(&buttonBox) ;
 
 	int ok = dialog.exec() ;
-	if( ok ) {
-	  moveCameraTo( local ) ;
-	}
+	//if( ok ) {
+	//moveCameraTo( local ) ;
+	//}
 	//qInfo() << "CameraView: result=" << result << " " << QDialogButtonBox::ActionRole ;
       }
   }
@@ -482,7 +487,22 @@ namespace PAP
 	    << "(" << localdx << "," << localdy << ") --> ("
 	    << mainstagedx.x << "," << mainstagedx.y << ")" ;
     // finally, move the motors!
-    MotionSystemSvc::instance()->axis("MainX")->move(mainstagedx.x) ;
-    MotionSystemSvc::instance()->axis("MainY")->move(mainstagedx.y) ;
+    MotionSystemSvc::instance()->mainXAxis().move(mainstagedx.x) ;
+    MotionSystemSvc::instance()->mainYAxis().move(mainstagedx.y) ;
   }
+
+  void CameraView::record( QPointF localpoint ) const
+  {
+    // for now, just print the information
+    qInfo() << "Taking a measurement!" ;
+    qInfo() << "Local coordinates: " << localpoint.x() << " " << localpoint.y() ;
+    auto mscoord= MotionSystemSvc::instance()->coordinates() ;
+    qInfo() << "Position of stacks: "
+	    << "(" << mscoord.main.x << ","
+	    << mscoord.main.y << ")"
+	    << "(" << mscoord.stack.x << ","
+	    << mscoord.stack.y << ","
+	    << mscoord.stack.phi << ")" ;
+  }
+  
 }

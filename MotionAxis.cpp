@@ -45,7 +45,7 @@ namespace PAP
 	// set the initial value:
 	// readParameter( par ) ;
 	// for now, disable the callbacks!
-	// QObject::connect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
+	QObject::connect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
 	PAP::PropertySvc::instance()->add( par ) ;
       }
     }

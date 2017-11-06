@@ -22,8 +22,7 @@ namespace PAP
   class CameraView : public QGraphicsView
   {
     Q_OBJECT
-
-
+    
   public:
     enum ViewDirection { CSideView=0, NSideView=1 } ;
   public:
@@ -53,6 +52,7 @@ namespace PAP
     void processFrame( const QVideoFrame& frame ) ;
     double computeContrast( const QVideoFrame& frame ) ;
     void moveCameraTo( QPointF localpoint ) const ;
+    void record( QPointF localpoint ) const ;
     void zoomReset() ;
     void zoomOut() ;
     void setViewDirection( int view ) ;

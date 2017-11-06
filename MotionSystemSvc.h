@@ -7,8 +7,7 @@
 #include "MotionAxis.h"
 #include "MotionController.h"
 #include "MotionSystemSerialPort.h"
-
-class Console ;
+#include "Coordinates.h"
 
 // singleton class for interfacing to the motion system This needs to
 // be reimplemented because it is a mess: it now is both the container
@@ -59,36 +58,45 @@ namespace PAP
     // tell if the serial port is ready and the system connected
     bool isReady() const { return m_serialport->isOpen() && m_isReady ; }
     
-    void setConsole( Console* console ) { m_console = console ; }
+    // finally decided just to have direct access to axes
+    MotionAxis& mainXAxis() const { return *m_mainXAxis ; }
+    MotionAxis& mainYAxis() const { return *m_mainYAxis ; }
+    MotionAxis& focusAxis() const { return *m_focusAxis ; }    
+    MotionAxis& stackXAxis() const { return *m_stackXAxis ; }
+    MotionAxis& stackYAxis() const { return *m_stackYAxis ; }
+    MotionAxis& stackRAxis() const { return *m_stackRAxis ; }    
     
-    MotionAxis* axis( const QString& name ) ;
-
     void parseData( int controllerid, const QByteArray& data ) ;
 
-  private:
-      void write( int motioncontrollerid, const char* command ) const ;
-      void write( const char* command ) const ;
-      QByteArray read() const ;
-      
-      //private slots:
-      // this is new for asynchronous read/write
-      /*
-	void writeData( const QByteArray& data ) ;
-	void readData() ;
-	void parseData( const QByteArray& data ) ;
-      */
-      
+    // return the coordinates of all axis
+    MSCoordinates coordinates() const ;
+
+  signals:
+    void mainStageMoved() const ;
+    void stackStageMoved() const ;
+    
+  private: 
+    void write( int motioncontrollerid, const char* command ) const ;
+    void write( const char* command ) const ;
+    QByteArray read() const ;
+
+    // this one is obsolete
+    MotionAxis* axis( const QString& name ) ;
+	
   private:
       static MotionSystemSvc* gInstance ;
       MotionSystemSerialPort* m_serialport ;
       // we should actually separate this, but let's keep it here for now
       AxisContainer m_axes ;
+      MotionAxis* m_mainXAxis ;
+      MotionAxis* m_mainYAxis ;
+      MotionAxis* m_focusAxis ;
+      MotionAxis* m_stackXAxis ;
+      MotionAxis* m_stackYAxis ;
+      MotionAxis* m_stackRAxis ;      
       ControllerContainer m_controllers ;
-      
-      // Console for monitoring in and output.
-      Console *m_console ;
       bool m_isReady ;
-  };
+  } ;
 }
 
 #endif // MOTIONSYSTEMSVC_H

@@ -6,6 +6,7 @@
 #include <deque>
 
 class QSerialPortInfo ;
+class Console ;
 
 namespace PAP
 {
@@ -59,6 +60,8 @@ namespace PAP
     int m_currentcontrollerid ;
     int m_sleeptimeaddresschange ;
     int m_sleeptimereadcommand ;
+    // Console for monitoring in and output.
+    Console *m_console ;
   } ;
   
   class MotionSystemSerialPort : public QObject
