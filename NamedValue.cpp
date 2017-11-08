@@ -20,6 +20,14 @@ namespace PAP
     if( success ) setValue( val.toDouble() ) ;
     return success ;
   }
+  
+  template<>
+  bool NamedValueT<int>::fromString( const QString& val ) {
+    QVariant qval(val) ;
+    bool success = qval.convert(QVariant::Int) ;
+    if( success ) setValue( val.toInt() ) ;
+    return success ;
+  }
 
 }
   

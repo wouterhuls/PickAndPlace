@@ -78,6 +78,7 @@ namespace PAP
 
   using NamedValue  = NamedValueT<QVariant> ;
   using NamedDouble = NamedValueT<double> ;
+  using NamedInteger = NamedValueT<int> ;
 
  
   /*
