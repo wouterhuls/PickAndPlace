@@ -2,7 +2,8 @@
 #include "MotionSystemSvc.h"
 
 #include <QRegularExpression>
-  
+#include <algorithm>
+
 namespace PAP
 {
   
@@ -91,13 +92,6 @@ namespace PAP
 	//qDebug() << "Result ready! "
 	//<< command.cmd.c_str()
 	//	       << result.data.size() ;
-	// let's temporarily try the reset here (before doing it the right way)
-	//if( !QString{result.data}.contains(command.cmd.c_str()) ) {
-	//qWarning() << "Trying to reopen port!" ;
-	//m_serialport.close() ;
-	//m_serialport.open(QIODevice::ReadWrite)  ;
-	//}
-	
 	emit resultReady(result) ;
       }
       emit ready() ;
@@ -192,8 +186,8 @@ qInfo() << "MotionSystemSvs: Successfully opened port"
       // qInfo() << "Version of GPIB-USB interface: " << readData ;
 
       // register types used for signals
-      int id1 = qRegisterMetaType<PAP::MSCommand>() ;
-      int id2 = qRegisterMetaType<PAP::MSResult>() ;
+      qRegisterMetaType<PAP::MSCommand>() ;
+      qRegisterMetaType<PAP::MSResult>() ;
       // from now on only the worker can communicate to the serialport!
       MSWorker* worker = new MSWorker(portinfo) ;
       worker->moveToThread(&m_workerthread) ;
@@ -229,12 +223,21 @@ qInfo() << "MotionSystemSvs: Successfully opened port"
   void MotionSystemSerialPort::addCommand( int controller, const char* cmd, bool isreadcommand,
 					   NamedValueBase* target)
   {
-    // first add it to the queue
-    m_commandqueue.push_back( MSCommand(controller,cmd,isreadcommand,target) ) ;
+    // first add it to the queue. we would actually like to sort by
+    // priority here: write commands before readcommands.
+    MSCommand mscmd{controller,cmd,isreadcommand,target} ;
+    // the fork is just to make it faster ...
+    if( isreadcommand ) {
+      m_commandqueue.push_back( mscmd ) ;
+    } else {
+      auto it = std::upper_bound( m_commandqueue.begin(),
+				  m_commandqueue.end(), mscmd ) ;
+      m_commandqueue.insert(it,mscmd) ;
+    }
     // should we now emit a signal to the worker? perhaps better not?
     // I don't have a clue ... perhaps my design is still wrong.
   }
-
+  
   void MotionSystemSerialPort::next()
   {
     // if the queu is empty, then request just status and errors

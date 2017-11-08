@@ -22,11 +22,12 @@ namespace PAP
   template<class T>
     MSCommand( int c, const T& acmd, bool _isreadcommand, NamedValueBase* _target=0 ) :
     controller(c), cmd(acmd), isreadcommand(_isreadcommand), target(_target) {}
-  
   int controller ;
   std::string cmd ;
   bool isreadcommand ;
   NamedValueBase* target ;
+  // sort command used for inserting in queue. write commands get priority over read commands.
+  bool operator<( const MSCommand& rhs ) const { return !this->isreadcommand && rhs.isreadcommand ; }
   } ;
 
   struct MSResult

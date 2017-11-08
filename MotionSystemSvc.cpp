@@ -175,7 +175,7 @@ namespace PAP
   {
     // this all assumes that we receive data for the current controller.
     //qDebug() << "MotionSystemSvc, parsing message: " << data ;
-    QStringList lines = QString(data).split(QRegularExpression("\n|\r\n|\r|\\,"));
+    QStringList lines = QString(data).split(QRegularExpression("\n|\r\n|\r|\\,\\d"));
     for( const auto& line : lines )
       if( line.size()>0 ) {
 	//qDebug() << "MotionSystemSvc, parsing line: " << line ;
