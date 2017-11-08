@@ -31,11 +31,14 @@ namespace PAP
       QObject::connect(timer, SIGNAL(timeout()), this, SLOT(readPosition()));
       timer->start(1000);
     }
-    // read the position now and again every time the motors have stopped
-    //    readPosition() ;
-    QObject::connect(this,&MotionAxis::movementStopped,this,&MotionAxis::readPosition);
     
-    // connect some of the slots
+    // read the position every time the motors have started, stopped,
+    // or the position has changed
+    QObject::connect(this,&MotionAxis::movementStarted,this,&MotionAxis::readPosition);
+    QObject::connect(this,&MotionAxis::movementStopped,this,&MotionAxis::readPosition);
+    QObject::connect(&m_position,&NamedValueBase::valueChanged,this,&MotionAxis::readPosition);
+    
+    // create a the list of motion axis parameters.
     m_parameters.reserve( MSCommandLibrary::Parameters.size() ) ;
     for( const auto& p: MSCommandLibrary::Parameters ) {
       if(p.configurable) {
@@ -45,7 +48,7 @@ namespace PAP
 	// set the initial value:
 	// readParameter( par ) ;
 	// for now, disable the callbacks!
-	QObject::connect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
+	QObject::connect( &par, &NamedValueBase::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
 	PAP::PropertySvc::instance()->add( par ) ;
       }
     }
@@ -85,7 +88,9 @@ namespace PAP
   {
     for(auto& par : m_parameters ) readParameter( par ) ;
     MotionSystemSvc::instance()->applyAxisReadCommand(m_id,"TA") ;
+    QObject::disconnect(&m_position,&NamedValueBase::valueChanged,this,&MotionAxis::readPosition);
     MotionSystemSvc::instance()->applyAxisReadCommand(m_id,"TP") ;
+    QObject::connect(&m_position,&NamedValueBase::valueChanged,this,&MotionAxis::readPosition);
   }
   
   void MotionAxis::readParameter( MSParameter& par )
