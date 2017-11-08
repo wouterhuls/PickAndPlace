@@ -162,7 +162,6 @@ namespace PAP
 						  const QSerialPortInfo &portinfo)
     : m_parent(&parent)
   {
-
     // register types used for signals
     qRegisterMetaType<PAP::MSCommand>() ;
     qRegisterMetaType<PAP::MSResult>() ;
