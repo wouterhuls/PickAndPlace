@@ -87,6 +87,8 @@ namespace PAP
     std::deque<MSCommand> m_commandqueue ;
     QThread m_workerthread ;
     MSCommand m_lastcommand ;
+    std::vector<MSCommand> m_idlecommands ;
+    unsigned short m_currentidlecommandindex ;
   } ;
 
 }

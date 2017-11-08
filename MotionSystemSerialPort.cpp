@@ -188,6 +188,13 @@ namespace PAP
     // FIXME: move this to parent
     addCommand(2,"ML") ;
     addCommand(4,"ML") ;
+
+    // create a list of commands that we'll run when the queue is empty
+    m_idlecommands = { MSCommand{2,"TS",true},
+		       MSCommand{2,"TB",true},
+		       MSCommand{4,"TS",true},
+		       MSCommand{4,"TB",true} } ;
+    m_currentidlecommandindex=0 ;
     
     // to get the circus going, we now need to start the loop
     next() ;
@@ -216,12 +223,14 @@ namespace PAP
     // if the queu is empty, then request just status and errors
     // FIXME: make sure it orders these such that we don't need to change controller id more than once. 
     if( m_commandqueue.empty() ) {
-      const int c1 = m_lastcommand.controller==4 ? 4 : 2 ;
-      const int c2 = m_lastcommand.controller==4 ? 2 : 4 ;
-      addCommand(c1,"TS",true) ;
-      addCommand(c1,"TB",true) ;
-      addCommand(c2,"TS",true) ;
-      addCommand(c2,"TB",true) ;
+      m_commandqueue.push_back( m_idlecommands[ m_currentidlecommandindex ] ) ;
+      m_currentidlecommandindex = (m_currentidlecommandindex+1)%m_idlecommands.size() ;
+      //   const int c1 = m_lastcommand.controller==4 ? 4 : 2 ;
+      //   const int c2 = m_lastcommand.controller==4 ? 2 : 4 ;
+      //   addCommand(c1,"TS",true) ;
+      //   addCommand(c1,"TB",true) ;
+      //   addCommand(c2,"TS",true) ;
+      //   addCommand(c2,"TB",true) ;
     }
     m_lastcommand = m_commandqueue.front() ;
     m_commandqueue.pop_front() ;
@@ -239,8 +248,8 @@ namespace PAP
       qWarning() << "Test in handleOuput failed!" 
 		 << m_lastcommand.cmd.c_str()
 		 << result.data ;
-      // just try again!
-      m_commandqueue.push_back( m_lastcommand ) ;
+      // just try again?
+      // m_commandqueue.push_back( m_lastcommand ) ;
     } else {
       if( m_lastcommand.target==0 )
 	m_parent->parseData( result.controller, result.data ) ;
