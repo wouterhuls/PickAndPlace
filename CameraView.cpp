@@ -329,8 +329,8 @@ namespace PAP
 	layout.addWidget(&closebutton) ;
 	connect(&movebutton, &QPushButton::clicked, &dialog, &QDialog::accept);
 	connect(&recordbutton, &QPushButton::clicked, &dialog, &QDialog::accept);
-	connect(&movebutton, SIGNAL(QPushButton::clicked()), this, SLOT(moveCameraTo(local) ) ) ;
-	connect(&recordbutton, SIGNAL(QPushButton::clicked()), this, SLOT(record(local) ) ) ;
+	connect(&movebutton, &QPushButton::clicked, [=](){ this->moveCameraTo(local) ; } ) ;	
+	connect(&recordbutton, &QPushButton::clicked, [=](){ this->record(local) ; } ) ;
 	connect(&closebutton, &QPushButton::clicked, &dialog, &QDialog::reject);
 	dialog.setLayout( &layout ) ;
 	dialog.adjustSize() ;
