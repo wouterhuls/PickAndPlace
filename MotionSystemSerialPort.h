@@ -4,6 +4,8 @@
 #include <QSerialPort>
 #include <QThread>
 #include <deque>
+#include "NamedValue.h"
+
 
 class QSerialPortInfo ;
 class Console ;
@@ -39,9 +41,7 @@ namespace PAP
   {
     Q_OBJECT
   public:
-    MSWorker( const QSerialPortInfo& port,
-	      int sleeptimeaddresschange = 100,
-	      int sleeptimereadcommand = 100 ) ;
+    MSWorker( const QSerialPortInfo& port ) ;
     virtual ~MSWorker() ;
     
   signals:
@@ -58,8 +58,8 @@ namespace PAP
   private:
     QSerialPort m_serialport ;
     int m_currentcontrollerid ;
-    int m_sleeptimeaddresschange ;
-    int m_sleeptimereadcommand ;
+    NamedValueT<int> m_sleeptimeaddresschange ;
+    NamedValueT<int> m_sleeptimereadcommand ;
     // Console for monitoring in and output.
     Console *m_console ;
   } ;

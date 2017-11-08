@@ -51,13 +51,11 @@ namespace PAP
     } ;
 
     */
-  MSWorker::MSWorker( const QSerialPortInfo& portinfo,
-		      int sleeptimeaddresschange,
-		      int sleeptimereadcommand) :
+  MSWorker::MSWorker( const QSerialPortInfo& portinfo) :
     m_serialport(portinfo),
     m_currentcontrollerid(-1),
-    m_sleeptimeaddresschange( sleeptimeaddresschange ),
-    m_sleeptimereadcommand( sleeptimereadcommand )
+    m_sleeptimeaddresschange("MotionSystem.SleepTimeAddressChange",200),
+    m_sleeptimereadcommand("MotionSystem.SleepTimeReadCommand",100)
   {
     // let;s open it in this thread and not in the other one.
     m_serialport.setParent(this) ;
@@ -152,8 +150,10 @@ namespace PAP
       // while (m_serialport.waitForReadyRead(m_timeout))
       //   readData.append(m_serialport.readAll());
       // and this is how I want to try it:
-      /*bool success = */ m_serialport.waitForReadyRead(200) ;
+      bool success = m_serialport.waitForReadyRead(1000) ;
       readData = m_serialport.readAll();
+      if(!success)
+	qWarning() << "WaitForReadyRead timed out!" ;
       //qDebug() << "Size was in read(): " << readData.size() ;
       // FIXME! so, I don't know what is wrong, but we are receiving garbage.
       // for now, truncate at the first newline.
@@ -169,61 +169,36 @@ namespace PAP
     : m_parent(&parent)
   {
 
-    if( true ) {
-      /*
-qInfo() << "MotionSystemSvs: Successfully opened port"
-	      << m_serialport.baudRate() << " "
-	      << m_serialport.errorString() << " "
-	      << m_serialport.flowControl() << " "
-	      << m_serialport.parity() ;
-      */
-      
-      // // configuration: make sure to disable autoread, because there
-      // // is a problem with latency between controller and GPIB-USB
-      // // converter
-      // m_serialport.write("++auto 0\n") ;      
-      // m_serialport.write("++ver\n") ;
-      // // here we have a problem with the time-out.
-      // // perhaps that's a configuration issue, or something inside QSerialIO.
-      // // (there is no problem when communicating from the command line.)
-      // QByteArray readData = m_serialport.readAll();
-      // while (m_serialport.waitForReadyRead(100))
-      // 	readData.append(m_serialport.readAll());
-      // qInfo() << "Version of GPIB-USB interface: " << readData ;
+    // register types used for signals
+    qRegisterMetaType<PAP::MSCommand>() ;
+    qRegisterMetaType<PAP::MSResult>() ;
 
-      // register types used for signals
-      int id1 = qRegisterMetaType<PAP::MSCommand>() ;
-      int id2 = qRegisterMetaType<PAP::MSResult>() ;
-      // from now on only the worker can communicate to the serialport!
-      MSWorker* worker = new MSWorker(portinfo) ;
-      worker->moveToThread(&m_workerthread) ;
-      // make sure that it is deleted, at some point
-      connect( &m_workerthread, &QThread::finished, worker, &QObject::deleteLater) ;
-      // make the connection to give tasks to the worker
-      //connect( this, &MotionSystemSerialPort::operate, worker, &Worker::doWork ) ;
-      connect( this, &MotionSystemSerialPort::operate, worker, &MSWorker::doWork ) ;
-      // make the connection to let worker tell us that it is done
-      //connect( worker, &Worker::ready, this, &MotionSystemSerialPort::next) ;
-      connect( worker, &MSWorker::ready, this, &MotionSystemSerialPort::next ) ;
-      // make the connection to get result from worker
-      //connect( worker, &Worker::resultReady, this, &MotionSystemSerialPort::handleOutput) ;
-      connect( worker, &MSWorker::resultReady, this, &MotionSystemSerialPort::handleOutput) ;
-
-      // start the thread
-      m_workerthread.start() ;
-      m_workerthread.setPriority(QThread::LowPriority) ;
-
-      // add commands to start controllers in local mode
-      // FIXME: move this to parent
-      addCommand(2,"ML") ;
-      addCommand(4,"ML") ;
-      
-      // to get the circus going, we now need to start the loop
-      next() ;
-      
-    } else {
-      qWarning() << "Could not open serial port" ;
-    }
+    // from now on only the worker can communicate to the serialport!
+    MSWorker* worker = new MSWorker(portinfo) ;
+    worker->moveToThread(&m_workerthread) ;
+    // make sure that it is deleted, at some point
+    connect( &m_workerthread, &QThread::finished, worker, &QObject::deleteLater) ;
+    // make the connection to give tasks to the worker
+    //connect( this, &MotionSystemSerialPort::operate, worker, &Worker::doWork ) ;
+    connect( this, &MotionSystemSerialPort::operate, worker, &MSWorker::doWork ) ;
+    // make the connection to let worker tell us that it is done
+    //connect( worker, &Worker::ready, this, &MotionSystemSerialPort::next) ;
+    connect( worker, &MSWorker::ready, this, &MotionSystemSerialPort::next ) ;
+    // make the connection to get result from worker
+    //connect( worker, &Worker::resultReady, this, &MotionSystemSerialPort::handleOutput) ;
+    connect( worker, &MSWorker::resultReady, this, &MotionSystemSerialPort::handleOutput) ;
+    
+    // start the thread
+    m_workerthread.start() ;
+    m_workerthread.setPriority(QThread::LowPriority) ;
+    
+    // add commands to start controllers in local mode
+    // FIXME: move this to parent
+    addCommand(2,"ML") ;
+    addCommand(4,"ML") ;
+    
+    // to get the circus going, we now need to start the loop
+    next() ;
   }
 
   void MotionSystemSerialPort::addCommand( int controller, const char* cmd, bool isreadcommand,
