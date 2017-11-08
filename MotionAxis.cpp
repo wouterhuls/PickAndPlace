@@ -100,7 +100,7 @@ namespace PAP
     else 
       qDebug() << "readParameter: Cannot find parameter definition for: " << par.shortname() ;
     // enable the callback again
-    // QObject::connect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
+    QObject::connect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
   }
 
   void MotionAxis::readPosition()
