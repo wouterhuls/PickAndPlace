@@ -423,12 +423,16 @@ namespace PAP
       
       const int centralPixelX = m_numPixelsX/2 ;
       const int centralPixelY = m_numPixelsY/2 ;
-      const int numPixelX = 100 ; // 30x30 microns.
-      const int numPixelY = 100 ;
+      const int numPixelX = 200 ; // 60x60 microns. ?
+      const int numPixelY = 200 ;
       const int firstPixelX = centralPixelX - numPixelX/2 ;
       const int lastPixelX  = centralPixelX + numPixelX/2 ;
       const int firstPixelY = centralPixelY - numPixelY/2 ;
       const int lastPixelY  = centralPixelY + numPixelY/2 ;
+
+      // according to this article:
+      // https://www.google.nl/url?sa=t&rct=j&q=&esrc=s&source=web&cd=4&ved=0ahUKEwj_2q7N9K7XAhWDyaQKHQVEBS0QFghCMAM&url=http%3A%2F%2Fciteseerx.ist.psu.edu%2Fviewdoc%2Fdownload%3Fdoi%3D10.1.1.660.5197%26rep%3Drep1%26type%3Dpdf&usg=AOvVaw1ID-dlE4Ji72E9knlQdzsr
+      // just the (normalized) variance is the best focussing criterion. It is also very easy to compute ...
       
       // fill histogram with intensity values
       double histogram[256] ;
@@ -453,8 +457,16 @@ namespace PAP
 	  histogram[Y] += 1 ;
 	}
       }
-      // compute entropy
+      // compute the variance. for best precision, first compute the mean ...
       double norm = numPixelX*numPixelY ;
+      double sumX(0) ;
+      for(int i=0; i<256; ++i) sumX += histogram[i] * i ;
+      double mu = sumX / norm ;
+      double var(0) ;
+      for(int i=0; i<256; ++i) var += histogram[i] * ( (i-mu)*(i-mu) ) ;
+      var = var / norm ;
+           
+      // compute entropy
       double entropy = 0 ;
       for(int i=0; i<256; ++i)
 	if( histogram[i]>0 )
@@ -464,6 +476,10 @@ namespace PAP
       // unmap in order to free the memory
       const_cast<QVideoFrame&>(frame).unmap() ;
       rc = entropy ;
+
+      qDebug() << "Mean, variance, entropy: "
+	       << mu << " " << var << " " << std::sqrt(var) << " "
+	       << var/mu << " " << entropy ;
     }
     m_focusMeasure = rc ;
     emit focusMeasureUpdated() ;
