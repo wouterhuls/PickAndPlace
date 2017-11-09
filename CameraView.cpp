@@ -433,10 +433,11 @@ namespace PAP
       // according to this article:
       // https://www.google.nl/url?sa=t&rct=j&q=&esrc=s&source=web&cd=4&ved=0ahUKEwj_2q7N9K7XAhWDyaQKHQVEBS0QFghCMAM&url=http%3A%2F%2Fciteseerx.ist.psu.edu%2Fviewdoc%2Fdownload%3Fdoi%3D10.1.1.660.5197%26rep%3Drep1%26type%3Dpdf&usg=AOvVaw1ID-dlE4Ji72E9knlQdzsr
       // just the (normalized) variance is the best focussing criterion. It is also very easy to compute ...
-      
-      // fill histogram with intensity values
+
+       // fill histogram with intensity values
       double histogram[256] ;
       for(int i=0; i<256; ++i) histogram[i]=0 ;
+      unsigned char grid[numPixelX*numPixelY] ;
       const unsigned int* bgr32 = reinterpret_cast<const unsigned int*>(frame.bits()) ;
       // for now we'll just use entropy. try fancier things later.
       for(int ybin = firstPixelY ; ybin<lastPixelY ; ++ybin) {
@@ -455,10 +456,41 @@ namespace PAP
 	  // onw that runs very quickly is:
 	  unsigned char Y = (R+R+R+B+G+G+G+G)>>3 ;
 	  histogram[Y] += 1 ;
+	  grid[ xbin-firstPixelX + numPixelX * (ybin-firstPixelY)] = Y ;
 	}
       }
+      const double norm = numPixelX*numPixelY ;
+      // compute Boddeke's measure (gradient just in x direction, skipping bins (not sure why))
+      double BODsum(0) ;
+      for(int ybin=0; ybin<numPixelY; ++ybin)
+	for(int xbin=0; xbin<numPixelX-2; ++xbin) {
+	  int bin = ybin*numPixelX + xbin ;
+	  double tmp = grid[ bin + 2] - grid[ bin ] ;
+	  BODsum += tmp*tmp ;
+	}
+      BODsum /= norm ;
+      // compute my measure (gradient in xy direction)
+      // we should be able to write this a bit quicker
+      double WHsum(0) ;
+      for(int ybin=0; ybin<numPixelY-1; ++ybin) {
+	short n11 = grid[ ybin*numPixelX ] ;
+	short n12 = grid[ (ybin+1)*numPixelX ] ;
+	for(int xbin=0; xbin<numPixelX-1; ++xbin) {
+	  short n21 = grid[ ybin*numPixelX + xbin + 1] ;
+	  short n22 = grid[ (ybin+1)*numPixelX + xbin + 1] ;
+	  //float dx = (float(n11) + float(n12) - float(n21) - float(n22)) ;
+	  //float dy = (float(n11) + float(n21) - float(n12) - float(n22)) ;
+	  //WHsum += dx*dx+dy*dy ;
+	  short a = n11 - n22 ;
+	  short b = n12 - n21 ;
+	  WHsum += a*a + b*b ;
+	  n11 = n21 ;
+	  n12 = n22 ;
+	}
+      }
+      WHsum /= norm ;
+      
       // compute the variance. for best precision, first compute the mean ...
-      double norm = numPixelX*numPixelY ;
       double sumX(0) ;
       for(int i=0; i<256; ++i) sumX += histogram[i] * i ;
       double mu = sumX / norm ;
@@ -479,7 +511,8 @@ namespace PAP
 
       qDebug() << "Mean, variance, entropy: "
 	       << mu << " " << var << " " << std::sqrt(var) << " "
-	       << var/mu << " " << entropy ;
+	       << var/mu << " " << entropy  << " "
+	       << BODsum << " " << WHsum ;
     }
     m_focusMeasure = rc ;
     emit focusMeasureUpdated() ;
