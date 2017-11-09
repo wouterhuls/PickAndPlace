@@ -48,8 +48,8 @@ namespace PAP
 	// set the initial value:
 	// readParameter( par ) ;
 	// for now, disable the callbacks!
-	QObject::connect( &par, &NamedValueBase::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
 	PAP::PropertySvc::instance()->add( par ) ;
+	//QObject::connect( &par, &NamedValueBase::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
       }
     }
     PAP::PropertySvc::instance()->add( m_stepsize ) ;
@@ -88,24 +88,16 @@ namespace PAP
   {
     for(auto& par : m_parameters ) readParameter( par ) ;
     MotionSystemSvc::instance()->applyAxisReadCommand(m_id,"TA") ;
-    QObject::disconnect(&m_position,&NamedValueBase::valueChanged,this,&MotionAxis::readPosition);
     MotionSystemSvc::instance()->applyAxisReadCommand(m_id,"TP") ;
-    QObject::connect(&m_position,&NamedValueBase::valueChanged,this,&MotionAxis::readPosition);
   }
   
   void MotionAxis::readParameter( MSParameter& par )
   {
-    // make sure to disable the callback
-    QObject::disconnect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
-    // note: at the moment this bypasses the parser
     auto pardef = MSCommandLibrary::findParDef(par.shortname()) ;
     if(pardef)
-      //MotionSystemSvc::instance()->readAxisVariable(m_id,pardef->getcmd,par) ;
       MotionSystemSvc::instance()->applyAxisReadCommand(m_id,pardef->getcmd) ;
     else 
       qDebug() << "readParameter: Cannot find parameter definition for: " << par.shortname() ;
-    // enable the callback again
-    QObject::connect( &par, &NamedValue::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
   }
 
   void MotionAxis::readPosition()
@@ -119,19 +111,19 @@ namespace PAP
   
   void MotionAxis::step( Direction dir )
   {
-    //setIsMoving( true ) ;
+    setIsMoving( true ) ;
     move( dir * m_stepsize ) ;
   }
 
   void MotionAxis::move( float delta )
   {
-    //setIsMoving( true ) ;
+    setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PR",delta) ;
   }
   
   void MotionAxis::move( Direction dir )
   {
-    //setIsMoving( true ) ;
+    setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"MT",dir == Up ? "+" : "-") ;
   }
   
@@ -142,13 +134,13 @@ namespace PAP
   
   void MotionAxis::moveTo( float position )
   {
-    //setIsMoving( true ) ;
+    setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PA",position) ;
   }
   
   void MotionAxis::searchHome()
   {
-    //setIsMoving( true ) ;
+    setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"OR") ;
   }
   
