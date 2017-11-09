@@ -2,11 +2,11 @@
 #define MOTIONAXISSETTINGSDIALOG_H
 
 #include <QDialog>
+class QCheckBox ;
 #include "MotionAxis.h"
 
 namespace PAP
-{
-  
+{  
   class MotionAxisSettingsDialog : public QDialog
   {
     Q_OBJECT
@@ -31,9 +31,11 @@ namespace PAP
     
     private slots:
       void on_searchHomeButton_clicked();
+      void allowPassTravelLimitChanged() ;
       
   private:
       MotionAxis* m_axis ;
+      QCheckBox* m_allowpasstravellimitbox ;
   };
 
 }

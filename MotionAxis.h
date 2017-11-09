@@ -46,7 +46,9 @@ namespace PAP
     NamedDouble& stepsize() { return m_stepsize ; }
 
     void readParameters() ;
-
+    void setAllowPassTravelLimit( bool a ) { m_allowPassTravelLimit = a ; }
+    bool allowPassTravelLimit() const { return m_allowPassTravelLimit ; }
+    
     signals:
       void movementStarted() ;
       void movementStopped() ;
@@ -70,6 +72,7 @@ namespace PAP
       NamedDouble m_stepsize ;
       MotionAxisParameters m_parameters ;
       bool m_isMoving ;
+      bool m_allowPassTravelLimit ;
       unsigned int m_status ;
       const MotionController* m_controller ;
   };

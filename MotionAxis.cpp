@@ -19,6 +19,7 @@ namespace PAP
       m_position{name + ".Position",0.},
       m_stepsize{name + ".Stepsize",0.005,0.0,1.0},
       m_isMoving(false),
+      m_allowPassTravelLimit(false),
       m_controller{&c}
   {
     qInfo() << "MotionAxis: defined controller for "
@@ -132,7 +133,9 @@ namespace PAP
   void MotionAxis::move( Direction dir )
   {
     //setIsMoving( true ) ;
-    MotionSystemSvc::instance()->applyAxisCommand(m_id,"MT",dir == Up ? "+" : "-") ;
+    MotionSystemSvc::instance()->applyAxisCommand(m_id,
+						  allowPassTravelLimit() ? "MT" : "MV",
+						  dir == Up ? "+" : "-") ;
   }
   
   void MotionAxis::stop()
