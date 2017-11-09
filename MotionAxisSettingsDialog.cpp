@@ -27,6 +27,9 @@ namespace PAP
     for( auto& par : axis.parameters() ) {
       auto w = new NamedValueInputWidget(par,this) ;
       layout->addWidget( w ) ;
+      // enable the call back only now
+      QObject::connect( &par, &NamedValueBase::valueChanged,
+			&axis, &MotionAxis::handleParameterUpdate ) ;
     }
     
     layout->addWidget( new NamedValueInputWidget{m_axis->stepsize(),this} ) ;

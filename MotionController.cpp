@@ -30,10 +30,10 @@ namespace PAP
   {
     if( status != m_status ) {
       m_status = status ;
-      for(auto& axis : m_axes)
-	axis->setIsMoving( status & (1 << (axis->id().axis-1) ) ) ;
-      //emit statusChanged() ;
+      emit statusChanged() ;
     }
+    for(auto& axis : m_axes)
+      axis->setIsMoving( status & (1 << (axis->id().axis-1) ) ) ;
     emit statusChanged() ;
   }
   
@@ -47,6 +47,8 @@ namespace PAP
   
   void MotionController::setErrorMsg( const QString& error )
   {
+    if (error.size()>10) qWarning() << error ;
+    
     if( error != m_error ) {
       m_error = error ;
       emit statusChanged() ;
