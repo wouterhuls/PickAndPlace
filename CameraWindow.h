@@ -9,6 +9,7 @@ class QLabel;
 namespace PAP
 {
   class CameraView ;
+  class AutoFocus ;
   
   class CameraWindow : public QMainWindow
   {
@@ -23,6 +24,7 @@ namespace PAP
     void on_quitButton_clicked();
   private:
     CameraView* m_cameraview ;
+    AutoFocus* m_autofocus ;
     // some labels that tell where the cursor position is
     QLabel* m_cursorposition ;
     bool m_isFocussing ; // flag to disable focus button while focussing

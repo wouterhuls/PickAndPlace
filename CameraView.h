@@ -35,22 +35,13 @@ namespace PAP
     double pixelSizeX() const { return pixelSize() ; }
     double pixelSizeY() const { return pixelSize() ; }
 
-    double computeContrast() { return m_frame ? computeContrast(*m_frame) : 0 ; }
-
     QVideoProbe* videoProbe() { return m_videoProbe ; }
-
-    double focusMeasure() const { return m_focusMeasure ; }
-    
-  signals:
-    void focusMeasureUpdated() ;
-    
+ 
   public slots:
     virtual void wheelEvent ( QWheelEvent * event ) ;
     void scalingTime(qreal x) ;
     void animFinished() ;
     virtual void mousePressEvent( QMouseEvent* event) ;
-    void processFrame( const QVideoFrame& frame ) ;
-    double computeContrast( const QVideoFrame& frame ) ;
     void moveCameraTo( QPointF localpoint ) const ;
     void record( QPointF localpoint ) const ;
     void zoomReset() ;
@@ -72,7 +63,6 @@ namespace PAP
     //QGraphicsView* m_view ;
     QGraphicsVideoItem* m_viewfinder ;
     QVideoProbe* m_videoProbe ;
-    QVideoFrame* m_frame ;
     QGraphicsRectItem* m_viewfinderborder ;
         
     //QCameraViewfinder* m_viewfinder ;
@@ -90,9 +80,6 @@ namespace PAP
     // some info on the view direction
     ViewDirection m_currentViewDirection ;
     QGraphicsItemGroup* m_detectorgeometry ;
-    
-    // current value of picture contrast or entropy or whatever
-    double m_focusMeasure ;
     
     // needed for the smooth zoom function
     int m_numScheduledScalings ;

@@ -1,6 +1,7 @@
 #include "CameraWindow.h"
 #include "CameraView.h"
 #include "MotionSystemSvc.h"
+#include "AutoFocus.h"
 #include "Eigen/Dense"
 #include <iostream>
 #include <sstream>
@@ -10,6 +11,7 @@
 #include <QHBoxLayout>
 #include <QVideoProbe>
 #include <QSlider>
+#include <QLabel>
 
 
 namespace PAP
@@ -51,7 +53,7 @@ namespace PAP
     auto zoomoutbutton = new QPushButton("Zoom out",this) ;
     connect( zoomoutbutton, &QPushButton::clicked,  m_cameraview, &CameraView::zoomOut ) ;
     hlayout->addWidget( zoomoutbutton ) ;
-
+    
     /*
     auto viewtogglebutton = new QSlider{ Qt::Horizontal, this } ;
     viewtogglebutton->setRange(0,1) ;
@@ -71,6 +73,9 @@ namespace PAP
     layout->addWidget( m_cameraview ) ;
     //m_cameraview->show() ;
 
+    m_autofocus = new AutoFocus{ m_cameraview, this } ;
+    layout->addWidget( m_autofocus->focusView() ) ;
+    
     QMetaObject::connectSlotsByName(this);
   }
 
@@ -116,8 +121,16 @@ namespace PAP
       }
       // now solve
       Eigen::Vector3d pars = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar);
-      qDebug() << "Solution: " << pars(0) << " " << pars(1) << " " << pars(2)  ;
-      bool success = pars(2) > 0 ;
+      Eigen::Vector3d resid = halfdchi2dpar - halfd2chi2dpar2 * pars ;
+      qDebug() << "Resid: " << resid(0) << resid(1) << resid(2) ;     
+      qDebug() << "Solution: " << pars(0) << " " << pars(1) << " " << pars(2)
+	       << "---> " << zref - 0.5*pars(1)/pars(2) ;
+      qDebug() << "Fitting to measurements: " ;
+      for( const auto& m : mvec )
+	qDebug() << m.z << " " << m.I
+		 << ( pars(0) + (m.z-zref)*pars(1) + (m.z-zref)*(m.z-zref)*pars(2) ) ;
+		    
+      bool success = pars(2) < 0 ;
       if( !success ) {
 	std::stringstream str ;
 	str << "Vector: " << halfdchi2dpar << std::endl
@@ -129,7 +142,7 @@ namespace PAP
       return success ;
     }
 
-    FocusMeasurement takeMeasurement(CameraView& camview,
+    FocusMeasurement takeMeasurement(AutoFocus& autofocus,
 				     MotionAxis& axis, double zpos )
     {
       // move the camera to position zpos
@@ -152,14 +165,14 @@ namespace PAP
       // make the measurement
       qDebug() << "Will now call computeContrast" ;
       
-      QSignalSpy spy(&camview, &CameraView::focusMeasureUpdated) ;
+      QSignalSpy spy(&autofocus, &AutoFocus::focusMeasureUpdated) ;
       spy.wait(10000) ;
       //FIXME: the position is not updated, unfortunately. let's take the setposition.
-      qDebug() << "CReating focus measurement: "
+      qDebug() << "Creating focus measurement: "
 	       << zpos << " "
 	       << axis.position() << " "
-	       << camview.focusMeasure() ;
-      return FocusMeasurement( zpos, camview.focusMeasure() ) ;
+	       << autofocus.focusMeasure() ;
+      return FocusMeasurement( zpos, autofocus.focusMeasure() ) ;
     }
   }
   
@@ -170,8 +183,8 @@ namespace PAP
       qDebug() << "In focussing routine" ;
       // perhaps we should use 'minuit' for this. we don't actually know
       // the shape of the function very well.
-      const float maxstepsize = 0.10 ; // 30 micron?
-      const float minstepsize = 0.01 ;
+      const float maxstepsize = 0.025 ; // 30 micron?
+      const float minstepsize = 0.001 ;
       MotionAxis& axis = MotionSystemSvc::instance()->focusAxis() ;
       // tricky: need to make sure this is up-to-date. that will turn
       // out the problem all over this routine: how do we make sure that
@@ -182,17 +195,73 @@ namespace PAP
       std::vector< FocusMeasurement > measurements ;
       measurements.reserve(64) ;
       qDebug() << "Ready to take focus measurements" ;
-      // 1. compute three points, around the current z-position
-      {
-	double zpositions[] = { zstart - maxstepsize, zstart, zstart + maxstepsize } ;
-	for( auto zpos : zpositions )
-	  measurements.push_back( takeMeasurement(*m_cameraview, axis, zpos ) ) ;
-      }
-      // 2. extrapolate to the estimated minimum. we actually want to enclose the minimum ...
+      
+      // collect sufficient measurements that we are sure that we have
+      // on both sides of the maximum. first do positive, then
+      // negative direction.
+      size_t maxnumsteps=10 ;
+      double maximum(0) ;
+      bool readypos=false ;
+      bool failure = false ;
       double z0 = zstart ;
+      double zpos = zstart ;
+      while( !readypos && !failure ) {
+	auto meas = takeMeasurement(*m_autofocus, axis, zpos ) ;
+	if( meas.I > maximum ) {
+	  maximum = meas.I ;
+	  z0 = zpos ;
+	} else readypos = true ;
+	measurements.push_back( meas ) ;
+	zpos += maxstepsize ;
+	failure = measurements.size()>maxnumsteps ;
+      }
+      bool readyneg=false ;
+      zpos = zstart - maxstepsize ;
+      while( !readyneg && !failure ) {
+	auto meas = takeMeasurement(*m_autofocus, axis, zpos ) ;
+	if( meas.I > maximum ) {
+	  maximum = meas.I ;
+	  z0 = zpos ;
+	} else readyneg = true ;
+	measurements.insert(measurements.begin(),meas) ;
+	zpos -= maxstepsize ;
+	failure = measurements.size()>maxnumsteps ;
+      }
+
+      //
+      qDebug() << "Number of measurements after step 1: "
+	       << measurements.size() ;
+      qDebug() << "Best z position after firs step: "
+	       << z0 ;
+      	
+      // 1. compute three points, around the current z-position
+      //{
+      //double zpositions[] = { zstart - maxstepsize, zstart, zstart + maxstepsize } ;
+      //	for( auto zpos : zpositions )
+      //  measurements.push_back( takeMeasurement(*m_autofocus, axis, zpos ) ) ;
+      //}
+      // 2. collect more measurements 
+
+      // 2. extrapolate to the estimated minimum.
+      //double z0 = zstart ;
       double deltaz0 = maxstepsize ;
       bool success = true ;
       do {
+	// pruning: if we have more than 4 measurements, remove all of those
+	// that are more than maxstepsize away from the current best
+	// estimate.
+	bool readypruning = false ;
+	while( measurements.size()>4 && !readypruning ) {
+	  // find the worst measurement
+	  size_t iworst=0 ;
+	  for(size_t i=1; i<measurements.size(); ++i)
+	    if( measurements[i].I < measurements[iworst].I ) iworst=i ;
+	  if( std::abs(measurements[iworst].z - z0 ) > 2*maxstepsize ) 
+	    measurements.erase( measurements.begin() + iworst ) ;
+	  else
+	    readypruning = true ;
+	}
+	// now estimate the new z0 from the remaining measurements
 	double z0prev = z0 ;
 	success = estimatez0( measurements, z0 ) ;
 	if( success ) {
@@ -203,9 +272,15 @@ namespace PAP
 	    z0 = measurements.front().z - maxstepsize ;
 	  deltaz0 = z0 - z0prev ;
 	  // move to the new position and take a new focus measurement
-	  measurements.push_back( takeMeasurement(*m_cameraview, axis, z0 ) ) ;
+	  measurements.push_back( takeMeasurement(*m_autofocus, axis, z0 ) ) ;
 	  std::sort( measurements.begin(), measurements.end() ) ;
 	  qDebug() << "Number of focussing measurements: " << measurements.size() ;
+	  qDebug() << "Delta-z: " << deltaz0 ;
+	  
+	  // if we have more than 4 measurements, remove all of those
+	  // that are more than maxstepsize away from the current best
+	  // estimate.
+	  
 	}
       } while( success && std::abs(deltaz0) > minstepsize ) ;
       

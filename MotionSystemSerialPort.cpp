@@ -213,6 +213,7 @@ namespace PAP
       auto it = std::upper_bound( m_commandqueue.begin(),
 				  m_commandqueue.end(), mscmd ) ;
       m_commandqueue.insert(it,mscmd) ;
+      qDebug() << "Inserting write command: " << cmd ;
     }
     // should we now emit a signal to the worker? perhaps better not?
     // I don't have a clue ... perhaps my design is still wrong.

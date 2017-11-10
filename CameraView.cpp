@@ -35,9 +35,9 @@ namespace PAP
       m_scene(0),
       m_viewfinder(0),
       m_videoProbe(0),
-      m_frame(0),
       m_chipPixelSize(0.00345),
-      m_magnification("Cam.Magnification",5.03),
+      //m_magnification("Cam.Magnification",5.03),
+      m_magnification("Cam.Magnification",4.9),
       m_rotation("Cam.Rotation",+M_PI/2),
       m_numScheduledScalings(0)
   {
@@ -91,7 +91,7 @@ namespace PAP
     // add a 'sight' of 100 micron in size
     qreal x0 = m_localOrigin.x() ;
     qreal y0 = m_localOrigin.y() ;
-    auto targetsight = new SightMarker( FiducialDefinition{"Center",x0,y0}, 0.110 ) ;
+    auto targetsight = new SightMarker( FiducialDefinition{"Center",x0,y0}, 0.050 ) ;
     targetsight->setScale( 1/pixelSize() ) ;
     m_scene->addItem( targetsight ) ;
 
@@ -129,6 +129,7 @@ namespace PAP
     m_detectorgeometry->setScale( 1/pixelSize() ) ;
     m_detectorgeometry->setPos( x0, y0 ) ;
 
+ 
 
     //marker->setScale(2) ;
     //marker->setScale( 0.001/pixelSize() ) ;
@@ -276,7 +277,7 @@ namespace PAP
       anim->start();
   }
   
-  void CameraView::scalingTime(qreal x)
+  void CameraView::scalingTime(qreal /* x */)
   {
     qreal factor = 1.0 + qreal(m_numScheduledScalings) / 300.0;
     scale(factor, factor);
@@ -344,7 +345,8 @@ namespace PAP
 	//connect(&buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
 	//layout.addWidget(&buttonBox) ;
 
-	int ok = dialog.exec() ;
+	/*int ok =*/
+	dialog.exec() ;
 	//if( ok ) {
 	//moveCameraTo( local ) ;
 	//}
@@ -352,173 +354,7 @@ namespace PAP
       }
   }
 
-  void CameraView::processFrame( const QVideoFrame& frame )
-  {
-    // compute image contrast ? maybe not on every call!
-    //qDebug() << "Frame size: " << frame.size() ;
-    m_frame = const_cast< QVideoFrame* >(&frame) ;
-    //qDebug() << "Pointer to frame A: " << m_frame ;
-    static int numtries=0 ;
-    if( ++numtries==20 ) {
-      double contrast = computeContrast(frame) ;
-      qDebug() << "Value of constrast: " << contrast ;
-      numtries=0;
-    }
-  }
-
-  double CameraView::computeContrast( const QVideoFrame& frame )
-  {
-    /*qDebug()
-      << "Pointer to frame B: "
-      << m_frame << " "
-      << &frame ; */
-    // right now we'll 'just' compute the contrast in a 100x100 pixel
-    // size area around the center.
-    //
-    // one standard measure is 'constrast per pixel'
-    // * 8 copmute the difference between a pixel and it's 8 neighours
-    // * all up all of those in squares
-    //
-    
-    // I am not sure what is a fast way to do this, but we should
-    // definitely use as few points as we can. it probably also makes
-    // sense to first copy the data such that it fits in the cache.
-
-    // I thikn that I need to use the colours in "HSV" mode. The V componess is the brightness, which is probablaby good for computing a contract. I cna also convert to grayscale.
-
-    // rather than 'contrast per pixel', we can also use 'entropy'
-    // E = - sum p * log2(p)
-    // where the sum runs over all pixels and p is again intensity.
-
-    // first call the 'map' to copy the contents to accessible memory
-    //qDebug() << "Before calling QVideoFrame::map" ;
-    const_cast<QVideoFrame&>(frame).map(QAbstractVideoBuffer::ReadOnly) ;
-    //qDebug() << "After calling QVideoFrame::map" ;
-    // My laptop camera uses "UYVY", which means that UVY for two
-    // adjacent pixels is stored with common U and V values. The Y
-    // value is for brightness, which is all we need here. Of course,
-    // as long as the camera anyway doesn't work, it makes little
-    // sense to adapt the code for this.
-    // qDebug() << "VideoFrame: "
-    // 	     << frame.size() << " "
-    // 	     << frame.width() << " "
-    // 	     << frame.height() << " "
-    // 	     << frame.bytesPerLine() << " "
-    // 	     << frame.mappedBytes() << " "
-    // 	     << frame.pixelFormat() ;
-    double rc = 0 ;
-    if( frame.bits() &&
-	//(frame.pixelFormat() == QVideoFrame::Format_BGR32||
-	frame.pixelFormat() == QVideoFrame::Format_RGB32 ) {
-      /*
-      // the following should also allow to change the format
-      QImage::Format imageFormat =
-      QVideoFrame::imageFormatFromPixelFormat(frame.pixelFormat());
-      QImage img( frame.bits(),
-      frame.width(),
-      frame.height(),
-      frame.bytesPerLine(),
-      imageFormat);
-      */
-      
-      const int centralPixelX = m_numPixelsX/2 ;
-      const int centralPixelY = m_numPixelsY/2 ;
-      const int numPixelX = 200 ; // 60x60 microns. ?
-      const int numPixelY = 200 ;
-      const int firstPixelX = centralPixelX - numPixelX/2 ;
-      const int lastPixelX  = centralPixelX + numPixelX/2 ;
-      const int firstPixelY = centralPixelY - numPixelY/2 ;
-      const int lastPixelY  = centralPixelY + numPixelY/2 ;
-
-      // according to this article:
-      // https://www.google.nl/url?sa=t&rct=j&q=&esrc=s&source=web&cd=4&ved=0ahUKEwj_2q7N9K7XAhWDyaQKHQVEBS0QFghCMAM&url=http%3A%2F%2Fciteseerx.ist.psu.edu%2Fviewdoc%2Fdownload%3Fdoi%3D10.1.1.660.5197%26rep%3Drep1%26type%3Dpdf&usg=AOvVaw1ID-dlE4Ji72E9knlQdzsr
-      // just the (normalized) variance is the best focussing criterion. It is also very easy to compute ...
-
-       // fill histogram with intensity values
-      double histogram[256] ;
-      for(int i=0; i<256; ++i) histogram[i]=0 ;
-      unsigned char grid[numPixelX*numPixelY] ;
-      const unsigned int* bgr32 = reinterpret_cast<const unsigned int*>(frame.bits()) ;
-      // for now we'll just use entropy. try fancier things later.
-      for(int ybin = firstPixelY ; ybin<lastPixelY ; ++ybin) {
-	int xbin0 = ybin*frame.height() ;
-	for(int xbin = firstPixelX ; xbin<lastPixelX ; ++xbin) {
-	  unsigned int bbggrrff = bgr32[ xbin0+xbin ] ;
-	  unsigned char F  = (bbggrrff >> 24 ) & 0xff ;
-	  unsigned char R  = (bbggrrff >> 16 ) & 0xff ;
-	  unsigned char G  = (bbggrrff >> 8 )  & 0xff ;
-	  unsigned char B  = bbggrrff & 0xff ;
-	  //if( ybin==firstPixelY && xbin==firstPixelX)
-	  //std::cout << "B,G,R: " << int(B) << " " << int(R) << " " << int(G) << " " << int(F) << std::endl ;
-	  // many ways to turn this into an intensity. 
-	  //https://stackoverflow.com/questions/687261/converting-rgb-to-grayscale-intensity
-	  // https://stackoverflow.com/questions/596216/formula-to-determine-brightness-of-rgb-color
-	  // onw that runs very quickly is:
-	  unsigned char Y = (R+R+R+B+G+G+G+G)>>3 ;
-	  histogram[Y] += 1 ;
-	  grid[ xbin-firstPixelX + numPixelX * (ybin-firstPixelY)] = Y ;
-	}
-      }
-      const double norm = numPixelX*numPixelY ;
-      // compute Boddeke's measure (gradient just in x direction, skipping bins (not sure why))
-      double BODsum(0) ;
-      for(int ybin=0; ybin<numPixelY; ++ybin)
-	for(int xbin=0; xbin<numPixelX-2; ++xbin) {
-	  int bin = ybin*numPixelX + xbin ;
-	  double tmp = grid[ bin + 2] - grid[ bin ] ;
-	  BODsum += tmp*tmp ;
-	}
-      BODsum /= norm ;
-      // compute my measure (gradient in xy direction)
-      // we should be able to write this a bit quicker
-      double WHsum(0) ;
-      for(int ybin=0; ybin<numPixelY-1; ++ybin) {
-	short n11 = grid[ ybin*numPixelX ] ;
-	short n12 = grid[ (ybin+1)*numPixelX ] ;
-	for(int xbin=0; xbin<numPixelX-1; ++xbin) {
-	  short n21 = grid[ ybin*numPixelX + xbin + 1] ;
-	  short n22 = grid[ (ybin+1)*numPixelX + xbin + 1] ;
-	  //float dx = (float(n11) + float(n12) - float(n21) - float(n22)) ;
-	  //float dy = (float(n11) + float(n21) - float(n12) - float(n22)) ;
-	  //WHsum += dx*dx+dy*dy ;
-	  short a = n11 - n22 ;
-	  short b = n12 - n21 ;
-	  WHsum += a*a + b*b ;
-	  n11 = n21 ;
-	  n12 = n22 ;
-	}
-      }
-      WHsum /= norm ;
-      
-      // compute the variance. for best precision, first compute the mean ...
-      double sumX(0) ;
-      for(int i=0; i<256; ++i) sumX += histogram[i] * i ;
-      double mu = sumX / norm ;
-      double var(0) ;
-      for(int i=0; i<256; ++i) var += histogram[i] * ( (i-mu)*(i-mu) ) ;
-      var = var / norm ;
-           
-      // compute entropy
-      double entropy = 0 ;
-      for(int i=0; i<256; ++i)
-	if( histogram[i]>0 )
-	  entropy -= histogram[i]/norm * std::log2(histogram[i]/norm) ;
-      //qDebug() << "Entropy = "
-      //<< entropy ;
-      // unmap in order to free the memory
-      const_cast<QVideoFrame&>(frame).unmap() ;
-      rc = entropy ;
-
-      qDebug() << "Mean, variance, entropy: "
-	       << mu << " " << var << " " << std::sqrt(var) << " "
-	       << var/mu << " " << entropy  << " "
-	       << BODsum << " " << WHsum ;
-    }
-    m_focusMeasure = rc ;
-    emit focusMeasureUpdated() ;
-    return rc ;
-  }
-  
+ 
   void CameraView::moveCameraTo( QPointF localpoint ) const
   {
     // first compute the local change in microns
