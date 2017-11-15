@@ -113,7 +113,18 @@ namespace PAP
     }
     
     auto page2widget = new QWidget{} ;
-    taskpages->addTab(page2widget,"Position tile 1") ;
+    taskpages->addTab(page2widget,"Position NSI") ;
+    {
+      auto vlayout = new QVBoxLayout{} ;
+      page2widget->setLayout(vlayout) ;
+      auto movetomarker1button = new QPushButton{"Move to marker 1", this} ;
+      connect(movetomarker1button,&QPushButton::clicked,[=](){ m_cameraview->moveCameraTo("NSI_VP20_Fid1") ; } ) ;
+      vlayout->addWidget( movetomarker1button ) ;
+      
+      auto movetomarker2button = new QPushButton{"Move to marker 2", this} ;
+      connect(movetomarker2button,&QPushButton::clicked,[=](){ m_cameraview->moveCameraTo("NSI_VP22_Fid2") ; } ) ;
+      vlayout->addWidget( movetomarker2button ) ;
+    }
 
     auto page3widget = new QWidget{} ;
     taskpages->addTab(page3widget,"Position tile 2") ;
@@ -143,7 +154,7 @@ namespace PAP
 
   void CameraWindow::toggleView( int view )
   {
-    if( view > 0 ) {
+    if( view == int(PAP::NSideView) ) {
       m_cameraview->setViewDirection( PAP::NSideView ) ;
       m_showNSideTiles->setCheckState( Qt::Checked ) ;
       m_showCSideTiles->setCheckState( Qt::Unchecked ) ;

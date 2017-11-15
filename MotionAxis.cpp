@@ -125,9 +125,15 @@ namespace PAP
   void MotionAxis::move( Direction dir )
   {
     setIsMoving( true ) ;
-    MotionSystemSvc::instance()->applyAxisCommand(m_id,
-						  allowPassTravelLimit() ? "MT" : "MV",
-						  dir == Up ? "+" : "-") ;
+    //MotionSystemSvc::instance()->applyAxisCommand(m_id,
+    //     allowPassTravelLimit() ? "MT" : "MV",dir == Up ? "+" : "-") ;
+    if( allowPassTravelLimit() ) 
+      MotionSystemSvc::instance()->applyAxisCommand(m_id,"MT",dir == Up ? "+" : "-") ;
+    else {
+      // for some reason the MV command does not work: is there something that disables continuous motion?
+      // as an alternative, we could try to move to the travel limit explicitly.
+      MotionSystemSvc::instance()->applyAxisCommand(m_id,"MV",dir == Up ? "+" : "-") ;
+    }
   }
   
   void MotionAxis::stop()

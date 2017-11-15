@@ -134,8 +134,7 @@ namespace PAP
 
     auto beamline = new SightMarker( FiducialDefinition{"Beamline",0,0}, 2.0 ) ;
     m_detectorgeometry->addToGroup( beamline ) ;
-    
-    
+
     updateGeometryView() ;
     //m_detectorgeometry->setScale( 1/pixelSize() ) ;
     //m_detectorgeometry->setPos( x0, y0 ) ;
@@ -293,7 +292,7 @@ namespace PAP
     
   void CameraView::setViewDirection( ViewDirection dir )
   {
-    if( m_currentViewDirection != dir ) {
+    if( true || m_currentViewDirection != dir ) {
       // reverse the Y axis
       // QTransform T = m_detectorgeometry->transform() ;
       // T.scale(1,-1) ;
@@ -429,6 +428,7 @@ namespace PAP
  
   void CameraView::moveCameraTo( QPointF localpoint ) const
   {
+    /*
     qWarning() << "moveCameraTo needs to be adapted to use of new transforms!" ;
     // first compute the local change in microns
     double localdx = ( localpoint.x() - m_localOrigin.x() ) * pixelSizeX() ;
@@ -444,9 +444,23 @@ namespace PAP
     qInfo() << "Moving camera: "
 	    << "(" << localdx << "," << localdy << ") --> ("
 	    << mainstagedx.x << "," << mainstagedx.y << ")" ;
+    */
+
+    // Alternative
+    QTransform T = m_detectorgeometry->transform().inverted() ;
+    auto globalpoint = T.map( localpoint ) ;
+    auto globalorigin = T.map( m_localOrigin ) ;
+    PAP::Coordinates2D globaldx{
+      globalpoint.x() - globalorigin.x(),
+	globalpoint.y() - globalorigin.y() } ;
+    auto mainstagedx = GeometrySvc::instance()->toMSMainDelta( globaldx ) ;
+
+    //qDebug() << "Before: " << -mainstagedx.y << mainstagedx.x ;
+    //qDebug() << "After:  " << mainstagedxnew.x << mainstagedxnew.y ;
+    
     // finally, move the motors!
-    MotionSystemSvc::instance()->mainXAxis().move(-mainstagedx.y) ;
-    MotionSystemSvc::instance()->mainYAxis().move(mainstagedx.x) ;
+    MotionSystemSvc::instance()->mainXAxis().move(mainstagedx.x) ;
+    MotionSystemSvc::instance()->mainYAxis().move(mainstagedx.y) ;
   }
 
   namespace {

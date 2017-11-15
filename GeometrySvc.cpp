@@ -76,7 +76,7 @@ namespace PAP
     // depending on the value of 'view' we need to mirror the y
     // coordinate. I am not entirely sure how to do that yet.
     QTransform viewmirror ;
-    if( view == PAP::NSideView ) viewmirror.scale(1,-1) ;
+    if( view == PAP::CSideView ) viewmirror.scale(1,-1) ;
     // the remainder is a rotation and a translation. these are the
     // numbers that we need to calibrate by looking at the markers.
     QTransform transform ;
