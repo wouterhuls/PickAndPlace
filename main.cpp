@@ -52,12 +52,11 @@ int main(int argc, char *argv[])
   
   
   // let's create a mainwindow, with vertical layout, for all axis widgets
-  
-  
   QMainWindow mainwindow;
   mainwindow.resize(600,500) ;
   mainwindow.move(50,0) ;
-  
+  mainwindow.setWindowIcon( QIcon(":/images/VeloUpgradeLogoSmall.png") ) ;
+    
   // auto centralWidget =
   new PAP::MotionSystemWidget(&mainwindow);
   
@@ -71,6 +70,8 @@ int main(int argc, char *argv[])
   PAP::CameraWindow camerawindow ;
   camerawindow.move(700,0) ;
   camerawindow.show() ;
+  camerawindow.setWindowIcon( QIcon(":/images/VeloUpgradeLogoSmall.png") ) ;
+  
   
   auto rc = a.exec() ;
   
