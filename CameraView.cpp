@@ -260,7 +260,7 @@ namespace PAP
     // Now watch the order!
     QTransform T1 = geomsvc->fromCameraToGlobal() ;
     QTransform T2 = geomsvc->fromModuleToGlobal( m_currentViewDirection ) ;
-    m_detectorgeometry->setTransform( (T1.inverted() * T2) * fromCameraToPixel() ) ;
+    m_detectorgeometry->setTransform( (T2 * T1.inverted() ) * fromCameraToPixel() ) ;
        
     /*
     QTransform T12 = T2 * T1.inverted() ;
