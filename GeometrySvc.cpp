@@ -34,7 +34,7 @@ namespace PAP
       m_mainXB( "Geo.mainXB", 0.0 ),
       m_mainY0( "Geo.mainY0", 0. ),
       m_mainYA( "Geo.mainYA", 0.0 ),
-      m_mainYB( "Geo.mainYB", -1.0 ),
+      m_mainYB( "Geo.mainYB", 1.0 ),
       m_cameraPhi( "Geo.cameraPhi", 0 ),
       m_modulePhi( "Geo.modulePhi", 0 ),
       m_moduleX( "Geo.moduleX", 0),
@@ -100,7 +100,7 @@ namespace PAP
     rc.rotateRadians( m_cameraPhi ) ;
     rc.translate( offset.x, offset.y ) ;
 
-    qDebug() << "fromCameraToGlobal: " << rc ;
+    //qDebug() << "fromCameraToGlobal: " << rc ;
     
     return rc ;
   }

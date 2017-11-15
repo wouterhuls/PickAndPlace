@@ -256,7 +256,7 @@ namespace PAP
     qDebug() << " (T*R) * S: " << (translation*rotation)*scaler;
     */
     
-    qDebug() << "CameraView::updateGeometryView()" ;
+    //qDebug() << "CameraView::updateGeometryView()" ;
     const auto geomsvc = GeometrySvc::instance() ;
     // Now watch the order!
     QTransform T1 = geomsvc->fromCameraToGlobal() ;
@@ -429,6 +429,7 @@ namespace PAP
  
   void CameraView::moveCameraTo( QPointF localpoint ) const
   {
+    qWarning() << "moveCameraTo needs to be adapted to use of new transforms!" ;
     // first compute the local change in microns
     double localdx = ( localpoint.x() - m_localOrigin.x() ) * pixelSizeX() ;
     double localdy = ( localpoint.y() - m_localOrigin.y() ) * pixelSizeY() ;
@@ -444,8 +445,8 @@ namespace PAP
 	    << "(" << localdx << "," << localdy << ") --> ("
 	    << mainstagedx.x << "," << mainstagedx.y << ")" ;
     // finally, move the motors!
-    MotionSystemSvc::instance()->mainXAxis().move(mainstagedx.x) ;
-    MotionSystemSvc::instance()->mainYAxis().move(mainstagedx.y) ;
+    MotionSystemSvc::instance()->mainXAxis().move(-mainstagedx.y) ;
+    MotionSystemSvc::instance()->mainYAxis().move(mainstagedx.x) ;
   }
 
   namespace {
