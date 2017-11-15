@@ -28,19 +28,20 @@ namespace PAP
     layout->setContentsMargins(0, 0, 0, 0);
     
     // add widgets for the controllers
-    for( auto& c : MotionSystemSvc::instance()->controllers() ) {
+    auto mssvc = MotionSystemSvc::instance() ;
+    for( auto& c : mssvc->controllers() ) {
       auto cw = new MotionControllerWidget( *c.second, this ) ;
       layout->addWidget( cw ) ;
     }
     
-    // now add the widgets for all the axis
-    for( auto& axis : MotionSystemSvc::instance()->axes() ) {
-      auto mcw = new MotionAxisWidget( *axis.second, this ) ;
-      qDebug() << "Adding widget for axis: "
-	       << axis.second->id().controller << " "
-	       << axis.second->id().axis ;
-      layout->addWidget( mcw ) ;
-    }
+    // now add the widgets for all the axes
+    layout->addWidget( new MotionAxisWidget{ mssvc->focusAxis(),this } ) ;
+    layout->addWidget( new MotionAxisWidget{ mssvc->mainXAxis(),this } ) ;
+    layout->addWidget( new MotionAxisWidget{ mssvc->mainYAxis(),this } ) ;
+    layout->addWidget( new MotionAxisWidget{ mssvc->stackXAxis(),this } ) ;
+    layout->addWidget( new MotionAxisWidget{ mssvc->stackYAxis(),this } ) ;
+    layout->addWidget( new MotionAxisWidget{ mssvc->stackRAxis(),this } ) ;
+
     auto quitbutton = new QPushButton("Quit",this) ;
     quitbutton->setObjectName(QStringLiteral("quitButton"));
     layout->addWidget( quitbutton ) ;

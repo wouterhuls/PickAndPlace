@@ -5,6 +5,7 @@
 #include <QMainWindow>
 
 class QLabel;
+class QCheckBox ;
 
 namespace PAP
 {
@@ -22,12 +23,14 @@ namespace PAP
   public slots:
     void on_focusButton_clicked() ;
     void on_quitButton_clicked();
+    void toggleView(int view) ;
   private:
     CameraView* m_cameraview ;
     AutoFocus* m_autofocus ;
     // some labels that tell where the cursor position is
     QLabel* m_cursorposition ;
-    bool m_isFocussing ; // flag to disable focus button while focussing
+    QCheckBox* m_showNSideTiles ;
+    QCheckBox* m_showCSideTiles ;       
   } ;
 }
 

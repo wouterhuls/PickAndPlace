@@ -39,6 +39,7 @@ namespace PAP
       //m_magnification("Cam.Magnification",5.03),
       m_magnification("Cam.Magnification",4.9),
       m_rotation("Cam.Rotation",+M_PI/2),
+      m_currentViewDirection(NSideView),
       m_numScheduledScalings(0)
   {
     this->resize(622, 512);
@@ -67,21 +68,26 @@ namespace PAP
     m_numPixelsX = 2448 ;
     m_numPixelsY = 2048 ;
     m_viewfinder->setSize( QSize{m_numPixelsX,m_numPixelsY} ) ;
+    //m_viewfinder->setScale( pixelSize() ) ;
+    
     m_scene->addItem(m_viewfinder) ;
     // I still do not understand how to do this properly
     //resize( m_viewfinder->size().width(),  m_viewfinder->size().height()) ;
     m_nominalscale = size().width() / double(m_viewfinder->size().width()) ;
     scale(m_nominalscale,m_nominalscale) ;
+
     this->setScene( m_scene ) ;
-    
+
     // Add a rectangle such that we always now where the camerawindow ends (also on my laptop)
-    m_viewfinderborder = new QGraphicsRectItem{QRectF{0,0,double(m_numPixelsX),double(m_numPixelsY)}} ;
+    m_viewfinderborder = new QGraphicsRectItem{QRectF{-100,-100,double(m_numPixelsX+200),double(m_numPixelsY+200)}} ;
+    //m_viewfinderborder->setScale( pixelSize() ) ;
     {
       QPen pen ;
-      pen.setWidth( 10 ) ;
+      pen.setWidth( 50 ) ;
       m_viewfinderborder->setPen(pen) ;
     }
     m_scene->addItem( m_viewfinderborder ) ;
+
 		      
     // let's add a cross at (0,0) in the cameraview. here it would be
     // nice to have some size in 'absolute' coordinates. but for that
@@ -112,25 +118,32 @@ namespace PAP
     for( const auto& m : GeometrySvc::instance()->jigmarkers() )
       m_detectorgeometry->addToGroup( new JigMarker{m,m_detectorgeometry} ) ;
 
-    auto m_nsidemarkers = new QGraphicsItemGroup{} ;
+    m_nsidemarkers = new QGraphicsItemGroup{} ;
     m_detectorgeometry->addToGroup( m_nsidemarkers ) ;
     m_nsidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersNSI() ) ) ;
     m_nsidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersNLO() ) ) ;
     for( const auto& m : GeometrySvc::instance()->velopixmarkersNSide() )
       m_nsidemarkers->addToGroup( new VelopixMarker{m,m_nsidemarkers} ) ;
     
-    auto m_csidemarkers = new QGraphicsItemGroup{} ;
+    m_csidemarkers = new QGraphicsItemGroup{} ;
     m_detectorgeometry->addToGroup( m_csidemarkers ) ;
     m_csidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersCLI() ) ) ;
     m_csidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersCSO() ) ) ;
     for( const auto& m : GeometrySvc::instance()->velopixmarkersCSide() )
       m_csidemarkers->addToGroup( new VelopixMarker{m,m_csidemarkers} ) ;
+
+    auto beamline = new SightMarker( FiducialDefinition{"Beamline",0,0}, 2.0 ) ;
+    m_detectorgeometry->addToGroup( beamline ) ;
     
-    m_detectorgeometry->setScale( 1/pixelSize() ) ;
-    m_detectorgeometry->setPos( x0, y0 ) ;
+    
+    updateGeometryView() ;
+    //m_detectorgeometry->setScale( 1/pixelSize() ) ;
+    //m_detectorgeometry->setPos( x0, y0 ) ;
 
- 
-
+    // connect the signal for movements of the main stage
+    connect(MotionSystemSvc::instance(),&MotionSystemSvc::mainStageMoved,
+	    this,&CameraView::updateGeometryView) ;
+      
     //marker->setScale(2) ;
     //marker->setScale( 0.001/pixelSize() ) ;
     //m_scene->addItem( marker ) ;
@@ -219,16 +232,76 @@ namespace PAP
     }
   }
 
-  void CameraView::setViewDirection( int dir)
+  void CameraView::updateGeometryView()
+  {
+    // OK, I figured out something very confusing: QTransforms work
+    // from right to left. So, if you want to apply a transformation
+    // followed by a rotation, you need to use "T * R". This is
+    // different from transforms in ROOT. If you are used to dealing
+    // with column vectors, it is also not very logical.
+    
+    /*
+    qDebug() << "Let's test something: " ;
+    QTransform translation ;
+    translation.translate(100,200) ;
+    QTransform rotation ;
+    rotation.rotate(30) ;
+    QTransform scaler ;
+    scaler.scale(100,-100) ;
+    qDebug() << " R * T: " << rotation*translation ;
+    qDebug() << " T * R: " << translation*rotation;
+    qDebug() << " S * T: " << scaler*translation ;
+    qDebug() << " T * S: " << translation*scaler;
+    qDebug() << " S * (T * R): " << scaler*(translation*rotation) ;
+    qDebug() << " (T*R) * S: " << (translation*rotation)*scaler;
+    */
+    
+    qDebug() << "CameraView::updateGeometryView()" ;
+    const auto geomsvc = GeometrySvc::instance() ;
+    // Now watch the order!
+    QTransform T1 = geomsvc->fromCameraToGlobal() ;
+    QTransform T2 = geomsvc->fromModuleToGlobal( m_currentViewDirection ) ;
+    m_detectorgeometry->setTransform( (T1.inverted() * T2) * fromCameraToPixel() ) ;
+       
+    /*
+    QTransform T12 = T2 * T1.inverted() ;
+    
+    qDebug() << "From ModuleToGlobal: " << T2 ;
+    qDebug() << "From module to camera: " << T12 ;
+
+    // what now happens if we scale this:
+    //T12.scale( 1.0/pixelSizeX(), -1.0/pixelSizeY() ) ;
+    //qDebug() << "From module to camera, after scaling: " << T12 ;
+    
+    // try again, but now multiplying by a scaling transform. I still
+    // don't understand why I need to scale the translation
+    // here. Perhaps that would not be needed if I would multiply to
+    // transforms. 
+
+    QTransform Tscale ;
+    Tscale.scale( 1.0/pixelSizeX(), -1.0/pixelSizeY() ) ;
+    Tscale.translate( m_localOrigin.x()*pixelSizeX(), -m_localOrigin.y()*pixelSizeY() ) ;
+    //
+    //
+    //
+    //T12 = Tscale *(T1.inverted() * T2) ;
+    //qDebug() << "From module to camera, after scaling 2: " << T12 ;
+    T12 = (T1.inverted() * T2) * Tscale;
+    qDebug() << "From module to camera, after scaling 3: " << T12 ;
+    */
+  }
+    
+  void CameraView::setViewDirection( ViewDirection dir )
   {
     if( m_currentViewDirection != dir ) {
       // reverse the Y axis
-      QTransform T = m_detectorgeometry->transform() ;
-      T.scale(1,-1) ;
-      m_detectorgeometry->setTransform( T ) ;
-      m_currentViewDirection = dir > 0 ? NSideView : CSideView ;
+      // QTransform T = m_detectorgeometry->transform() ;
+      // T.scale(1,-1) ;
+      // m_detectorgeometry->setTransform( T ) ;
+      m_currentViewDirection = dir ;
+      updateGeometryView() ;
     }
-  } 
+  }
   
   void CameraView::zoomReset()
   {
@@ -353,7 +426,6 @@ namespace PAP
 	//qInfo() << "CameraView: result=" << result << " " << QDialogButtonBox::ActionRole ;
       }
   }
-
  
   void CameraView::moveCameraTo( QPointF localpoint ) const
   {
@@ -376,6 +448,33 @@ namespace PAP
     MotionSystemSvc::instance()->mainYAxis().move(mainstagedx.y) ;
   }
 
+  namespace {
+    const QGraphicsItem* finditemByToolTipText( const QGraphicsItem& parent, const QString& name )
+    {
+      const QGraphicsItem* rc(0) ;
+      if(parent.toolTip() == name ) rc = &parent ;
+      else {
+	for( const auto& dau : parent.childItems() ) {
+	  rc = finditemByToolTipText(*dau,name) ;
+	  if(rc) break ;
+	}
+      }
+      return rc ;
+    }
+  }
+  
+  void CameraView::moveCameraTo( const QString& markername )
+  {
+    const QGraphicsItem* marker = finditemByToolTipText(*m_detectorgeometry, markername) ;
+    if(marker) {
+      // get the coordinates in the scene
+      QPointF localcoord = marker->mapToScene(marker->pos()) ;
+      moveCameraTo( localcoord ) ;
+    } else {
+      qWarning() << "Cannot find graphics item: " << markername ;
+    }
+  }
+  
   void CameraView::record( QPointF localpoint ) const
   {
     // for now, just print the information

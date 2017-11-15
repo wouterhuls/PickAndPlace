@@ -3,6 +3,8 @@
 
 namespace PAP
 {
+  enum ViewDirection { NSideView = 0 , CSideView=1 } ;
+  
   struct Coordinates2D
   {
     Coordinates2D( double _x=0, double _y=0 ) : x(_x),y(_y) {}

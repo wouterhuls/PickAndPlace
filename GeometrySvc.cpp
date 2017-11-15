@@ -34,7 +34,11 @@ namespace PAP
       m_mainXB( "Geo.mainXB", 0.0 ),
       m_mainY0( "Geo.mainY0", 0. ),
       m_mainYA( "Geo.mainYA", 0.0 ),
-      m_mainYB( "Geo.mainYB", -1.0 )
+      m_mainYB( "Geo.mainYB", -1.0 ),
+      m_cameraPhi( "Geo.cameraPhi", 0 ),
+      m_modulePhi( "Geo.modulePhi", 0 ),
+      m_moduleX( "Geo.moduleX", 0),
+      m_moduleY( "Geo.moduleY", 0)
   {
     PAP::PropertySvc::instance()->add( m_mainX0 ) ;
     PAP::PropertySvc::instance()->add( m_mainXA ) ;
@@ -67,12 +71,37 @@ namespace PAP
     return MSMainCoordinates{ dx, dy } ;
   }
   
-  QTransform GeometrySvc::computeGlobalToModule( int view )
+  QTransform GeometrySvc::fromModuleToGlobal( ViewDirection view ) const
   {
-    // we need to start with something, right?
+    // depending on the value of 'view' we need to mirror the y
+    // coordinate. I am not entirely sure how to do that yet.
+    QTransform viewmirror ;
+    if( view == PAP::NSideView ) viewmirror.scale(1,-1) ;
+    // the remainder is a rotation and a translation. these are the
+    // numbers that we need to calibrate by looking at the markers.
+    QTransform transform ;
+    transform.rotateRadians( m_modulePhi ) ;
+    transform.translate( m_moduleX, m_moduleY ) ;
+    QTransform rc = transform * viewmirror ;
+    return rc ;
+  }
+
+  QTransform GeometrySvc::fromCameraToGlobal() const
+  {
+    // this needs to take into account the angles of the camera
+    // system with the motion system arms. we also need a definition
+    // of the origin. it may be useful if this corresponds to the
+    // rotation axis of the small stack, for certain values of small
+    // stack X and Y. but then it may be better if it is the nominal
+    // origin
     QTransform rc ;
-    rc.translate( MotionSystemSvc::instance()->mainXAxis().position(),
-		  MotionSystemSvc::instance()->mainYAxis().position() * (view == NSideView ? 1 : -1) ) ;
+    MSMainCoordinates main = MotionSystemSvc::instance()->maincoordinates() ;
+    Coordinates2D offset = toGlobal( main ) ;
+    rc.rotateRadians( m_cameraPhi ) ;
+    rc.translate( offset.x, offset.y ) ;
+
+    qDebug() << "fromCameraToGlobal: " << rc ;
+    
     return rc ;
   }
   

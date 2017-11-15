@@ -31,7 +31,7 @@ namespace PAP
     m_controllers[2] = new MotionController(2,"Controller RIGHT") ;
     m_controllers[4] = new MotionController(4,"Controller LEFT") ;
     std::vector<int> controllerid = {4,4,2,2,4,2} ;
-    std::vector<int> axisid       = {1,2,1,2,3,3} ;
+    std::vector<int> axisid       = {2,1,1,2,3,3} ;
     std::vector<QString> axisname  = { "MainX","MainY","StackX","StackY","StackR","Focus" } ;
     for(int i=0; i<6; ++i) {
       MotionAxisID id(controllerid[i],axisid[i]) ;
@@ -48,6 +48,7 @@ namespace PAP
     
     // some signal 'forwarding'
     connect(&(m_mainXAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::mainStageMoved) ;
+    connect(&(m_mainYAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::mainStageMoved) ;
     
     
     // This explains who to do this in c
@@ -291,6 +292,14 @@ namespace PAP
     rc.stack.y = m_stackYAxis->position() ;
     rc.stack.phi = m_stackRAxis->position() ;
     rc.focus = m_focusAxis->position() ;
+    return rc ;
+  }
+
+  MSMainCoordinates MotionSystemSvc::maincoordinates() const
+  {
+    MSMainCoordinates rc ;
+    rc.x = m_mainXAxis->position() ;
+    rc.y = m_mainYAxis->position() ;
     return rc ;
   }
   

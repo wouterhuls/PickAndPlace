@@ -30,10 +30,10 @@ namespace PAP
     static const std::vector<ParameterDefinition> Parameters {
       { "ManualVelocity","DM","MH", QVariant::Double,true,0.0,100.0,3 },
       { "Velocity","DV","VA", QVariant::Double,true,0.0,100.0,3 },
-      { "LeftTravelLimit","TL","SL", QVariant::Double,true,-100.0,100.0,3},
-      { "RightTravelLimit","TR","SR", QVariant::Double,true,-100.0,100.0,3 },
+      { "LeftTravelLimit","TL","SL", QVariant::Double,true,-200.0,200.0,3},
+      { "RightTravelLimit","TR","SR", QVariant::Double,true,-200.0,200.0,3 },
       { "Units","TN","SN",QVariant::String,true},
-      { "Position","TP","PA",QVariant::Double,false,-200,200,3},	  
+      { "Position","TP","PA",QVariant::Double,false,-200.0,200.0,3},	  
     } ;
     
     inline const ParameterDefinition* findParDef( const char* name )

@@ -70,7 +70,8 @@ namespace PAP
 
     // return the coordinates of all axis
     MSCoordinates coordinates() const ;
-
+    MSMainCoordinates maincoordinates() const ;
+    
   signals:
     void mainStageMoved() const ;
     void stackStageMoved() const ;

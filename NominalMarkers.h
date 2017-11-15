@@ -69,8 +69,8 @@ namespace PAP
 	  {
 	    //{"ModuleJigMarker1",-81.0,  35.0},
 	    //{"ModuleJigMarker2",+62.5,-146.3}
-	    {"ModuleJigMarker1", -35.0,-81.0},
-	    {"ModuleJigMarker2",+146.3,+62.5}
+	    {"MainJigMarker1", -35.0,-81.0},
+	    {"MainJigMarker2",+146.3,+62.5}
 	  } ;
       }
   }

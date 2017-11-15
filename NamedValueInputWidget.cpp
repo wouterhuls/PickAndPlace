@@ -38,7 +38,7 @@ namespace PAP
     int decimals=3 ;
     auto par = MSCommandLibrary::findParDef( m_v->shortname().toString() ) ;
     if(par) decimals = par->decimals ;
-        
+
     if( (v = dynamic_cast<NamedValue*>(m_v) ) ) {
       if(       v->type() == QVariant::Double ) {
 	double d = QInputDialog::getDouble(this,v->name(),v->name(),

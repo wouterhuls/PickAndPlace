@@ -14,9 +14,16 @@ namespace PAP
 
   class GeometrySvc : public PAP::Singleton<GeometrySvc>
   {
-    public:
-    enum ViewDirection { CSideView=0, NSideView=1 } ;
   public:
+    // Definition of frame of references
+    // - the 'global' frame. This is the frame in which the two axis of the motion system operate,
+
+    
+    // - the 'camera' frame: this has it's origin as the central pixel
+    //   in the picture. It's origin in the global frame is given by
+    //   the motion system. The frame can be rotated by an angle
+    //   phi_cam with respect to the global frame.
+    
     // - the 'global' frame is the frame of the cameraview
     // - the 'MS' frame has coordinates of the main stage X and Y axis
     // - the 'module' frame is the frame of the module (jig)
@@ -27,18 +34,9 @@ namespace PAP
     Coordinates2D toGlobal( const MSMainCoordinates& c) const;
     Coordinates2D toGlobalDelta( const MSMainCoordinates& c) const;
     MSMainCoordinates toMSMainDelta( const Coordinates2D& c) const ;
-
-    QTransform computeMSToGlobal() const {
-      // this needs to take into account the angles of the camera
-      // system with the motion system arms. we also need a definition
-      // of the origin. it may be useful if this corresponds to the
-      // rotation axis of the small stack, for certain values of small
-      // stack X and Y. but then it may be better if it is the nominal
-      // origin
-      return QTransform{} ;
-    }
     
-    QTransform computeGlobalToModule( int view ) ;
+    QTransform fromCameraToGlobal() const ;
+    QTransform fromModuleToGlobal( ViewDirection view ) const ;
     
   public:
     // access to various marker positions in the 'Module' frame. these
@@ -59,6 +57,10 @@ namespace PAP
     NamedDouble m_mainY0 ;
     NamedDouble m_mainYA ;
     NamedDouble m_mainYB ;
+    NamedDouble m_cameraPhi ;
+    NamedDouble m_modulePhi ;
+    NamedDouble m_moduleX ;
+    NamedDouble m_moduleY ;
   } ;
 
 

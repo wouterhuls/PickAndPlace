@@ -16,7 +16,7 @@ namespace PAP
     : m_id{id},
       m_name{name},
       m_type{type},
-      m_position{name + ".Position",0.},
+      m_position{name + ".Position",0.,-500.,500.},
       m_stepsize{name + ".Stepsize",0.005,0.0,1.0},
       m_isMoving(false),
       m_allowPassTravelLimit(false),

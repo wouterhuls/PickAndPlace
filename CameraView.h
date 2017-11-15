@@ -4,7 +4,9 @@
 #include <QWidget>
 #include <QMainWindow>
 #include <QGraphicsView>
+#include <QGraphicsItemGroup>
 #include "NamedValue.h"
+#include "Coordinates.h"
 
 class QGraphicsScene ;
 class QGraphicsView ;
@@ -24,8 +26,6 @@ namespace PAP
     Q_OBJECT
     
   public:
-    enum ViewDirection { CSideView=0, NSideView=1 } ;
-  public:
     explicit CameraView(QWidget *parent = 0);
     ~CameraView();
     void setCamera(const QCameraInfo &cameraInfo) ;
@@ -36,17 +36,43 @@ namespace PAP
     double pixelSizeY() const { return pixelSize() ; }
 
     QVideoProbe* videoProbe() { return m_videoProbe ; }
- 
+
+    QGraphicsItemGroup* nsidemarkers() { return m_nsidemarkers; }
+    QGraphicsItemGroup* csidemarkers() { return m_nsidemarkers; }
+
+    void updateGeometryView() ;
+
+    QTransform fromCameraToPixel() const
+    {
+      // Also here, take into account that we apply operators from left to right, rather than vice versa:
+      QTransform T ;
+      T.translate( m_localOrigin.x(), m_localOrigin.y() ) ;
+      QTransform S ;
+      S.scale( 1.0/pixelSizeX(), -1.0/pixelSizeY() ) ;
+      return  S * T;
+      // The following solution may be a bit faster:
+      // QTransform T ;
+      // T.scale( 1.0/pixelSizeX(), -1.0/pixelSizeY() ) ;
+      // T.translate( m_localOrigin.x()*pixelSizeX(), -m_localOrigin.y()*pixelSizeY() ) ;
+      // return T ;
+    }
+
+    ViewDirection currentViewDirection() const { return m_currentViewDirection ; }
+    
   public slots:
     virtual void wheelEvent ( QWheelEvent * event ) ;
     void scalingTime(qreal x) ;
     void animFinished() ;
     virtual void mousePressEvent( QMouseEvent* event) ;
     void moveCameraTo( QPointF localpoint ) const ;
+    void moveCameraTo( const QString& name ) ;
     void record( QPointF localpoint ) const ;
     void zoomReset() ;
     void zoomOut() ;
-    void setViewDirection( int view ) ;
+    void setViewDirection( ViewDirection view ) ;
+
+    void showNSideMarkers( int state ) { m_nsidemarkers->setVisible( state>0 ) ; }
+    void showCSideMarkers( int state ) { m_csidemarkers->setVisible( state>0 ) ; }
     
   private:
     QCamera* m_camera ;
@@ -80,6 +106,8 @@ namespace PAP
     // some info on the view direction
     ViewDirection m_currentViewDirection ;
     QGraphicsItemGroup* m_detectorgeometry ;
+    QGraphicsItemGroup* m_nsidemarkers ;
+    QGraphicsItemGroup* m_csidemarkers ;
     
     // needed for the smooth zoom function
     int m_numScheduledScalings ;
