@@ -37,8 +37,8 @@ namespace PAP
       m_mainYB( "Geo.mainYB", 1.0 ),
       m_cameraPhi( "Geo.cameraPhi", 0 ),
       m_modulePhi( "Geo.modulePhi", 0 ),
-      m_moduleX( "Geo.moduleX", 0),
-      m_moduleY( "Geo.moduleY", 0)
+      m_moduleX( "Geo.moduleX", 20.),
+      m_moduleY( "Geo.moduleY", 52.)
   {
     PAP::PropertySvc::instance()->add( m_mainX0 ) ;
     PAP::PropertySvc::instance()->add( m_mainXA ) ;
@@ -82,7 +82,7 @@ namespace PAP
     QTransform transform ;
     transform.rotateRadians( m_modulePhi ) ;
     transform.translate( m_moduleX, m_moduleY ) ;
-    QTransform rc = transform * viewmirror ;
+    QTransform rc = viewmirror * transform ;
     return rc ;
   }
 

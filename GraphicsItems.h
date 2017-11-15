@@ -160,7 +160,7 @@ namespace PAP
   class JigMarker : public QGraphicsItem
   {
   private:
-    const float m_size = 10.0 ; // size in micron
+    const float m_size = 10.0 ; // size in mm
   public:
     JigMarker(const FiducialDefinition& def, QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItem(parent)
     {
