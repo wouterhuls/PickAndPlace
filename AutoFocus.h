@@ -24,6 +24,8 @@ namespace PAP
 
     // temporary, before we put this int he dialog
     QLabel* focusView() { return m_focusView ; }
+
+    void startFocusSequence() ;
     
   signals:
     void focusMeasureUpdated() ;
@@ -38,6 +40,9 @@ namespace PAP
    
     // current value of picture contrast or entropy or whatever
     double m_focusMeasure ;
+
+    //
+    bool m_isFocussing ;
     
   } ;
 
