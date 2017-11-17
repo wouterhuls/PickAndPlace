@@ -6,6 +6,7 @@
 #include <QPushButton>
 #include <QCoreApplication>
 #include <QDebug>
+#include <QDialog>
 
 #include "MotionSystemSvc.h"
 #include "MotionAxisWidget.h"
@@ -42,6 +43,11 @@ namespace PAP
     layout->addWidget( new MotionAxisWidget{ mssvc->stackYAxis(),this } ) ;
     layout->addWidget( new MotionAxisWidget{ mssvc->stackRAxis(),this } ) ;
 
+    auto calibratebutton = new QPushButton("Calibrate",this) ;
+    calibratebutton->setObjectName(QStringLiteral("calibrateButton"));
+    layout->addWidget( calibratebutton ) ;
+
+    
     auto quitbutton = new QPushButton("Quit",this) ;
     quitbutton->setObjectName(QStringLiteral("quitButton"));
     layout->addWidget( quitbutton ) ;
@@ -59,4 +65,23 @@ namespace PAP
     QCoreApplication::quit();
   }
 
+  void MotionSystemWidget::on_calibrateButton_clicked()
+  {
+    auto dialog = new QDialog{ this } ;
+    dialog->resize(500,200) ;
+    auto label = new QLabel{ dialog } ;
+    label->setText("a. place the glass plate on the machine\n"
+		   "b. take a number of measurements of markers\n"
+		   "   - move to a marker \n"
+		   "   - record the coordinates by pressing right mouse button and 'record' \n"
+		   "   - manually insert the coordinates (X,y in mm) written on the glass plate \n"
+		   "   - press 'accept'\n"
+		   "c. press the calibrate button\n"
+		   "   - this will update the constants stored in GeomSvc\n"
+		   "d. test the result on a number of markers\n") ;
+    label->setWordWrap(true);
+    dialog->show();
+    dialog->raise();
+    dialog->activateWindow();
+  }
 }

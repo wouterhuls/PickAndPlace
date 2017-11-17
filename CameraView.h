@@ -7,6 +7,7 @@
 #include <QGraphicsItemGroup>
 #include "NamedValue.h"
 #include "Coordinates.h"
+#include "CoordinateMeasurement.h"
 
 class QGraphicsScene ;
 class QGraphicsView ;
@@ -20,7 +21,8 @@ class QGraphicsRectItem ;
 
 namespace PAP
 {
-
+  struct CoordinateMeasurement ;
+  
   class CameraView : public QGraphicsView
   {
     Q_OBJECT
@@ -58,6 +60,8 @@ namespace PAP
     }
 
     ViewDirection currentViewDirection() const { return m_currentViewDirection ; }
+  signals:
+    void recording( CoordinateMeasurement ) const ;
     
   public slots:
     virtual void wheelEvent ( QWheelEvent * event ) ;
@@ -65,7 +69,11 @@ namespace PAP
     void animFinished() ;
     virtual void mousePressEvent( QMouseEvent* event) ;
     void moveCameraTo( QPointF localpoint ) const ;
-    void moveCameraTo( const QString& name ) ;
+    /// Move to a particular marker
+    void moveCameraTo( const QString& name ) const ;
+    /// Return the position of a marker in global coordinates
+    QPointF globalPosition( const QString& name ) const ;
+    
     void record( QPointF localpoint ) const ;
     void zoomReset() ;
     void zoomOut() ;

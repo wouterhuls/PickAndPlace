@@ -67,8 +67,7 @@ namespace PAP
     connect(&(m_axis->controller()),&MotionController::statusChanged,this,&MotionAxisWidget::showPosition) ;
     showPosition() ;
     
-    auto settingsButton = new QPushButton(QIcon(":/images/settings.png"),"settings",widget) ;
-    //settingsButton->setIcon( QIcon("images/settings.png") ) ;
+    auto settingsButton = new QPushButton(QIcon(":/images/settings.png"),"",widget) ;
     settingsButton->setObjectName(QStringLiteral("settingsButton"));
     horizontalLayout->addWidget(settingsButton);
     

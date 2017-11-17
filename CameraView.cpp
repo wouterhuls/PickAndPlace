@@ -3,6 +3,7 @@
 #include "GeometrySvc.h"
 #include "MotionSystemSvc.h"
 #include "GraphicsItems.h"
+#include "CoordinateMeasurement.h"
 
 #include <QCamera>
 #include <QCameraInfo>
@@ -42,6 +43,8 @@ namespace PAP
       m_currentViewDirection(NSideView),
       m_numScheduledScalings(0)
   {
+    qRegisterMetaType<PAP::CoordinateMeasurement>() ;
+    
     this->resize(622, 512);
     this->setMinimumSize( 622, 512 ) ;
     this->setMaximumSize( 622, 512 ) ;
@@ -79,11 +82,12 @@ namespace PAP
     this->setScene( m_scene ) ;
 
     // Add a rectangle such that we always now where the camerawindow ends (also on my laptop)
-    m_viewfinderborder = new QGraphicsRectItem{QRectF{-100,-100,double(m_numPixelsX+200),double(m_numPixelsY+200)}} ;
+    m_viewfinderborder = new QGraphicsRectItem{QRectF{-200,-200,double(m_numPixelsX+400),double(m_numPixelsY+400)}} ;
     //m_viewfinderborder->setScale( pixelSize() ) ;
     {
       QPen pen ;
-      pen.setWidth( 50 ) ;
+      pen.setWidth( 200 ) ;
+      pen.setColor( Qt::red ) ;
       m_viewfinderborder->setPen(pen) ;
     }
     m_scene->addItem( m_viewfinderborder ) ;
@@ -238,7 +242,6 @@ namespace PAP
     // followed by a rotation, you need to use "T * R". This is
     // different from transforms in ROOT. If you are used to dealing
     // with column vectors, it is also not very logical.
-    
     /*
     qDebug() << "Let's test something: " ;
     QTransform translation ;
@@ -261,33 +264,6 @@ namespace PAP
     QTransform T1 = geomsvc->fromCameraToGlobal() ;
     QTransform T2 = geomsvc->fromModuleToGlobal( m_currentViewDirection ) ;
     m_detectorgeometry->setTransform( (T2 * T1.inverted() ) * fromCameraToPixel() ) ;
-       
-    /*
-    QTransform T12 = T2 * T1.inverted() ;
-    
-    qDebug() << "From ModuleToGlobal: " << T2 ;
-    qDebug() << "From module to camera: " << T12 ;
-
-    // what now happens if we scale this:
-    //T12.scale( 1.0/pixelSizeX(), -1.0/pixelSizeY() ) ;
-    //qDebug() << "From module to camera, after scaling: " << T12 ;
-    
-    // try again, but now multiplying by a scaling transform. I still
-    // don't understand why I need to scale the translation
-    // here. Perhaps that would not be needed if I would multiply to
-    // transforms. 
-
-    QTransform Tscale ;
-    Tscale.scale( 1.0/pixelSizeX(), -1.0/pixelSizeY() ) ;
-    Tscale.translate( m_localOrigin.x()*pixelSizeX(), -m_localOrigin.y()*pixelSizeY() ) ;
-    //
-    //
-    //
-    //T12 = Tscale *(T1.inverted() * T2) ;
-    //qDebug() << "From module to camera, after scaling 2: " << T12 ;
-    T12 = (T1.inverted() * T2) * Tscale;
-    qDebug() << "From module to camera, after scaling 3: " << T12 ;
-    */
   }
     
   void CameraView::setViewDirection( ViewDirection dir )
@@ -304,25 +280,6 @@ namespace PAP
   
   void CameraView::zoomReset()
   {
-    /*
-    qDebug() << "Camera view size is: "
-	     << size() << " "
-	     << sizePolicy() ;
-
-    //QTransform t ;
-    //t.scale(m_nominalscale,m_nominalscale) ;
-    //setTransform(t) ;
-    qDebug() << "Position of local origin: "
-	     << mapFromScene(m_localOrigin) ;
-    qDebug() << "Scale: "
-	     << transform().m11() 
-	     << transform().m22()  ;
-    centerOn( mapFromScene(m_localOrigin) ) ;//622/2,512/2) ;
-
-    qDebug() << "Position of local origin after: "
-	     << mapFromScene(m_localOrigin) ;
-    */
-
     fitInView( m_viewfinder,Qt::KeepAspectRatio ) ;
   }
 
@@ -478,7 +435,7 @@ namespace PAP
     }
   }
   
-  void CameraView::moveCameraTo( const QString& markername )
+  void CameraView::moveCameraTo( const QString& markername ) const
   {
     const QGraphicsItem* marker = finditemByToolTipText(*m_detectorgeometry, markername) ;
     if(marker) {
@@ -488,6 +445,18 @@ namespace PAP
     } else {
       qWarning() << "Cannot find graphics item: " << markername ;
     }
+  }
+
+  QPointF CameraView::globalPosition( const QString& markername ) const
+  {
+    QPointF rc ;
+    const QGraphicsItem* marker = finditemByToolTipText(*m_detectorgeometry, markername) ;
+    if(marker) {
+      // get the global coordinates
+      QTransform T = GeometrySvc::instance()->fromModuleToGlobal(m_currentViewDirection) ;
+      rc = T.map( marker->pos() ) ;
+    }
+    return rc ;
   }
   
   void CameraView::record( QPointF localpoint ) const
@@ -502,6 +471,16 @@ namespace PAP
 	    << "(" << mscoord.stack.x << ","
 	    << mscoord.stack.y << ","
 	    << mscoord.stack.phi << ")" ;
+    CoordinateMeasurement measurement ;
+    measurement.mscoordinates = mscoord ;
+    // besides this, we also want to global coordinates. First mape the transform:
+    QTransform T = fromCameraToPixel().inverted() * GeometrySvc::instance()->fromCameraToGlobal() ;
+    //GeometrySvc::instance()->fromCameraToGlobal().inverted() * fromCameraToPixel() ;
+    auto globalpoint = T.map( localpoint ) ;
+    measurement.globalcoordinates.x = globalpoint.x() ;
+    measurement.globalcoordinates.y = globalpoint.y() ;
+    
+    emit recording( measurement ) ;
   }
   
 }

@@ -3,6 +3,8 @@
 #include "MotionSystemSvc.h"
 #include "NominalMarkers.h"
 
+#include <cmath>
+
 namespace PAP
 {
 
@@ -78,12 +80,31 @@ namespace PAP
     QTransform viewmirror ;
     if( view == PAP::CSideView ) viewmirror.scale(1,-1) ;
     // the remainder is a rotation and a translation. these are the
-    // numbers that we need to calibrate by looking at the markers.
+    // numbers that we need to calibrate by looking at the
+    // markers. make sure to set the translation first. also that has
+    // to do with the order: things set last will be applied on the
+    // right.
     QTransform transform ;
-    transform.rotateRadians( m_modulePhi ) ;
     transform.translate( m_moduleX, m_moduleY ) ;
+    transform.rotateRadians( m_modulePhi ) ;
     QTransform rc = viewmirror * transform ;
     return rc ;
+  }
+
+  void GeometrySvc::applyModuleDelta( double dx, double dy, double phi )
+  {
+    QTransform T ;
+    T.translate( m_moduleX, m_moduleY ) ;
+    T.rotateRadians( m_modulePhi ) ;
+    QTransform dT ;
+    dT.translate( dx, dy) ;
+    dT.rotateRadians( phi ) ;
+    QTransform Tnew = T*dT ;
+    m_modulePhi = std::atan2( Tnew.m12(), Tnew.m11() ) ;
+    m_moduleX   = Tnew.m31() ;
+    m_moduleY   = Tnew.m32() ;
+    qDebug() << "GeometrySvc::applyModuleDelta: "
+	     << m_moduleX << m_moduleY << m_modulePhi ;
   }
 
   QTransform GeometrySvc::fromCameraToGlobal() const

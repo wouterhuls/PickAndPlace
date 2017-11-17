@@ -37,6 +37,9 @@ namespace PAP
     
     QTransform fromCameraToGlobal() const ;
     QTransform fromModuleToGlobal( ViewDirection view ) const ;
+
+    // update calibration
+    void applyModuleDelta( double dx, double dy, double phi ) ;
     
   public:
     // access to various marker positions in the 'Module' frame. these

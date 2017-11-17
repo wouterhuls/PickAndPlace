@@ -3,6 +3,7 @@
 
 #include <QWidget>
 #include <QMainWindow>
+#include "CoordinateMeasurement.h"
 
 class QLabel;
 class QCheckBox ;
@@ -32,6 +33,38 @@ namespace PAP
     QCheckBox* m_showNSideTiles ;
     QCheckBox* m_showCSideTiles ;       
   } ;
+
+  class MarkerRecorderWidget : public QWidget
+  {
+    Q_OBJECT
+  public:
+    enum Status { Uninitialized=0, Active=1, Ready=2 } ;
+    MarkerRecorderWidget(const char* markername,
+			 const PAP::CameraView* camview,
+			 QWidget* parent=0) ;
+    const CoordinateMeasurement& measurement() const { return m_measurement ; }
+    const QPointF& markerposition() const { return m_markerposition; }
+    double dx() const { return m_markerposition.x() - m_measurement.globalcoordinates.x; }
+    double dy() const { return m_markerposition.y() - m_measurement.globalcoordinates.y; }
+    Status status() const { return m_status ; }
+    void reset() { setStatus(Uninitialized) ; }
+    void setStatus( Status s ) ;
+  signals:
+    void ready() ;
+  public slots:
+    void record( CoordinateMeasurement m) ;
+    void on_recordbutton_toggled(bool checked) {
+      if( checked ) setStatus(Active) ;
+      else setStatus(Uninitialized) ;
+    }
+  private:
+    Status m_status ;
+    QLabel* m_statuslabel ;
+    CoordinateMeasurement m_measurement ;
+    QPointF m_markerposition ;
+  } ;
+
+  
 }
 
 #endif // MAINWINDOW_H

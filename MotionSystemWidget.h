@@ -17,11 +17,8 @@ namespace PAP
     ~MotionSystemWidget();
     
     private slots:
-      //void on_leftButton_clicked();
-      //void on_homeButton_clicked();
-      //void on_rightButton_clicked();
       void on_quitButton_clicked() ;
-      //void showPosition() ;
+      void on_calibrateButton_clicked() ;
   private:
   };
 }
