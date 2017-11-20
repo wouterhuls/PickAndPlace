@@ -36,11 +36,11 @@ namespace PAP
       m_mainXB( "Geo.mainXB", 0.0 ),
       m_mainY0( "Geo.mainY0", 0. ),
       m_mainYA( "Geo.mainYA", 0.0 ),
-      m_mainYB( "Geo.mainYB", 1.0 ),
+      m_mainYB( "Geo.mainYB", -1.0 ),
       m_cameraPhi( "Geo.cameraPhi", 0 ),
       m_modulePhi( "Geo.modulePhi", 0 ),
       m_moduleX( "Geo.moduleX", 20.),
-      m_moduleY( "Geo.moduleY", 52.)
+      m_moduleY( "Geo.moduleY", -52.)
   {
     PAP::PropertySvc::instance()->add( m_mainX0 ) ;
     PAP::PropertySvc::instance()->add( m_mainXA ) ;

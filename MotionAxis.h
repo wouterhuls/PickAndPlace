@@ -21,6 +21,7 @@ namespace PAP
 		const MotionController& c) ;
     void configure() ;
     void searchHome() ;
+    void setZero() ;
     void step( Direction dir ) ;   // move default stepsize in the direction dir
     void move( Direction dir ) ;   // move until stoppped
     void move( float delta ) ;     // move by delta

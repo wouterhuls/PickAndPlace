@@ -152,7 +152,13 @@ namespace PAP
     setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"OR") ;
   }
-  
+
+  void MotionAxis::setZero()
+  {
+    MotionSystemSvc::instance()->applyAxisCommand(m_id,"ZP") ;
+    readPosition() ;
+  }
+ 
   void MotionAxis::setIsMoving(bool ismoving)
   {
     if(  ismoving && !m_isMoving )

@@ -49,7 +49,7 @@ namespace PAP
     
     // set the current position as 'zero'
     auto setZeroButton = new QPushButton{this};
-    setZeroButton->setObjectName(QStringLiteral("setZeroButton"));
+    setZeroButton->setObjectName(QStringLiteral("zeroButton"));
     setZeroButton->setText("Set Zero") ;
     layout->addWidget(setZeroButton);
     
@@ -61,6 +61,19 @@ namespace PAP
     m_axis->searchHome() ;
   }
 
+  void MotionAxisSettingsDialog::on_zeroButton_clicked()
+  {
+    if( !m_axis->isMoving() )
+      m_axis->setZero() ;
+    else {
+      QDialog dialog(this) ;
+      QLabel label("Cannot zet zero: axis still moving",&dialog) ;
+      dialog.exec() ;
+    }
+  }
+
+
+  
   void MotionAxisSettingsDialog::allowPassTravelLimitChanged()
   {
     m_axis->setAllowPassTravelLimit( m_allowpasstravellimitbox->isChecked() ) ;

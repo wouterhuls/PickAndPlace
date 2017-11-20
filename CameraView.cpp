@@ -38,7 +38,7 @@ namespace PAP
       m_videoProbe(0),
       m_chipPixelSize(0.00345),
       //m_magnification("Cam.Magnification",5.03),
-      m_magnification("Cam.Magnification",4.9),
+      m_magnification("Cam.Magnification",4.865),
       m_rotation("Cam.Rotation",+M_PI/2),
       m_currentViewDirection(NSideView),
       m_numScheduledScalings(0)
@@ -410,10 +410,16 @@ namespace PAP
     PAP::Coordinates2D globaldx{
       globalpoint.x() - globalorigin.x(),
 	globalpoint.y() - globalorigin.y() } ;
+    //qDebug() << "Global dx, dy: "
+    //	     << globaldx.x << " " << globaldx.y ;
+    
     auto mainstagedx = GeometrySvc::instance()->toMSMainDelta( globaldx ) ;
 
     //qDebug() << "Before: " << -mainstagedx.y << mainstagedx.x ;
     //qDebug() << "After:  " << mainstagedxnew.x << mainstagedxnew.y ;
+
+    //qDebug() << "Actual change in motor position: "
+    //	     << mainstagedx.x << " " << mainstagedx.y ;
     
     // finally, move the motors!
     MotionSystemSvc::instance()->mainXAxis().move(mainstagedx.x) ;

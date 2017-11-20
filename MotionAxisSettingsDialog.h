@@ -31,6 +31,7 @@ namespace PAP
     
     private slots:
       void on_searchHomeButton_clicked();
+      void on_zeroButton_clicked() ;
       void allowPassTravelLimitChanged() ;
       
   private:
