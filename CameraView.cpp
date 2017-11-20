@@ -385,26 +385,8 @@ namespace PAP
  
   void CameraView::moveCameraTo( QPointF localpoint ) const
   {
-    /*
-    qWarning() << "moveCameraTo needs to be adapted to use of new transforms!" ;
-    // first compute the local change in microns
-    double localdx = ( localpoint.x() - m_localOrigin.x() ) * pixelSizeX() ;
-    double localdy = ( localpoint.y() - m_localOrigin.y() ) * pixelSizeY() ;
-    // now translate that into a change in global coordinates, taking
-    // into account that the camera view may be rotated
-    const double cosphi = std::cos( m_rotation )  ;
-    const double sinphi = std::sin( m_rotation ) ;
-    PAP::Coordinates2D globaldx{
-      localdx*cosphi + localdy*sinphi, -localdx*sinphi + localdy*cosphi} ;
-    // now translate that into a change in motor positions using the geosvc
-    auto mainstagedx = GeometrySvc::instance()->toMSMainDelta( globaldx ) ;
-    qInfo() << "Moving camera: "
-	    << "(" << localdx << "," << localdy << ") --> ("
-	    << mainstagedx.x << "," << mainstagedx.y << ")" ;
-    */
-
-    // Alternative
-    QTransform T = m_detectorgeometry->transform().inverted() ;
+    //QTransform T = m_detectorgeometry->transform().inverted() ;
+    QTransform T = fromCameraToPixel().inverted() * GeometrySvc::instance()->fromCameraToGlobal() ;
     auto globalpoint = T.map( localpoint ) ;
     auto globalorigin = T.map( m_localOrigin ) ;
     PAP::Coordinates2D globaldx{
@@ -414,9 +396,6 @@ namespace PAP
     //	     << globaldx.x << " " << globaldx.y ;
     
     auto mainstagedx = GeometrySvc::instance()->toMSMainDelta( globaldx ) ;
-
-    //qDebug() << "Before: " << -mainstagedx.y << mainstagedx.x ;
-    //qDebug() << "After:  " << mainstagedxnew.x << mainstagedxnew.y ;
 
     //qDebug() << "Actual change in motor position: "
     //	     << mainstagedx.x << " " << mainstagedx.y ;
