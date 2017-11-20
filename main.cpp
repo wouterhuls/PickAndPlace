@@ -72,9 +72,11 @@ int main(int argc, char *argv[])
   camerawindow.show() ;
   camerawindow.setWindowIcon( QIcon(":/images/VeloUpgradeLogoSmall.png") ) ;
   
-  
+  // load the setup file
+  //QProcessEnvironment env = QProcessEnvironment::systemEnvironment() ;
+  //QString filename = env.value("HOME") + "/.pickandplace/
+  PAP::PropertySvc::instance()->read("papconfig.txt") ;
   auto rc = a.exec() ;
-  
   PAP::PropertySvc::instance()->write("papconfig_last.txt") ;
   
   return rc;

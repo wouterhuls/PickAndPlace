@@ -58,6 +58,7 @@ namespace PAP
       else setStatus(Uninitialized) ;
     }
   private:
+    const PAP::CameraView* m_cameraview ;
     Status m_status ;
     QLabel* m_statuslabel ;
     CoordinateMeasurement m_measurement ;

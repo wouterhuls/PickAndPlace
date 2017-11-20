@@ -27,8 +27,9 @@ namespace PAP
   MarkerRecorderWidget::MarkerRecorderWidget(const char* markername,
 					     const PAP::CameraView* camview,
 					     QWidget* parent)
-    : QWidget(parent), m_status(Uninitialized)
+    : QWidget(parent), m_cameraview(camview), m_status(Uninitialized)
   {
+    setObjectName( markername ) ;
     auto hlayout = new QHBoxLayout{} ;
     setLayout(hlayout) ;
     auto movetomarker1button = new QPushButton{markername, this} ;
@@ -42,7 +43,6 @@ namespace PAP
     connect(recordbutton,&QPushButton::toggled,this,&MarkerRecorderWidget::on_recordbutton_toggled) ;
     // catch measurement updates
     connect( camview, &CameraView::recording, this, &MarkerRecorderWidget::record  ) ;
-    m_markerposition = camview->globalPosition( markername ) ;
     // show a label with the status
     m_statuslabel = new QLabel{ this } ;
     setStatus( Uninitialized ) ;
@@ -52,11 +52,12 @@ namespace PAP
 
   void MarkerRecorderWidget::record( CoordinateMeasurement m) {
     if( m_status == Active ) {
-      qDebug() << "received measurement: (" << m.globalcoordinates.x << "," << m.globalcoordinates.y << ")" ;
-      qDebug() << "marker position:      " << m_markerposition ;
       m_measurement = m ;
+      m_markerposition = m_cameraview->globalPosition( objectName() ) ;
       setStatus( Ready ) ;
       emit ready() ;
+      qDebug() << "received measurement: (" << m.globalcoordinates.x << "," << m.globalcoordinates.y << ")" ;
+      qDebug() << "marker position:      " << m_markerposition ;
     }
   }
   
@@ -76,8 +77,10 @@ namespace PAP
   private:
     MarkerRecorderWidget* m_marker1recorder ;
     MarkerRecorderWidget* m_marker2recorder ;
+    CameraView* m_cameraview ;
   public:
     AlignMainJigPage(PAP::CameraView* camview)
+      : m_cameraview(camview)
     {
       auto vlayout = new QVBoxLayout{} ;
       this->setLayout(vlayout) ;
@@ -149,7 +152,8 @@ namespace PAP
 	
 	// now update the geometry
 	GeometrySvc::instance()->applyModuleDelta(delta(0),delta(1),delta(2)) ;
-		
+	m_cameraview->updateGeometryView() ;
+	
 	// and don't forget to reset
 	m_marker1recorder->reset() ;
 	m_marker2recorder->reset() ;

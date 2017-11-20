@@ -48,7 +48,14 @@ namespace PAP
     PAP::PropertySvc::instance()->add( m_mainY0 ) ;
     PAP::PropertySvc::instance()->add( m_mainYA ) ;
     PAP::PropertySvc::instance()->add( m_mainYB ) ;
+    PAP::PropertySvc::instance()->add( m_cameraPhi ) ;
+    PAP::PropertySvc::instance()->add( m_modulePhi ) ;
+    PAP::PropertySvc::instance()->add( m_moduleX ) ;
+    PAP::PropertySvc::instance()->add( m_moduleY ) ;
   }
+
+  GeometrySvc::~GeometrySvc() {}
+  
   
   Coordinates2D GeometrySvc::toGlobal( const MSMainCoordinates& c) const
   {

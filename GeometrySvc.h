@@ -29,6 +29,7 @@ namespace PAP
     // - the 'module' frame is the frame of the module (jig)
     
     GeometrySvc() ;
+    virtual ~GeometrySvc() ;
     // these translate a point to a point. but I need more: for the
     // transforms I also need the rotations.
     Coordinates2D toGlobal( const MSMainCoordinates& c) const;
@@ -40,6 +41,9 @@ namespace PAP
 
     // update calibration
     void applyModuleDelta( double dx, double dy, double phi ) ;
+
+    //signals:
+    //void geometryChanged() ;
     
   public:
     // access to various marker positions in the 'Module' frame. these
