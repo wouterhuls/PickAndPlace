@@ -1,6 +1,8 @@
 #ifndef PAP_COORDINATES_H
 #define PAP_COORDINATES_H
 
+#include <QString>
+
 namespace PAP
 {
   enum ViewDirection { NSideView = 0 , CSideView=1 } ;

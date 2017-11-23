@@ -2,11 +2,13 @@
 #define PAP_COORDINATEMEASUREMENT_H
 
 #include "Coordinates.h"
+#include <QObject>
 
 namespace PAP
 {
-  struct CoordinateMeasurement
+  class CoordinateMeasurement
   {
+  public:
     MSCoordinates mscoordinates ;
     Coordinates2D globalcoordinates ;
   } ;

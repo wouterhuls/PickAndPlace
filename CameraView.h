@@ -7,7 +7,6 @@
 #include <QGraphicsItemGroup>
 #include "NamedValue.h"
 #include "Coordinates.h"
-#include "CoordinateMeasurement.h"
 
 class QGraphicsScene ;
 class QGraphicsView ;
@@ -21,7 +20,7 @@ class QGraphicsRectItem ;
 
 namespace PAP
 {
-  struct CoordinateMeasurement ;
+  class CoordinateMeasurement ;
   
   class CameraView : public QGraphicsView
   {
@@ -61,7 +60,7 @@ namespace PAP
 
     ViewDirection currentViewDirection() const { return m_currentViewDirection ; }
   signals:
-    void recording( CoordinateMeasurement ) const ;
+    void recording( const CoordinateMeasurement& ) const ;
     
   public slots:
     virtual void wheelEvent ( QWheelEvent * event ) ;

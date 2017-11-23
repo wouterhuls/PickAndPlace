@@ -31,7 +31,8 @@ SOURCES += main.cpp \
     AutoFocus.cpp \
     NamedValueInputWidget.cpp \
     GeometrySvc.cpp \
-    NamedValue.cpp 
+    NamedValue.cpp \
+    AlignPages.cpp
 
 HEADERS  += \
     NominalMarkers.h \
@@ -55,7 +56,8 @@ HEADERS  += \
     PropertySvc.h \
     CameraWindow.h \
     CameraView.h \
-    AutoFocus.h
+    AutoFocus.h \
+    AlignPages.h
 
 FORMS    += SerialPortSettingsDialog.ui
 

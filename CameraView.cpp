@@ -47,8 +47,8 @@ namespace PAP
     
     this->resize(622, 512);
     this->setMinimumSize( 622, 512 ) ;
-    this->setMaximumSize( 622, 512 ) ;
-    QSizePolicy sizepolicy{QSizePolicy::Fixed, QSizePolicy::Fixed} ;
+    //this->setMaximumSize( 622, 512 ) ;
+    QSizePolicy sizepolicy{}; //QSizePolicy::Fixed, QSizePolicy::Fixed} ;
     sizepolicy.setHeightForWidth(true) ;
     this->setSizePolicy(sizepolicy) ;
     //resize(2*622, 2*512) ;
@@ -87,7 +87,7 @@ namespace PAP
     {
       QPen pen ;
       pen.setWidth( 200 ) ;
-      pen.setColor( Qt::red ) ;
+      pen.setColor( QColor{1,109,15} ) ;//Qt::red ) ;
       m_viewfinderborder->setPen(pen) ;
     }
     m_scene->addItem( m_viewfinderborder ) ;
@@ -392,13 +392,15 @@ namespace PAP
     PAP::Coordinates2D globaldx{
       globalpoint.x() - globalorigin.x(),
 	globalpoint.y() - globalorigin.y() } ;
+    
+    // qDebug() << "Local point: " << localpoint ;
     //qDebug() << "Global dx, dy: "
-    //	     << globaldx.x << " " << globaldx.y ;
+    //      << globaldx.x << " " << globaldx.y ;
     
     auto mainstagedx = GeometrySvc::instance()->toMSMainDelta( globaldx ) ;
 
     //qDebug() << "Actual change in motor position: "
-    //	     << mainstagedx.x << " " << mainstagedx.y ;
+    //      << mainstagedx.x << " " << mainstagedx.y ;
     
     // finally, move the motors!
     MotionSystemSvc::instance()->mainXAxis().move(mainstagedx.x) ;
@@ -425,7 +427,7 @@ namespace PAP
     const QGraphicsItem* marker = finditemByToolTipText(*m_detectorgeometry, markername) ;
     if(marker) {
       // get the coordinates in the scene
-      QPointF localcoord = marker->mapToScene(marker->pos()) ;
+      QPointF localcoord = m_detectorgeometry->mapToScene( marker->pos() ) ;
       moveCameraTo( localcoord ) ;
     } else {
       qWarning() << "Cannot find graphics item: " << markername ;
