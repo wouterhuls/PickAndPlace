@@ -1,5 +1,6 @@
 #include "CameraWindow.h"
 #include "CameraView.h"
+#include "MotionSystemSvc.h"
 
 #include "AutoFocus.h"
 #include "AlignPages.h"
@@ -42,6 +43,13 @@ namespace PAP
     layout->addLayout( hlayout) ;
     
     buttonlayout->setObjectName(QStringLiteral("CamWindow::hlayout"));
+
+    auto stopbutton = new QPushButton{QIcon(":/images/emergencystop.png"),"",this} ;
+    stopbutton->setObjectName(QStringLiteral("stopButton"));
+    stopbutton->setToolTip("Abort all motions") ;
+    stopbutton->setIconSize(QSize(100,100)) ;
+    buttonlayout->addWidget( stopbutton ) ;
+    
     auto focusbutton = new QPushButton("Focus",this) ;
     focusbutton->setToolTip("Start autofocus sequence") ;
     focusbutton->setObjectName(QStringLiteral("focusButton"));
@@ -113,6 +121,7 @@ namespace PAP
       csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CLI_VP00_Fid1","CLI_VP02_Fid2"},"Align CLI") ;
       csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CSO_VP10_Fid1","CSO_VP12_Fid2"},"Align CSO") ;
     }
+    connect( taskpages, &QTabWidget::tabBarClicked, this, &CameraWindow::toggleView ) ;
     
     QMetaObject::connectSlotsByName(this);
   }
@@ -120,6 +129,11 @@ namespace PAP
   void CameraWindow::on_quitButton_clicked()
   {
     QCoreApplication::quit();
+  }
+
+  void CameraWindow::on_stopButton_clicked()
+  {
+    MotionSystemSvc::instance()->emergencyStop() ;
   }
 
   void CameraWindow::on_focusButton_clicked()

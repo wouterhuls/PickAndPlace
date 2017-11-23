@@ -53,6 +53,9 @@ namespace PAP
     AxisContainer& axes() { return m_axes ; }
     ControllerContainer& controllers() { return m_controllers; }
 
+    // issue a 'ST' to both controllers. alternative is to turn both
+    // motors off.
+    void emergencyStop() const ;
     // switch all motors on or off
     void switchMotorsOn(MotionControllerID id, bool on = true) const ;
     // tell if the serial port is ready and the system connected

@@ -24,6 +24,7 @@ namespace PAP
   public slots:
     void on_focusButton_clicked() ;
     void on_quitButton_clicked();
+    void on_stopButton_clicked();
     void toggleView(int view) ;
   private:
     CameraView* m_cameraview ;

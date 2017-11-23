@@ -95,83 +95,6 @@ namespace PAP
     return gInstance ;
   }
   
-  
-  /*
-    QByteArray MotionSystemSvc::read() const
-    {
-    QByteArray readData ;
-    if( m_serialport.isOpen() ) {
-    // I now think that there is a latency problem between the
-    // GPIB-USB converter and the motion system: the read command
-    // comes too early. The default time-out is 500 ms, which you
-    // would think is enough. We could perhaps try with a 'wait' call
-    // right here:
-    const int maxtries = 5 ;
-    int i=0;
-    int success = 0 ;
-    for(i=0; i<maxtries; ++i) {
-      QThread::msleep(50) ;
-      m_serialport.write("++read eoi\n") ;
-      // this is how it was:    
-      // m_serialport.waitForBytesWritten(500) ;
-      // readData = m_serialport.readAll();
-      // while (m_serialport.waitForReadyRead(m_timeout))
-      //   readData.append(m_serialport.readAll());
-      // and this is how I want to try it:
-      success = m_serialport.waitForReadyRead(1000) ;
-      readData = m_serialport.readAll();
-      if( success || readData.size() > 0 ) break ;
-    }
-    qDebug() << "Number of read cycles: " << i << " " << success<< " " << readData ;
-    }    
-    //qDebug() << "Read: \"" << readData << "\"" ; //<< std::endl ;
-    return readData ;
-    }
-  */
-  
-  /*
-    QByteArray MotionSystemSvc::writeAndRead(const char* command) const
-    {
-    QByteArray readData ;
-    if( m_serialport.isOpen() ) {
-    write(command) ;
-    readData = m_serialport.readAll();
-    while (m_serialport.waitForReadyRead(m_timeout))
-    readData.append(m_serialport.readAll());
-    }
-    return readData ;
-    }
-  */
-
-  /*
-  void MotionSystemSvc::writeData(const QByteArray &data)
-  {
-    m_serialport.write(data) ;
-  }
-  
-  void MotionSystemSvc::readData()
-  {
-    QByteArray data = m_serialport.readAll();
-    if(m_console) m_console->putData(data);
-    // now try to see what we can do with this. this is going to be a
-    // lot of work: we need a way to parce lines in the input.
-    qDebug() << "Received some data!" << data ;
-    parseData( data ) ;
-  }
-  
-  namespace {
-    // here we can do some serious coding optimization
-    int extractAxisFloat( const char* command, const QString& line, float& value)
-    {
-      int pos = line.indexOf(command) ;
-      // assume everyting before it is the axis
-      int axis  = line.leftRef(pos).toInt() ;
-      value = line.rightRef(line.size() - (pos + 2) ).toFloat() ;
-      return axis ;
-    }
-  }
-  */
-
   void MotionSystemSvc::parseData(int controllerid, const QByteArray& data )
   {
     // this all assumes that we receive data for the current controller.
@@ -279,10 +202,18 @@ namespace PAP
   void MotionSystemSvc::switchMotorsOn( int controllerid, bool on ) const
   {
     qInfo() << "Switching motors on/off for controller " << controllerid << " " << on ;
-    m_serialport->addCommand(2, on ? "MO" : "MF") ;
-    m_serialport->addCommand(4, on ? "MO" : "MF") ;
+    m_serialport->addCommand(controllerid, on ? "MO" : "MF") ;
   }
 
+  void MotionSystemSvc::emergencyStop() const
+  {
+    qWarning() << "Emergency stop" ;
+    m_serialport->addCommand(2,"ST") ;
+    m_serialport->addCommand(4,"ST") ;
+    m_serialport->addCommand(2,"MF") ;
+    m_serialport->addCommand(4,"MF") ;
+  }
+  
   MSCoordinates MotionSystemSvc::coordinates() const
   {
     MSCoordinates rc ;
