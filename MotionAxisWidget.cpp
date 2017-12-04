@@ -54,7 +54,7 @@ namespace PAP
     
     m_positionLabel = new QLCDNumber(widget);
     m_positionLabel->setObjectName(QStringLiteral("positionLabel"));
-    m_positionLabel->setDigitCount(6) ;
+    m_positionLabel->setDigitCount(7) ;
     horizontalLayout->addWidget(m_positionLabel);
     
     //QTimer *timer = new QTimer(this);
