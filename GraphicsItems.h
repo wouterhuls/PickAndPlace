@@ -35,12 +35,12 @@ namespace PAP
       // semitransparent yellow??
       QPen pen ;
       //pen.setColor( QColor{230,100,25} ) ;
-      pen.setColor( Qt::blue ) ;
+      pen.setColor( QColor{230,100,25} ) ; //Qt::blue ) ;
       pen.setWidthF(0.005); // in which units? this is shit ... rescaling does not work!
       painter->setPen(pen) ;
       //painter->setBrush(QColor(0, 255, 255, 127));
       // fraw here all the lines for a marker. perhaps 'polygon'?
-      painter->setBrush( QColor{230,100,25} ) ; //Qt::cyan );
+      //painter->setBrush( QColor{230,100,25} ) ; //Qt::cyan );
       drawPoly(*painter, m_size ) ;
       // draw the cross
       pen.setStyle(Qt::DashLine);
