@@ -49,6 +49,12 @@ namespace PAP
     searchHomeButton->setText("Search Home") ;
     layout->addWidget(searchHomeButton);
     
+    // define home
+    auto defineHomeButton = new QPushButton{this};
+    defineHomeButton->setObjectName(QStringLiteral("defineHomeButton"));
+    defineHomeButton->setText("Define Home") ;
+    layout->addWidget(defineHomeButton);
+   
     // set the current position as 'zero'
     auto setZeroButton = new QPushButton{this};
     setZeroButton->setObjectName(QStringLiteral("zeroButton"));
@@ -61,6 +67,11 @@ namespace PAP
   void MotionAxisSettingsDialog::on_searchHomeButton_clicked()
   {
     m_axis->searchHome() ;
+  }
+  
+  void MotionAxisSettingsDialog::on_defineHomeButton_clicked()
+  {
+    m_axis->defineHome() ;
   }
 
   void MotionAxisSettingsDialog::on_zeroButton_clicked()

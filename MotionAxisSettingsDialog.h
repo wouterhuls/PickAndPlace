@@ -30,6 +30,7 @@ namespace PAP
     // before we can set them, we need to be able to read them from the device
     
     private slots:
+      void on_defineHomeButton_clicked();
       void on_searchHomeButton_clicked();
       void on_zeroButton_clicked() ;
       void allowPassTravelLimitChanged() ;

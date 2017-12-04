@@ -160,6 +160,11 @@ namespace PAP
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PA",position) ;
   }
   
+  void MotionAxis::defineHome()
+  {
+    MotionSystemSvc::instance()->applyAxisCommand(m_id,"DH") ;
+  }
+  
   void MotionAxis::searchHome()
   {
     setIsMoving( true ) ;
