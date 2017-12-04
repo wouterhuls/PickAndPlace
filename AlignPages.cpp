@@ -105,6 +105,23 @@ namespace PAP
     if( m_marker1recorder->status() == MarkerRecorderWidget::Ready &&
 	m_marker2recorder->status() == MarkerRecorderWidget::Ready ) {
       std::vector< MarkerRecorderWidget* > recordings = { m_marker1recorder, m_marker2recorder } ;
+      
+      // Let's first print the measured and expected distance between
+      // the markers. This gives an idea of how accurate we can ever
+      // be.
+      {
+	double Lx = m_marker1recorder->markerposition().x() - m_marker2recorder->markerposition().x() ;
+	double Ly = m_marker1recorder->markerposition().y() - m_marker2recorder->markerposition().y() ;
+	double Lx_m  = m_marker1recorder->measurement().globalcoordinates.x -
+	  m_marker2recorder->measurement().globalcoordinates.x ;
+	double Ly_m  = m_marker1recorder->measurement().globalcoordinates.y -
+	  m_marker2recorder->measurement().globalcoordinates.y ;
+	qDebug() << "Distance in X: " << Lx << Lx_m << Lx-Lx_m ;
+	qDebug() << "Distance in Y: " << Ly << Ly_m << Ly-Ly_m ;
+	qDebug() << "2D distance  : " << std::sqrt(Lx*Lx+Ly*Ly) - std::sqrt(Lx_m*Lx_m+Ly_m*Ly_m) ;
+      }
+      
+      // Now do the chi2 minimization
       Eigen::Vector3d halfdchi2dpar   ;
       Eigen::Matrix3d halfd2chi2dpar2 ;
       for( const auto& r : recordings ) {
