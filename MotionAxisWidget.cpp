@@ -60,7 +60,7 @@ namespace PAP
     //QTimer *timer = new QTimer(this);
     //connect(timer, SIGNAL(timeout()), this, SLOT(showPosition()));
     //timer->start(1000);
-    connect(&(m_axis->position()),&NamedValue::valueChanged,this,&MotionAxisWidget::showPosition) ;
+    connect(&(m_axis->position()),&NamedValueBase::valueChanged,this,&MotionAxisWidget::showPosition) ;
     connect(m_axis,&MotionAxis::movementStarted,this,&MotionAxisWidget::showPosition) ;
     connect(m_axis,&MotionAxis::movementStopped,this,&MotionAxisWidget::showPosition) ;
     // this one we should not need, but for some reason the started and stopped signals are not enough:-(
@@ -80,12 +80,12 @@ namespace PAP
   
   void MotionAxisWidget::on_stepDownButton_clicked()
   {
-    m_axis->step(Down) ;
+    m_axis->step(MotionAxis::Down) ;
   }
   
   void MotionAxisWidget::on_moveDownButton_pressed()
   {
-    m_axis->move(Down) ;
+    m_axis->move(MotionAxis::Down) ;
   }
   
   void MotionAxisWidget::on_moveDownButton_released()
@@ -95,12 +95,12 @@ namespace PAP
   
   void MotionAxisWidget::on_stepUpButton_clicked()
   {
-    m_axis->step(Up) ; // still need to set the stepsize!
+    m_axis->step(MotionAxis::Up) ; // still need to set the stepsize!
   }
   
   void MotionAxisWidget::on_moveUpButton_pressed()
   {
-    m_axis->move(Up) ;
+    m_axis->move(MotionAxis::Up) ;
   }
   
   void MotionAxisWidget::on_moveUpButton_released()
@@ -117,7 +117,7 @@ namespace PAP
   void MotionAxisWidget::showPosition()
   {
     //auto pos = dynamic_cast<const NamedValue*>(sender()) ;
-    auto pos = m_axis->position() ;
+    double pos = m_axis->position() ;
     m_positionLabel->display( pos ) ;
     // change color if moving?
     QPalette pal = m_positionLabel->palette();

@@ -35,6 +35,9 @@ namespace PAP
       { "Units","TN","SN",QVariant::String,true},
       { "Position","TP","PA",QVariant::Double,false,-200.0,200.0,3},	  
     } ;
+
+    //const ParameterDefinition Velocity{ "Velocity","DV","VA", QVariant::Double,true,0.0,100.0,3 } ;
+    //const ParameterDefinition LeftTravelLimit{ 
     
     inline const ParameterDefinition* findParDef( const char* name )
     {

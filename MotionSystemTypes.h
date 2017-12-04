@@ -1,14 +1,11 @@
-#ifndef MOTIONAXISPARAMETERS_H
-#define MOTIONAXISPARAMETERS_H
-
-#include "NamedValue.h"
+#ifndef MOTIONSYSTEMTYPES_H
+#define MOTIONSYSTEMTYPES_H
 
 namespace PAP
 {
   
   using MotionControllerID = int ;
   
-  enum Direction { Up=+1, Down=-1 } ;
   
   struct MotionAxisID
   {
@@ -21,7 +18,8 @@ namespace PAP
     }
   };
 
-  class MSParameter : public NamedValue
+  /*
+  class MSParameter : public NamedVariant
   {
   public:
     MSParameter( const QString& name, QVariant::Type type=QVariant::Invalid ) : NamedValue(name,type) {}
@@ -30,31 +28,17 @@ namespace PAP
       : NamedValue(name,v,min,max) {}
     virtual ~MSParameter() {}
   } ;
-  
-  
-  /*
-    struct MotionAxisParameters
-    {
-    MotionAxisParameters() : stepsize(0.01),speed(1),acceleration(1) {}
-    float stepsize ;
-    float speed ;
-    float acceleration ;
-    };
-    
-    struct MotionAxisData
-    {
-    float speed ;
-    float acceleration ;
-    float position ;
-    } ;
   */
-  
+
+  /*
   struct MotionControllerData
   {
     int status ;
     int error ;
   } ;
+  */
+
 }
 
 
-#endif // MOTIONAXISPARAMETERS_H
+#endif // MOTIONSYSTEMTYPES_H

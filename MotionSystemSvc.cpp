@@ -192,7 +192,7 @@ namespace PAP
   
   void MotionSystemSvc::readAxisVariable(  const MotionAxisID& id,
 					   const char* command,
-					   NamedValueBase& var) const
+					   MonitoredValueBase& var) const
   {
     char acommand[256] ;
     sprintf(acommand,"%d%s",id.axis,command) ;

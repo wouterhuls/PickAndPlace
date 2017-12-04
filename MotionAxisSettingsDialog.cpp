@@ -7,6 +7,7 @@
 #include "MotionAxis.h"
 #include "MotionAxisSettingsDialog.h"
 #include "NamedValueInputWidget.h"
+#include "MotionSystemCommandLibrary.h"
 
 
 namespace PAP
@@ -25,16 +26,17 @@ namespace PAP
     
     // add some buttons
     for( auto& par : axis.parameters() ) {
-      auto w = new NamedValueInputWidget(par,this) ;
+      auto w = new NamedValueInputWidget<QVariant>(par->setValue(),
+						   par->pardef().minvalue,
+						   par->pardef().maxvalue,
+						   par->pardef().decimals,
+						   this) ;
       layout->addWidget( w ) ;
-      // enable the call back only now
-      QObject::connect( &par, &NamedValueBase::valueChanged,
-			&axis, &MotionAxis::handleParameterUpdate ) ;
     }
     
-    layout->addWidget( new NamedValueInputWidget{m_axis->stepsize(),this} ) ;
-    layout->addWidget( new NamedValueInputWidget{m_axis->position(),this} ) ;
-
+    layout->addWidget( new NamedValueInputWidget<double>{m_axis->stepsize(),0.0,10.0,5,this} ) ;
+    layout->addWidget( new NamedValueInputWidget<double>{m_axis->position(),-200.0,200.0,5,this} ) ;
+    
     m_allowpasstravellimitbox = new QCheckBox{"Allow pass travel limit", this} ;
     m_allowpasstravellimitbox->setCheckState( m_axis->allowPassTravelLimit() ? Qt::Checked : Qt::Unchecked) ;
     connect( m_allowpasstravellimitbox, &QCheckBox::stateChanged,

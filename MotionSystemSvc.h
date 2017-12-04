@@ -44,7 +44,7 @@ namespace PAP
     void applyAxisCommand( const MotionAxisID& id, const char* command, const char* nn ) const ;
     void applyAxisCommand( const MotionAxisID& id, const char* command ) const ;
     void applyAxisReadCommand( const MotionAxisID& id, const char* command ) ;
-    void readAxisVariable( const MotionAxisID& id, const char* command, NamedValueBase& ) const ;
+    void readAxisVariable( const MotionAxisID& id, const char* command, MonitoredValueBase& ) const ;
     
     float position( const MotionAxisID& id ) const ;
     std::string name( const MotionAxisID& id ) const ;

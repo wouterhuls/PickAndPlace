@@ -23,6 +23,7 @@ SOURCES += main.cpp \
     MotionAxisSettingsDialog.cpp \
     MotionController.cpp \
     MotionSystemWidget.cpp \
+    MotionAxisParameter.cpp \
     Console.cpp \
     SerialPortSettingsDialog.cpp \
     PropertySvc.cpp \
@@ -31,7 +32,7 @@ SOURCES += main.cpp \
     AutoFocus.cpp \
     NamedValueInputWidget.cpp \
     GeometrySvc.cpp \
-    NamedValue.cpp \
+    MonitoredValue.cpp \
     AlignPages.cpp
 
 HEADERS  += \
@@ -44,7 +45,8 @@ HEADERS  += \
     MotionControllerWidget.h \
     MotionSystemSvc.h \
     MotionSystemCommandLibrary.h \
-    MotionAxisParameters.h \
+    MotionSystemTypes.h \
+    MotionAxisParameter.h \
     MotionAxis.h \
     MotionAxisWidget.h \
     MotionAxisSettingsDialog.h \
@@ -57,7 +59,7 @@ HEADERS  += \
     CameraWindow.h \
     CameraView.h \
     AutoFocus.h \
-    AlignPages.h
+    AlignPages.h 
 
 FORMS    += SerialPortSettingsDialog.ui
 

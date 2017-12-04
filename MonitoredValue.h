@@ -9,6 +9,7 @@
 namespace PAP
 {
 
+  /*
   class ValueChangedEmitter : public QObject
   {
     Q_OBJECT
@@ -17,24 +18,39 @@ namespace PAP
   public:
     virtual ~ValueChangedEmitter() {}
   } ;
+  */
+
+  class MonitoredValueBase : public QObject
+  {
+    Q_OBJECT
+  public:
+    virtual ~MonitoredValueBase() {}
+    // to interface with property service
+    virtual QString toString() const = 0 ;
+    // return false in case of failure
+    virtual bool fromString( const QString& val ) = 0 ;
+  signals:
+    void valueChanged() ;
+  } ;
 
   template<class T>
-    class MonitoredValue : public ValueChangedEmitter
+    class MonitoredValue : virtual public MonitoredValueBase
   {
   public:
     using ValueType = T ;
-  MonitoredValue( const ValueType& v) :  m_value(v) {}
-  MonitoredValue( const MonitoredValue& rhs) : m_value(rhs.m_value) {}
+    MonitoredValue( const ValueType& v) :  m_value(v) {}
+    MonitoredValue( const MonitoredValue& rhs) : m_value(rhs.m_value) {}
     // we also want automatic type conversion
     const ValueType& value() const { return m_value; }
     operator ValueType() const { return m_value ; }
-    const T& get() const { return m_value ; }
-    void set(const ValueType& value) {
+    void setValue(const ValueType& value) {
+      //qDebug() << "MonitoredValue: set" << this << value ;
       if (value != m_value) {
 	m_value = value;
 	emit valueChanged() ;
       }
     }
+    void setWithoutSignal( const ValueType& value) { m_value = value; }
     // conversion
     MonitoredValue<T>& operator=(const ValueType& rhs) { set(rhs) ; return *this ; }
     // to interface with property service

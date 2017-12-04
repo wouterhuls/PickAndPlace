@@ -1,8 +1,10 @@
 #ifndef MOTIONAXIS_H
 #define MOTIONAXIS_H
 
-#include <string>
-#include "MotionAxisParameters.h"
+#include <vector>
+#include <QString>
+#include "MotionAxisParameter.h"
+#include "MotionSystemTypes.h"
 
 namespace PAP
 {
@@ -15,8 +17,9 @@ namespace PAP
     Q_OBJECT
     
   public:
-    using MSParameter = PAP::MSParameter ;
-    using MotionAxisParameters = std::vector<MSParameter>  ;
+    //using MSParameter = PAP::MSParameter ;
+    enum Direction { Up=+1, Down=-1 } ;
+    using MotionAxisParameters = std::vector<MotionAxisParameter*>  ;
     MotionAxis( const MotionAxisID& id, const QString& name, const QString& type,
 		const MotionController& c) ;
     void configure() ;
@@ -56,9 +59,9 @@ namespace PAP
       
     public slots:
       //void setDefaultVelocity( float v ) const ;
-      void handleParameterUpdate() const ;
-      void writeParameter( const MSParameter& par ) const ;
-      void readParameter( MSParameter& par ) ;
+      // void handleParameterUpdate() const ;
+      //void writeParameter( const MSParameter& par ) const ;
+      //void readParameter( MSParameter& par ) ;
       void applyPosition() { moveTo( m_position ) ; }
       void readPosition() ;
       
@@ -68,13 +71,18 @@ namespace PAP
       MotionAxisID m_id ;
       QString m_name ;
       QString m_type ;
-      // measurements from the machine
-      NamedDouble m_position ;
-      NamedDouble m_stepsize ;
-      MotionAxisParameters m_parameters ;
+      // measurements, axis state
       bool m_isMoving ;
-      bool m_allowPassTravelLimit ;
       unsigned int m_status ;
+      NamedDouble m_position ;
+      // parameters of the axis
+      MotionAxisParameters m_parameters ;
+      MotionAxisParameter* m_leftTravelLimit ;
+      MotionAxisParameter* m_rightTravelLimit ;
+      // internal parameters
+      NamedDouble m_stepsize ;
+      bool m_allowPassTravelLimit ;
+      // parent controller
       const MotionController* m_controller ;
   };
 }

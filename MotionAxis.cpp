@@ -7,6 +7,8 @@
 #include "MotionSystemCommandLibrary.h"
 #include "NamedValue.h"
 
+#include <assert.h>
+
 // Let;s make a list of all parameters. Perhaps we are not dealing with so much
 namespace PAP
 {
@@ -16,9 +18,10 @@ namespace PAP
     : m_id{id},
       m_name{name},
       m_type{type},
-      m_position{name + ".Position",0.,-500.,500.},
-      m_stepsize{name + ".Stepsize",0.005,0.0,1.0},
       m_isMoving(false),
+      m_status(0),
+      m_position{name + ".Position",0.},
+      m_stepsize{name + ".Stepsize",0.005},
       m_allowPassTravelLimit(false),
       m_controller{&c}
   {
@@ -39,23 +42,23 @@ namespace PAP
     QObject::connect(this,&MotionAxis::movementStopped,this,&MotionAxis::readPosition);
     QObject::connect(&m_position,&NamedValueBase::valueChanged,this,&MotionAxis::readPosition);
     
-    // create a the list of motion axis parameters.
+    // create the list of motion axis parameters.
     m_parameters.reserve( MSCommandLibrary::Parameters.size() ) ;
     for( const auto& p: MSCommandLibrary::Parameters ) {
       if(p.configurable) {
-	m_parameters.push_back( MSParameter{ QString{name} + "." + p.name,
-					     QVariant{p.type},p.minvalue, p.maxvalue } ) ;
-	MSParameter& par = m_parameters.back() ;
-	// set the initial value:
-	// readParameter( par ) ;
-	// for now, disable the callbacks!
-	PAP::PropertySvc::instance()->add( par ) ;
-	//QObject::connect( &par, &NamedValueBase::valueChanged, this, &MotionAxis::handleParameterUpdate ) ;
+	m_parameters.push_back( new MotionAxisParameter{*this,p} ) ;
+	auto& par = m_parameters.back() ;
+	PAP::PropertySvc::instance()->add(par->setValue()) ;
+	if( std::strcmp(p.name,"LeftTravelLimit")==0 ) m_leftTravelLimit = par;
+	if( std::strcmp(p.name,"RightTravelLimit")==0 ) m_rightTravelLimit = par;
       }
     }
+    assert( m_leftTravelLimit ) ;
+    assert( m_rightTravelLimit ) ;
     PAP::PropertySvc::instance()->add( m_stepsize ) ;
   }
-  
+
+  /*
   void MotionAxis::handleParameterUpdate() const
   {
     auto par = dynamic_cast<const MSParameter*>(sender()) ;
@@ -84,14 +87,17 @@ namespace PAP
       qDebug() << "applyParameter: Cannot find parameter definition for: " << par.shortname() ;
     }
   }
+  */
 
   void MotionAxis::readParameters()
   {
-    for(auto& par : m_parameters ) readParameter( par ) ;
+    for(auto& par : m_parameters ) par->read() ;
+    readPosition() ;
     MotionSystemSvc::instance()->applyAxisReadCommand(m_id,"TA") ;
     MotionSystemSvc::instance()->applyAxisReadCommand(m_id,"TP") ;
   }
-  
+
+  /*
   void MotionAxis::readParameter( MSParameter& par )
   {
     auto pardef = MSCommandLibrary::findParDef(par.shortname()) ;
@@ -100,6 +106,7 @@ namespace PAP
     else 
       qDebug() << "readParameter: Cannot find parameter definition for: " << par.shortname() ;
   }
+  */
 
   void MotionAxis::readPosition()
   {
@@ -132,7 +139,11 @@ namespace PAP
     else {
       // for some reason the MV command does not work: is there something that disables continuous motion?
       // as an alternative, we could try to move to the travel limit explicitly.
-      MotionSystemSvc::instance()->applyAxisCommand(m_id,"MV",dir == Up ? "+" : "-") ;
+      // MotionSystemSvc::instance()->applyAxisCommand(m_id,"MV",dir == Up ? "+" : "-") ;
+      if( dir == Up ) 
+	moveTo( m_rightTravelLimit->getValue().value().toDouble() ) ;
+      else
+	moveTo( m_leftTravelLimit->getValue().value().toDouble() ) ;
     }
   }
   
@@ -182,14 +193,10 @@ namespace PAP
       // finally, go through list of parameters. far too slow ..
       success = false ;
       for( auto& p : m_parameters ) {
-	auto pardef = MSCommandLibrary::findParDef(p.shortname()) ;
-	if( !pardef ) {
-	  qWarning() << "Strange: cannot find pardef: "
-		   << p.shortname() ;
-	} else if( cmd == pardef->getcmd ) {
+	if( cmd  == p->pardef().getcmd ) {
 	  QVariant var{value} ;
-	  if( var.convert( pardef->type ) ) {
-	    p.set( var );
+	  if( var.convert( p->pardef().type ) ) {
+	    p->getValue().setValue( var );
 	    success = true ;
 	  }
 	  break ;
@@ -197,7 +204,7 @@ namespace PAP
       }
     }
     if( !success ) 
-	qWarning() << "MotionAxis: Could not parse data " << cmd << value ;
+      qWarning() << "MotionAxis: Could not parse data " << cmd << value ;
     return success ;
   }
 }

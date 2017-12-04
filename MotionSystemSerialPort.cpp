@@ -201,7 +201,7 @@ namespace PAP
   }
 
   void MotionSystemSerialPort::addCommand( int controller, const char* cmd, bool isreadcommand,
-					   NamedValueBase* target)
+					   MonitoredValueBase* target)
   {
     // first add it to the queue. we would actually like to sort by
     // priority here: write commands before readcommands.

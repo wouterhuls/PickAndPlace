@@ -1,18 +1,12 @@
-#ifndef QVARIABLE_H
-#define QVARIABLE_H
-
-#include <QObject>
-#include <QString>
-#include <QVariant>
-#include <QDebug>
+#ifndef NAMEDVALUE_H
+#define NAMEDVALUE_H
 
 #include "MonitoredValue.h"
 
-
 namespace PAP
 {
-  
-  class NamedValueBase : public ValueChangedEmitter
+
+  class NamedValueBase : virtual public MonitoredValueBase
   {
    Q_OBJECT 
   public:
@@ -26,39 +20,62 @@ namespace PAP
       int pos = m_name.lastIndexOf(".") ;
       return m_name.rightRef(m_name.size()-pos-1 ) ;
     } ;
+    
     // to interface with property service
-    virtual QString toString() const = 0 ;
+    //virtual QString toString() const = 0 ;
     // return false in case of failure
-    virtual bool fromString( const QString& val ) = 0 ;
-  signals:
-    void valueChanged() ;
+    //virtual bool fromString( const QString& val ) = 0 ;
+    //signals:
+    //void valueChanged() ;
   private:
     QString m_name ;
   } ;
 
   template<typename T>
-    class NamedValueT : public NamedValueBase
-    {
-    public:
-      using ValueType = T ;
-      NamedValueT( const QString&name ) : NamedValueBase(name) {}
-      NamedValueT( const QString& name, const ValueType& v) :  NamedValueBase(name), m_value(v) {}
-      NamedValueT( const QString& name, const ValueType& v, const ValueType& min, const ValueType& max)
+    class NamedValue : public NamedValueBase, public MonitoredValue<T>
+  {
+  public:
+    using ValueType = T ;
+    NamedValue( const QString&name ) : NamedValueBase(name) {}
+    NamedValue( const QString& name, const ValueType& v) :  NamedValueBase(name), MonitoredValue<T>(v)  {}
+    //  NamedValue( const QString& name, const ValueType& v, const ValueType& min, const ValueType& max)
+    //	: NamedValueBase(name), m_value(v), m_min(min), m_max(max) {}
+    //NamedValue(const NamedValue& rhs) : NamedValueBase(rhs),m_value(rhs.m_value),m_min(rhs.m_min),m_max(rhs.m_max) {}
+    // we also want automatic type conversion
+    // conversion
+    NamedValue& operator=(const ValueType& rhs) { MonitoredValue<T>::setValue(rhs) ; return *this ; }
+  private:
+    T m_value ;
+  } ;
+ 
+  /**
+  template<typename T>
+    class NamedValue : public MonitoredValue<T>, virtual public NamedValueBase
+  {
+  public:
+    using ValueType = T ;
+    NamedValue( const QString&name ) : NamedValueBase(name) {}
+    NamedValue( const QString& name, const ValueType& v) :  NamedValueBase(name), m_value(v) {}
+    NamedValue( const QString& name, const ValueType& v, const ValueType& min, const ValueType& max)
 	: NamedValueBase(name), m_value(v), m_min(min), m_max(max) {}
-      NamedValueT(const NamedValueT& rhs) : NamedValueBase(rhs),m_value(rhs.m_value),m_min(rhs.m_min),m_max(rhs.m_max) {}
+      //NamedValue(const NamedValue& rhs) : NamedValueBase(rhs),m_value(rhs.m_value),m_min(rhs.m_min),m_max(rhs.m_max) {}
       // we also want automatic type conversion
       const ValueType& value() const { return m_value; }
       operator ValueType() const { return m_value ; }
       const T& get() const { return m_value ; }
       void setValue(const ValueType& value) { return set(value) ; }
       void set(const ValueType& value) {
+	qDebug() << "NamedValue: set" << name() << this << value ;
 	if (value != m_value) {
 	  m_value = value;
 	  emit valueChanged() ;
 	}
       }
+      void setWithoutSignal( const ValueType& value) {
+	m_value = value;
+      }
       // conversion
-      NamedValueT& operator=(const ValueType& rhs) { setValue(rhs) ; return *this ; }
+      NamedValue& operator=(const ValueType& rhs) { setValue(rhs) ; return *this ; }
       // to interface with property service
       QString toString() const { return QVariant(m_value).toString() ; }
       // this one will be implemented by template specialization
@@ -75,83 +92,11 @@ namespace PAP
       T m_min ;
       T m_max ;
     } ;
-
-  using NamedValue  = NamedValueT<QVariant> ;
-  using NamedDouble = NamedValueT<double> ;
-  using NamedInteger = NamedValueT<int> ;
-
- 
-  /*
-  class NamedValue : public NamedValueT<QVariant>
-  {
-    public:
-      NamedValue( const QString& name, QVariant::Type type=QVariant::Invalid ) : NamedValueT(name,type) {}
-      NamedValue( const QString& name, const ValueType& v) : NamedValueT(name,v) {}
-      NamedValue( const QString& name, const ValueType& v, const ValueType& min, const ValueType& max)
-	: NamedValueT(name,v,min,max) {}
-      
-      // QObject does not have a copy constructor. Let's hpoe that this works:-(
-      NamedValue(const NamedValue& rhs) : NamedValueT(rhs) {}
-    
-      QVariant::Type type() const { return m_value.type() ; }
-      void fromString( const QString& val ) { setValue(QVariant(val).convert(type())) ; }
-      
-      void setLimits( ValueType min, ValueType max)
-      {
-	if( min.convert( m_value.type() ) && max.convert( m_value.type() ) ) {
-	  m_min = min ; 
-	  m_max = max ;
-	} else {
-	  qWarning() << "NamedValue: Cannot convert limits to target type" ;
-	  abort() ;
-	}
-      }
-
-      const ValueType& min() const { return m_min; }
-      const ValueType& max() const { return m_max; }
-            
-    signals:
-      //void valueChanged( QVariant ) const ;
-      void valueChanged() const ;
-      //void valueChanged( const NamedValue* ) const ;
-      
-    private:
-      StringType m_name ;
-      ValueType m_value ;
-      ValueType m_min ;
-      ValueType m_max ;
-  } ;
   */
-  
 
-  
+  using NamedVariant = NamedValue<QVariant> ;
+  using NamedDouble  = NamedValue<double> ;
+  using NamedFloat  = NamedValue<float> ;
+  using NamedInteger = NamedValue<int> ;
 }
-
-//using NamedVariable = NamedValue ;
-
-//using NamedValueF = NamedValue<float> ;
-//using NamedValueI = NamedValue<int> ;
-//using NamedValueS = NamedValue<std::string> ;
-
-/*
-template<typename T>
-class NamedValueActiveLabel
-{
-  // class that show name + value and has a push button to change the type
-  
-  QAbstractWidget* NamedValue
-
-
-bool ok;
-  // get the current velocity
-  double d = QInputDialog::getDouble(this,
-				     tr("QInputDialog::getDouble()"),
-				     tr("Velocity:"),
-				     m_axis->parameters().velocity,
-				     0, 1, 0.001, &ok);
-  if (ok) {
-    m_axis->setDefaultVelocity( d ) ;
-  }
-*/
-
 #endif

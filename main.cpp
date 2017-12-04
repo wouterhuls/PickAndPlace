@@ -10,6 +10,8 @@
 #include <QVBoxLayout>
 #include <QPushButton>
 
+#include <QProcessEnvironment>
+
 #include "MotionSystemSvc.h"
 #include "MotionSystemWidget.h"
 #include "PropertySvc.h"
@@ -73,9 +75,9 @@ int main(int argc, char *argv[])
   camerawindow.setWindowIcon( QIcon(":/images/VeloUpgradeLogoSmall.png") ) ;
   
   // load the setup file
-  //QProcessEnvironment env = QProcessEnvironment::systemEnvironment() ;
-  //QString filename = env.value("HOME") + "/.pickandplace/
-  PAP::PropertySvc::instance()->read("papconfig.txt") ;
+  QProcessEnvironment env = QProcessEnvironment::systemEnvironment() ;
+  QString filename = env.value("HOME") + "/.papconfig" ;
+  PAP::PropertySvc::instance()->read(filename.toLatin1()) ;
   auto rc = a.exec() ;
   PAP::PropertySvc::instance()->write("papconfig_last.txt") ;
   
