@@ -35,6 +35,7 @@ namespace PAP
   public slots:
     void read() ;
     void write() ;
+    void initSetValue() ;
   private:
     const MotionAxis* m_axis ;
     const MSCommandLibrary::ParameterDefinition* m_pardef ;

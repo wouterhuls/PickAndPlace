@@ -8,6 +8,7 @@
 #include "NamedValue.h"
 
 #include <assert.h>
+#include <cstring>
 
 // Let;s make a list of all parameters. Perhaps we are not dealing with so much
 namespace PAP
@@ -140,10 +141,10 @@ namespace PAP
       // for some reason the MV command does not work: is there something that disables continuous motion?
       // as an alternative, we could try to move to the travel limit explicitly.
       // MotionSystemSvc::instance()->applyAxisCommand(m_id,"MV",dir == Up ? "+" : "-") ;
-      if( dir == Up ) 
-	moveTo( m_rightTravelLimit->getValue().value().toDouble() ) ;
+      if( dir == Up )
+	moveTo( m_rightTravelLimit->setValue().value().toDouble() ) ;
       else
-	moveTo( m_leftTravelLimit->getValue().value().toDouble() ) ;
+	moveTo( m_leftTravelLimit->setValue().value().toDouble() ) ;
     }
   }
   
@@ -154,6 +155,7 @@ namespace PAP
   
   void MotionAxis::moveTo( float position )
   {
+    qDebug() << "Movint to: " << position ;
     setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PA",position) ;
   }
@@ -168,6 +170,8 @@ namespace PAP
   {
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"ZP") ;
     readPosition() ;
+    m_rightTravelLimit->read() ;
+    m_leftTravelLimit->read() ;
   }
  
   void MotionAxis::setIsMoving(bool ismoving)
