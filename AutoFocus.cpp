@@ -213,6 +213,7 @@ namespace PAP
       rc = var/mu ;
       rc = WHsum ;
 
+      /*
       qDebug() << "Pos, mean, variance, entropy: "
 	       << MotionSystemSvc::instance()->focusAxis().position() 
 	       << mu << " " << var << " " << std::sqrt(var) << " "
@@ -220,7 +221,7 @@ namespace PAP
 	       << BODsum << " "
 	       << normBODsum << " "
 	       << WHsum ;
-
+      */
       // what works is: sqrt(var), entropy and WHsum!
       
       
