@@ -6,7 +6,13 @@
 #include <QVideoFrame>
 #include <QPixmap>
 #include <QLabel>
+#include <QPushButton>
 #include <QHBoxLayout>
+#include <QVBoxLayout>
+#include <QtCharts/QChartView>
+#include <QtCharts/QChart>
+#include <QtCharts/QLineSeries>
+
 #include <cmath>
 #include "MotionSystemSvc.h"
 
@@ -15,9 +21,11 @@ namespace PAP
   AutoFocus::AutoFocus(CameraView* camview, QWidget* parent)
     : QDialog(parent)
   {
-    QObject::connect(camview->videoProbe(), SIGNAL(videoFrameProbed(QVideoFrame)),
-		     this, SLOT(processFrame(QVideoFrame)));
-
+    connect(camview->videoProbe(), SIGNAL(videoFrameProbed(QVideoFrame)),
+	    this, SLOT(processFrame(QVideoFrame)));
+    connect( &MotionSystemSvc::instance()->focusAxis(), &MotionAxis::movementStopped,
+	     [=]{this->m_focusTriggered = true ; } ) ;
+    
     // QObject::connect(camview->videoProbe(), &QVideoFrame::videoFrameProbed,
     // 		     this, 
 
@@ -28,13 +36,44 @@ namespace PAP
     m_focusView->setPixmap(QPixmap::fromImage(*m_focusImage));
 
     m_isFocussing = false ;
-
-    resize(400,200) ;
+    m_focusTriggered = false ;
+    
+    resize(600,200) ;
+    auto vlayout = new QVBoxLayout{} ;
+    this->setLayout( vlayout) ;
+   
     auto hlayout = new QHBoxLayout{} ;
-    this->setLayout( hlayout) ;
     hlayout->addWidget( m_focusView ) ;
-    auto label = new QLabel{"Here we should add a graph", this} ;
-    hlayout->addWidget( label ) ;
+    vlayout->addLayout( hlayout ) ;
+
+    m_focusmeasurements = new QtCharts::QLineSeries() ;
+    m_focuschart = new QtCharts::QChart() ;
+    m_focuschart->addSeries( m_focusmeasurements ) ;
+    auto chartView = new QtCharts::QChartView(m_focuschart);
+    chartView->setRenderHint(QPainter::Antialiasing);
+    hlayout->addWidget( chartView ) ;
+    
+    //auto label = new QLabel{"Here we should add a graph", this} ;
+    //hlayout->addWidget( label ) ;
+    
+    // Fix me, to implement here:
+    // - every time the z-axis stops, you want to take a focusmeasurement and put it in the chart
+    // - we need buttons for moving the axis, but that can be done later
+    // - we need a button to clear the set of measurements
+    // - we need a button to start the autofocus session. the other button just opens the focus window
+    // - we need a button to hide the focus window
+
+    auto buttonlayout = new QHBoxLayout{} ;
+    vlayout->addLayout( buttonlayout ) ;
+
+    auto startfocusbutton = new QPushButton{"AutoFocus", this} ;
+    connect( startfocusbutton,  &QPushButton::clicked, [=](){ this->startFocusSequence() ; } ) ;
+    buttonlayout->addWidget( startfocusbutton ) ;
+    
+    auto clearbutton = new QPushButton{"Clear", this} ;
+    connect( clearbutton,  &QPushButton::clicked, [=](){ this->m_focusmeasurements->clear() ; } ) ;
+    buttonlayout->addWidget( clearbutton ) ;
+    
   }
 
   AutoFocus::~AutoFocus() {}
@@ -44,10 +83,9 @@ namespace PAP
     // compute image contrast ? maybe not on every call!
     //qDebug() << "Frame size: " << frame.size() ;
     //qDebug() << "Pointer to frame A: " << m_frame ;
-    static int numtries=0 ;
-    if( ++numtries==10 ) {
+    if( m_focusTriggered ) {
       computeContrast(frame) ;
-      numtries=0;
+      m_focusTriggered = false ;
     }
   }
 
@@ -227,21 +265,20 @@ namespace PAP
       
     m_focusView->setPixmap(QPixmap::fromImage(*m_focusImage));
     //m_focusView->setPixmap(QPixmap::fromImage(img));
+    
     }
-    m_focusMeasure = rc ;
+    
+    m_focusMeasurement.I = rc ;
+    m_focusMeasurement.z = MotionSystemSvc::instance()->focusAxis().position() ;
+    m_focusmeasurements->append( m_focusMeasurement.z, rc ) ;
+    m_focuschart->createDefaultAxes();
+    
     emit focusMeasureUpdated() ;
     return rc ;
   }
 
+  
   namespace {
-    struct FocusMeasurement
-    {
-      FocusMeasurement( double _z, double _I) : z(_z),I(_I) {}
-      double z ;
-      double I ;
-      bool operator<(const FocusMeasurement& rhs) const { return z < rhs.z ; }
-    } ;
-    
     bool estimatez0( const std::vector< FocusMeasurement >& mvec,
 		       double& z0 )
     {
@@ -290,41 +327,42 @@ namespace PAP
       if( success ) z0 = zref - 0.5*pars(1)/pars(2) ;
       return success ;
     }
-
-    FocusMeasurement takeMeasurement(AutoFocus& autofocus,
-				     MotionAxis& axis, double zpos )
-    {
-      // move the camera to position zpos
-      if( true ||  axis.hasMotorOn() ) {
-	axis.moveTo( zpos ) ;
-	// wait until it is no longer moving
-	if( axis.isMoving() ) {
-	  qDebug() << "Waiting for focussing axis to move to correct place." ;
-	  // FIXME: it would be nicer to wait for a signal here, but we
-	  // could also just wait
-	  //QThread::msleep(10) ;
-	  //   http://doc.qt.io/qt-5/qsignalspy.html#wait
-	  // the problem with this one is that it starts a separate event loop. if it waits for-ever in this 
-	  QSignalSpy spy( &axis, SIGNAL(movementStopped())) ;
-	  spy.wait( 1000 ) ;
-	}
-      } else {
-	qDebug() << "Cannot focus because Motor is not on" ;
-      }
-      // make the measurement
-      qDebug() << "Will now call computeContrast" ;
-      
-      QSignalSpy spy(&autofocus, &AutoFocus::focusMeasureUpdated) ;
-      spy.wait(10000) ;
-      //FIXME: the position is not updated, unfortunately. let's take the setposition.
-      qDebug() << "Creating focus measurement: "
-	       << zpos << " "
-	       << axis.position() << " "
-	       << autofocus.focusMeasure() ;
-      return FocusMeasurement( zpos, autofocus.focusMeasure() ) ;
-    }
   }
+    
+  FocusMeasurement AutoFocus::takeMeasurement(MotionAxis& axis, double zpos )
+  {
+    // move the camera to position zpos
+    if( true ||  axis.hasMotorOn() ) {
+      axis.moveTo( zpos ) ;
+      // wait until it is no longer moving
+      if( axis.isMoving() ) {
+	qDebug() << "Waiting for focussing axis to move to correct place." ;
+	// FIXME: it would be nicer to wait for a signal here, but we
+	// could also just wait
+	//QThread::msleep(10) ;
+	//   http://doc.qt.io/qt-5/qsignalspy.html#wait
+	// the problem with this one is that it starts a separate event loop. if it waits for-ever in this 
+	QSignalSpy spy( &axis, SIGNAL(movementStopped())) ;
+	spy.wait( 1000 ) ;
+      }
+    } else {
+      qDebug() << "Cannot focus because Motor is not on" ;
+    }
+    // make the measurement
+    qDebug() << "Will now call computeContrast" ;
 
+    m_focusTriggered = true ;
+    QSignalSpy spy(this, &AutoFocus::focusMeasureUpdated) ;
+    spy.wait(10000) ;
+    //FIXME: the position is not updated, unfortunately. let's take the setposition.
+    qDebug() << "Creating focus measurement: "
+	     << zpos << " "
+	     << axis.position() << " "
+	     << m_focusMeasurement.I ;
+    m_focusMeasurement.z = zpos ;
+    
+    return m_focusMeasurement ;
+  }
 
   void AutoFocus::startFocusSequence()
   {
@@ -343,6 +381,7 @@ namespace PAP
       
       const double zstart = axis.position() ;
       std::vector< FocusMeasurement > measurements ;
+      m_focusmeasurements->clear() ;
       measurements.reserve(64) ;
       qDebug() << "Ready to take focus measurements" ;
       
@@ -356,7 +395,7 @@ namespace PAP
       double z0 = zstart ;
       double zpos = zstart ;
       while( !readypos && !failure ) {
-	auto meas = takeMeasurement(*this, axis, zpos ) ;
+	auto meas = takeMeasurement(axis, zpos ) ;
 	if( meas.I > maximum ) {
 	  maximum = meas.I ;
 	  z0 = zpos ;
@@ -368,7 +407,7 @@ namespace PAP
       bool readyneg=false ;
       zpos = zstart - maxstepsize ;
       while( !readyneg && !failure ) {
-	auto meas = takeMeasurement(*this, axis, zpos ) ;
+	auto meas = takeMeasurement(axis, zpos ) ;
 	if( meas.I > maximum ) {
 	  maximum = meas.I ;
 	  z0 = zpos ;
@@ -422,7 +461,7 @@ namespace PAP
 	    z0 = measurements.front().z - maxstepsize ;
 	  deltaz0 = z0 - z0prev ;
 	  // move to the new position and take a new focus measurement
-	  measurements.push_back( takeMeasurement(*this, axis, z0 ) ) ;
+	  measurements.push_back( takeMeasurement( axis, z0 ) ) ;
 	  std::sort( measurements.begin(), measurements.end() ) ;
 	  qDebug() << "Number of focussing measurements: " << measurements.size() ;
 	  qDebug() << "Delta-z: " << deltaz0 ;
