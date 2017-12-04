@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui serialport multimedia multimediawidgets testlib
+QT       += core gui serialport multimedia multimediawidgets testlib charts
 
 #INCLUDEPATH+=$HOME/surfdrive/QtProjects
 INCLUDEPATH+=/usr/local/include
