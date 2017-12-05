@@ -178,6 +178,12 @@ namespace PAP
   {
     auto vlayout = new QVBoxLayout{} ;
     this->setLayout(vlayout) ;
+
+    auto positionstackbutton = new QPushButton{"Move stack to nominal position", this} ;
+    connect(positionstackbutton,&QPushButton::clicked,
+	    [=](){ GeometrySvc::instance()->positionStackForCSI() ; } ) ;
+    vlayout->addWidget( positionstackbutton ) ;
+    
     auto movetomarker1button = new QPushButton{"Move to marker 1", this} ;
     connect(movetomarker1button,&QPushButton::clicked,[=](){ camview->moveCameraTo(marker1) ; } ) ;
     vlayout->addWidget( movetomarker1button ) ;

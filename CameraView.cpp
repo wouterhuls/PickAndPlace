@@ -151,6 +151,8 @@ namespace PAP
     m_scene->addItem(m_stackaxis) ;
     connect(MotionSystemSvc::instance(),&MotionSystemSvc::stackStageMoved,
 	    this,&CameraView::updateStackAxisView) ;
+    connect(MotionSystemSvc::instance(),&MotionSystemSvc::mainStageMoved,
+	    this,&CameraView::updateStackAxisView) ;
     updateStackAxisView() ;
     
     //m_cursor = new QGraphicsTextItem("0, 0", 0, this); //Fixed at 0, 0

@@ -47,6 +47,8 @@ namespace PAP
     
     //signals:
     //void geometryChanged() ;
+
+    void positionStackForCSI() const ;
     
   public:
     // access to various marker positions in the 'Module' frame. these
@@ -80,7 +82,11 @@ namespace PAP
     NamedDouble m_stackYA ;
     NamedDouble m_stackYB ;
     NamedDouble m_stackPhi0 ;
-    
+
+    // paramaters for all the stacks. we better tabulate these end access by name
+    NamedDouble m_csiStackX ;
+    NamedDouble m_csiStackY ;
+    NamedDouble m_csiStackPhi ;
   } ;
 
 

@@ -42,18 +42,18 @@ namespace PAP
       m_moduleX( "Geo.moduleX", -32.09), // perhaps we should move these into mainX0 and mainY0
       m_moduleY( "Geo.moduleY", -64.51),
       // these points define the position and orientation of the stack rotation axis in the global frame
-      m_stackX0( "Geo.stackX0", 0. ),
-      m_stackXA( "Geo.stackXA", 1.0 ),
+      m_stackX0( "Geo.stackX0", -13. ),
+      m_stackXA( "Geo.stackXA", -1.0 ),
       m_stackXB( "Geo.stackXB", 0.0 ),
-      m_stackY0( "Geo.stackY0", 0. ),
+      m_stackY0( "Geo.stackY0", -40. ),
       m_stackYA( "Geo.stackYA", 0.0 ),
       m_stackYB( "Geo.stackYB", -1.0 ),
-      m_stackPhi0( "Geo.stackPhi0", 0.491998 )
+      m_stackPhi0( "Geo.stackPhi0", 0.491998 ),
       // these are the stack parameters for the CSI chip. not yet
-      // exactly clear what I mean by that.
-      //m_csiStackX( "Geo.csiStackX", 12.823 ),
-      //m_csiStackY( "Geo.csiStackY", 19.916 ),
-      //m_csiStackPhi( "Geo.csiStackPhi", 0.29340 ),
+      // exactly clear what I mean by that, but it now works
+      m_csiStackX( "Geo.csiStackX", 13.05 ),
+      m_csiStackY( "Geo.csiStackY", 19.86 ),
+      m_csiStackPhi( "Geo.csiStackPhi", 0.2235 )
   {
     PAP::PropertySvc::instance()->add( m_mainX0 ) ;
     PAP::PropertySvc::instance()->add( m_mainXA ) ;
@@ -171,6 +171,18 @@ namespace PAP
 	m_stackPhi0 + c.phi
 	} ; 
   }
+
+  void GeometrySvc::positionStackForCSI() const
+  {
+    // this is tricky. actually I need to properly deal with the
+    // inverse transfomation here. for now, we'll use absolute
+    // coordinates, sort of
+    auto mssvc = MotionSystemSvc::instance() ;
+    mssvc->stackXAxis().moveTo( m_csiStackX ) ;
+    mssvc->stackYAxis().moveTo( m_csiStackY ) ;
+    mssvc->stackRAxis().moveTo( m_csiStackPhi ) ;
+  }
+
   
   std::vector<FiducialDefinition>
   GeometrySvc::velopixmarkersNSI() { return Markers::velopixNSI() ; }
