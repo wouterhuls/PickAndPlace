@@ -42,6 +42,7 @@ namespace PAP
     QGraphicsItemGroup* csidemarkers() { return m_nsidemarkers; }
 
     void updateGeometryView() ;
+    void updateStackAxisView() ;
 
     QTransform fromCameraToPixel() const
     {
@@ -115,6 +116,7 @@ namespace PAP
     QGraphicsItemGroup* m_detectorgeometry ;
     QGraphicsItemGroup* m_nsidemarkers ;
     QGraphicsItemGroup* m_csidemarkers ;
+    QGraphicsItem* m_stackaxis ;
     
     // needed for the smooth zoom function
     int m_numScheduledScalings ;

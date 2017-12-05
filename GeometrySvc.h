@@ -41,7 +41,10 @@ namespace PAP
 
     // update calibration
     void applyModuleDelta( double dx, double dy, double phi ) ;
-
+    
+    Coordinates2D stackAxisInGlobal( const MSStackCoordinates& coord ) const ;
+    QTransform fromStackToGlobal() const ;
+    
     //signals:
     //void geometryChanged() ;
     
@@ -68,6 +71,16 @@ namespace PAP
     NamedDouble m_modulePhi ;
     NamedDouble m_moduleX ;
     NamedDouble m_moduleY ;
+
+    // parameters that translate stack parameters into global position of stack rotation axis
+    NamedDouble m_stackX0 ;
+    NamedDouble m_stackXA ;
+    NamedDouble m_stackXB ;
+    NamedDouble m_stackY0 ;
+    NamedDouble m_stackYA ;
+    NamedDouble m_stackYB ;
+    NamedDouble m_stackPhi0 ;
+    
   } ;
 
 

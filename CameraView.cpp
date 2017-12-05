@@ -146,10 +146,12 @@ namespace PAP
     // connect the signal for movements of the main stage
     connect(MotionSystemSvc::instance(),&MotionSystemSvc::mainStageMoved,
 	    this,&CameraView::updateGeometryView) ;
-      
-    //marker->setScale(2) ;
-    //marker->setScale( 0.001/pixelSize() ) ;
-    //m_scene->addItem( marker ) ;
+
+    m_stackaxis = new StackAxisMarker() ;
+    m_scene->addItem(m_stackaxis) ;
+    connect(MotionSystemSvc::instance(),&MotionSystemSvc::stackStageMoved,
+	    this,&CameraView::updateStackAxisView) ;
+    updateStackAxisView() ;
     
     //m_cursor = new QGraphicsTextItem("0, 0", 0, this); //Fixed at 0, 0
 
@@ -265,7 +267,15 @@ namespace PAP
     QTransform T2 = geomsvc->fromModuleToGlobal( m_currentViewDirection ) ;
     m_detectorgeometry->setTransform( (T2 * T1.inverted() ) * fromCameraToPixel() ) ;
   }
-    
+
+  void CameraView::updateStackAxisView()
+  {
+    const auto geomsvc = GeometrySvc::instance() ;
+    QTransform T1 = geomsvc->fromCameraToGlobal() ;
+    QTransform T2 = geomsvc->fromStackToGlobal() ;
+    m_stackaxis->setTransform( (T2 * T1.inverted()) * fromCameraToPixel() ) ;
+  }
+
   void CameraView::setViewDirection( ViewDirection dir )
   {
     if( true || m_currentViewDirection != dir ) {

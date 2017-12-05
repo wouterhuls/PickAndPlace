@@ -9,9 +9,10 @@ namespace PAP
   
   struct Coordinates2D
   {
-    Coordinates2D( double _x=0, double _y=0 ) : x(_x),y(_y) {}
+  Coordinates2D( double _x=0, double _y=0, double _phi=0 ) : x(_x),y(_y),phi(_phi) {}
     double x ;
     double y ;
+    double phi ;
   } ;
   
   struct MSMainCoordinates

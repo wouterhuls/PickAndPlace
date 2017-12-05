@@ -49,7 +49,10 @@ namespace PAP
     // some signal 'forwarding'
     connect(&(m_mainXAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::mainStageMoved) ;
     connect(&(m_mainYAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::mainStageMoved) ;
-    
+
+    connect(&(m_stackXAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::stackStageMoved) ;
+    connect(&(m_stackYAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::stackStageMoved) ;
+    connect(&(m_stackRAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::stackStageMoved) ;
     
     // This explains who to do this in c
     //https://stackoverflow.com/questions/6947413/how-to-open-read-and-write-from-serial-port-in-c
@@ -217,15 +220,12 @@ namespace PAP
   MSCoordinates MotionSystemSvc::coordinates() const
   {
     MSCoordinates rc ;
-    rc.main.x = m_mainXAxis->position() ;
-    rc.main.y = m_mainYAxis->position() ;
-    rc.stack.x = m_stackXAxis->position() ;
-    rc.stack.y = m_stackYAxis->position() ;
-    rc.stack.phi = m_stackRAxis->position() ;
+    rc.main = maincoordinates() ;
+    rc.stack = stackcoordinates() ;
     rc.focus = m_focusAxis->position() ;
     return rc ;
   }
-
+  
   MSMainCoordinates MotionSystemSvc::maincoordinates() const
   {
     MSMainCoordinates rc ;
@@ -234,6 +234,15 @@ namespace PAP
     return rc ;
   }
   
+  MSStackCoordinates MotionSystemSvc::stackcoordinates() const
+  {
+    MSStackCoordinates rc ;
+    rc.x = m_stackXAxis->position() ;
+    rc.y = m_stackYAxis->position() ;
+    rc.phi = m_stackRAxis->position() ;
+    return rc ;
+  }
+    
   MotionAxis* MotionSystemSvc::axis( const QString& name)
   {
     MotionAxis* rc(0) ;

@@ -207,7 +207,7 @@ namespace PAP
   class SightMarker : public QGraphicsItem
   {
   private:
-    float m_size = 10.0 ; // size in micron
+    float m_size = 10.0 ; // size in mm
   public:
     SightMarker(const FiducialDefinition& def,
 		float thesize,
@@ -249,6 +249,41 @@ namespace PAP
       painter->drawLine(QPointF(-L,0),QPointF(-0.5*m_size,0)) ;
       painter->drawLine(QPointF(+L,0),QPointF(+0.5*m_size,0)) ;
       
+    }    
+  } ;
+
+
+  
+   // Implements graphics item for Velopix marker. Center of marker is
+  // center of system. Units are in microns!!!
+  class StackAxisMarker : public QGraphicsItem
+  {
+  private:
+    const double m_size = 2.0 ; // size in mm
+  public:
+    StackAxisMarker(QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItem(parent)
+    {
+      setToolTip("StackAxis") ;
+    } ;
+      
+    virtual QRectF boundingRect() const
+    {
+      qreal bound = 1.01 * m_size ;
+      return QRectF{-0.5*bound,-0.5*bound,bound,bound} ;
+    }
+
+    virtual void paint(QPainter *painter,
+		       const QStyleOptionGraphicsItem* /*option*/,
+		       QWidget* /*widget*/)
+    {
+      // just a simple cross
+      QPen pen ;
+      pen.setColor( QColor{232, 93, 13} ) ;
+      pen.setWidthF( 0.5 ) ;
+      painter->setPen(pen) ;
+      const double L = m_size ;
+      painter->drawLine(QPointF(0,-L),QPointF(0,L)) ;
+      painter->drawLine(QPointF(-L,0),QPointF(L,0)) ;
     }    
   } ;  
 }
