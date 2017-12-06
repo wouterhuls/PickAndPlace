@@ -40,7 +40,6 @@ namespace PAP
     QPointF m_markerposition ;
   } ;
 
-
   class AlignMainJigPage : public QWidget
   {
     Q_OBJECT
@@ -51,7 +50,6 @@ namespace PAP
     CameraView* m_cameraview ;
   public:
     AlignMainJigPage(PAP::CameraView* camview) ;
-    
   public slots:
     void updateAlignment() const ;
   } ;
@@ -59,9 +57,18 @@ namespace PAP
   // helper class for page for alignment of the tiles
   class AlignTilePage : public QWidget
   {
+     Q_OBJECT
   public:
     AlignTilePage(PAP::CameraView* camview,
+		  const char* tilename,
 		  const char* marker1, const char* marker2) ;
+  private:
+    MarkerRecorderWidget* m_marker1recorder ;
+    MarkerRecorderWidget* m_marker2recorder ;
+    CameraView* m_cameraview ;
+    QString m_tilename ;
+  public slots:
+    void updateAlignment() const ;
   } ;
     
 }

@@ -47,8 +47,13 @@ namespace PAP
     vlayout->addLayout( hlayout ) ;
 
     m_focusmeasurements = new QtCharts::QLineSeries() ;
+    m_focusmeasurements->append( -1,1 ) ;
+    m_focusmeasurements->append(  0,0 ) ;
+    m_focusmeasurements->append(  1,1 ) ;
+    
     m_focuschart = new QtCharts::QChart() ;
     m_focuschart->addSeries( m_focusmeasurements ) ;
+    m_focuschart->createDefaultAxes();
     auto chartView = new QtCharts::QChartView(m_focuschart);
     chartView->setRenderHint(QPainter::Antialiasing);
     hlayout->addWidget( chartView ) ;
@@ -73,6 +78,10 @@ namespace PAP
     auto clearbutton = new QPushButton{"Clear", this} ;
     connect( clearbutton,  &QPushButton::clicked, [=](){ this->m_focusmeasurements->clear() ; } ) ;
     buttonlayout->addWidget( clearbutton ) ;
+
+    auto hidebutton = new QPushButton{"Hide", this} ;
+    connect( hidebutton,  &QPushButton::clicked, [=](){ this->hide() ; } ) ;
+    buttonlayout->addWidget( hidebutton ) ;
     
   }
 

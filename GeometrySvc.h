@@ -10,8 +10,8 @@ namespace PAP
 {
 
   /* class that holds a total set of axis coordinates from the motion system */
+  class TileStackPosition ;
   
-
   class GeometrySvc : public PAP::Singleton<GeometrySvc>
   {
   public:
@@ -40,15 +40,19 @@ namespace PAP
     QTransform fromModuleToGlobal( ViewDirection view ) const ;
 
     // update calibration
-    void applyModuleDelta( double dx, double dy, double phi ) ;
-    
+    void applyModuleDelta( double dx, double dy, double dphi ) ;
+
+    Coordinates2D stackAxisInGlobal() const ;
     Coordinates2D stackAxisInGlobal( const MSStackCoordinates& coord ) const ;
     QTransform fromStackToGlobal() const ;
     
     //signals:
     //void geometryChanged() ;
 
-    void positionStackForCSI() const ;
+    void positionStackForTile( const QString& name ) const ;
+    void applyStackDeltaForTile( const QString& name,
+				 double dx, double dy, double dphi ) ;
+    
     
   public:
     // access to various marker positions in the 'Module' frame. these
@@ -84,9 +88,7 @@ namespace PAP
     NamedDouble m_stackPhi0 ;
 
     // paramaters for all the stacks. we better tabulate these end access by name
-    NamedDouble m_csiStackX ;
-    NamedDouble m_csiStackY ;
-    NamedDouble m_csiStackPhi ;
+    std::map<QString,TileStackPosition*> m_tileStackPositions ;
   } ;
 
 

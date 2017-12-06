@@ -108,8 +108,8 @@ namespace PAP
       
       auto page1widget = new AlignMainJigPage{m_cameraview} ;
       nsidetaskpages->addTab(page1widget,"Align jig") ;
-      nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NSI_VP20_Fid1","NSI_VP22_Fid2"},"Align NSI") ;
-      nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NLO_VP30_Fid1","NLO_VP32_Fid2"},"Align NLO") ;
+      nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NSI","NSI_VP20_Fid1","NSI_VP22_Fid2"},"Align NSI") ;
+      nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NLO","NLO_VP30_Fid1","NLO_VP32_Fid2"},"Align NLO") ;
     }
 
     {
@@ -118,8 +118,8 @@ namespace PAP
       
       auto page1widget = new AlignMainJigPage{m_cameraview} ;
       csidetaskpages->addTab(page1widget,"Align jig") ;
-      csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CLI_VP00_Fid1","CLI_VP02_Fid2"},"Align CLI") ;
-      csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CSO_VP10_Fid1","CSO_VP12_Fid2"},"Align CSO") ;
+      csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CLI","CLI_VP00_Fid1","CLI_VP02_Fid2"},"Align CLI") ;
+      csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CSO","CSO_VP10_Fid1","CSO_VP12_Fid2"},"Align CSO") ;
     }
     connect( taskpages, &QTabWidget::tabBarClicked, this, &CameraWindow::toggleView ) ;
     
@@ -139,7 +139,7 @@ namespace PAP
   void CameraWindow::on_focusButton_clicked()
   {
     m_autofocus->show() ;
-    m_autofocus->startFocusSequence() ;
+    //m_autofocus->startFocusSequence() ;
   }
 
   void CameraWindow::toggleView( int view )

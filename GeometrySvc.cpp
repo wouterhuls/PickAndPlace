@@ -28,7 +28,33 @@ namespace PAP
   // can either take several 'focus points', or a 'focus area' in the
   // middle of the picture. Let's start with the latter and see how
   // quick it is.
-  
+
+  class TileStackPosition
+  {
+  private:
+    NamedDouble m_stackX ;
+    NamedDouble m_stackY ;
+    NamedDouble m_stackPhi ;
+  public:
+    TileStackPosition( const QString& name, double x, double y, double phi )
+      :
+      m_stackX{QString{"Geo."} + name + "StackX",x},
+      m_stackY{QString{"Geo."} + name + "StackY",y},
+      m_stackPhi{QString{"Geo."} + name + "StackPhi",phi}
+    {
+      PAP::PropertySvc* papsvc = PAP::PropertySvc::instance() ;
+      papsvc->add( m_stackX ) ;
+      papsvc->add( m_stackY ) ;
+      papsvc->add( m_stackPhi ) ;
+    }
+    double x() const { return m_stackX ; }
+    double y() const { return m_stackY ; }
+    double phi() const { return m_stackPhi ; }
+    void setX(double x) { m_stackX = x ; }
+    void setY(double y) { m_stackX = y ; }
+    void setPhi(double r) { m_stackX = r ; }
+    
+  } ;
   
   GeometrySvc::GeometrySvc()
     : m_mainX0( "Geo.mainX0", 0. ),
@@ -48,12 +74,7 @@ namespace PAP
       m_stackY0( "Geo.stackY0", -40. ),
       m_stackYA( "Geo.stackYA", 0.0 ),
       m_stackYB( "Geo.stackYB", -1.0 ),
-      m_stackPhi0( "Geo.stackPhi0", 0.491998 ),
-      // these are the stack parameters for the CSI chip. not yet
-      // exactly clear what I mean by that, but it now works
-      m_csiStackX( "Geo.csiStackX", 13.05 ),
-      m_csiStackY( "Geo.csiStackY", 19.86 ),
-      m_csiStackPhi( "Geo.csiStackPhi", 0.2235 )
+      m_stackPhi0( "Geo.stackPhi0", 0.491998 )
   {
     PAP::PropertySvc::instance()->add( m_mainX0 ) ;
     PAP::PropertySvc::instance()->add( m_mainXA ) ;
@@ -74,7 +95,13 @@ namespace PAP
     PAP::PropertySvc::instance()->add( m_stackYA ) ;
     PAP::PropertySvc::instance()->add( m_stackYB ) ;
     PAP::PropertySvc::instance()->add( m_stackPhi0 ) ;
-    
+
+    // these are the stack parameters for the CSI chip. not yet
+    // exactly clear what I mean by that, but it works, for now
+    m_tileStackPositions["CLI"] = new TileStackPosition{"CLI",13.05,19.86,0.2235} ;
+    m_tileStackPositions["CSO"] = new TileStackPosition{"CSO",0,0,0} ;
+    m_tileStackPositions["NSI"] = new TileStackPosition{"NSI",0,0,0} ;
+    m_tileStackPositions["NLO"] = new TileStackPosition{"NLO",0,0,0} ;
   }
 
   GeometrySvc::~GeometrySvc() {}
@@ -153,16 +180,6 @@ namespace PAP
     return rc ;
   }
 
-  QTransform GeometrySvc::fromStackToGlobal() const
-  {
-    MSStackCoordinates stack = MotionSystemSvc::instance()->stackcoordinates() ;
-    Coordinates2D coord = stackAxisInGlobal(stack) ;
-    QTransform rc ;
-    rc.translate( coord.x, coord.y ) ;
-    rc.rotateRadians( coord.phi ) ;
-    return rc ;
-  }
-
   Coordinates2D GeometrySvc::stackAxisInGlobal( const MSStackCoordinates& c ) const
   {
     return Coordinates2D{
@@ -171,18 +188,51 @@ namespace PAP
 	m_stackPhi0 + c.phi
 	} ; 
   }
-
-  void GeometrySvc::positionStackForCSI() const
+  
+  Coordinates2D GeometrySvc::stackAxisInGlobal() const
   {
-    // this is tricky. actually I need to properly deal with the
-    // inverse transfomation here. for now, we'll use absolute
-    // coordinates, sort of
-    auto mssvc = MotionSystemSvc::instance() ;
-    mssvc->stackXAxis().moveTo( m_csiStackX ) ;
-    mssvc->stackYAxis().moveTo( m_csiStackY ) ;
-    mssvc->stackRAxis().moveTo( m_csiStackPhi ) ;
+    return stackAxisInGlobal( MotionSystemSvc::instance()->stackcoordinates() ) ;
   }
 
+  QTransform GeometrySvc::fromStackToGlobal() const
+  {
+    Coordinates2D coord = stackAxisInGlobal() ;
+    QTransform rc ;
+    rc.translate( coord.x, coord.y ) ;
+    rc.rotateRadians( coord.phi ) ;
+    return rc ;
+  }
+
+  void GeometrySvc::positionStackForTile( const QString& name) const
+  {
+    auto it = m_tileStackPositions.find( name ) ;
+    if ( it != m_tileStackPositions.end() ) {
+      // this is tricky. actually I need to properly deal with the
+      // inverse transfomation here. for now, we'll use absolute
+      // coordinates, sort of
+      auto mssvc = MotionSystemSvc::instance() ;
+      mssvc->stackXAxis().moveTo( it->second->x() ) ;
+      mssvc->stackYAxis().moveTo( it->second->y() ) ;
+      mssvc->stackRAxis().moveTo( it->second->phi() ) ;
+    } else {
+      qWarning() << "Cannot find tile with name: "
+		 << name ;
+    }
+  }
+
+  void GeometrySvc::applyStackDeltaForTile( const QString& name,
+					    double dx, double dy, double dphi )
+  {
+    auto it = m_tileStackPositions.find( name ) ;
+    if ( it != m_tileStackPositions.end() ) {
+      it->second->setX( it->second->x() + dx ) ;
+      it->second->setY( it->second->y() + dy ) ;
+      it->second->setPhi( it->second->phi() + dphi ) ;
+    } else {
+      qWarning() << "Cannot find tile with name: "
+		 << name ;
+    }
+  }
   
   std::vector<FiducialDefinition>
   GeometrySvc::velopixmarkersNSI() { return Markers::velopixNSI() ; }

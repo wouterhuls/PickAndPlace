@@ -138,7 +138,9 @@ namespace PAP
 
     auto beamline = new SightMarker( FiducialDefinition{"Beamline",0,0}, 2.0 ) ;
     m_detectorgeometry->addToGroup( beamline ) ;
+    this->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
 
+    
     updateGeometryView() ;
     //m_detectorgeometry->setScale( 1/pixelSize() ) ;
     //m_detectorgeometry->setPos( x0, y0 ) ;
