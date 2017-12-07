@@ -45,6 +45,9 @@ namespace PAP
     void applyAxisCommand( const MotionAxisID& id, const char* command ) const ;
     void applyAxisReadCommand( const MotionAxisID& id, const char* command ) ;
     void readAxisVariable( const MotionAxisID& id, const char* command, MonitoredValueBase& ) const ;
+
+    void applyControllerCommand( const MotionControllerID&, const char* command ) const ;
+
     
     float position( const MotionAxisID& id ) const ;
     std::string name( const MotionAxisID& id ) const ;
@@ -56,8 +59,6 @@ namespace PAP
     // issue a 'ST' to both controllers. alternative is to turn both
     // motors off.
     void emergencyStop() const ;
-    // switch all motors on or off
-    void switchMotorsOn(MotionControllerID id, bool on = true) const ;
     // tell if the serial port is ready and the system connected
     bool isReady() const { return m_serialport->isOpen() && m_isReady ; }
     

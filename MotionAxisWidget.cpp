@@ -41,6 +41,12 @@ namespace PAP
     downStepButton->setObjectName(QStringLiteral("stepDownButton"));
     downStepButton->setIcon(style()->standardIcon(QStyle::SP_ArrowLeft)) ;
     horizontalLayout->addWidget(downStepButton);
+
+    auto stopButton = new QPushButton(widget);
+    stopButton->setObjectName(QStringLiteral("stopButton"));
+    stopButton->setIcon(style()->standardIcon(QStyle::SP_MediaStop)) ;
+    connect(stopButton,&QPushButton::clicked,[=](){ m_axis->stop(); }) ;
+    horizontalLayout->addWidget(stopButton);
     
     auto upStepButton = new QPushButton(widget);
     upStepButton->setObjectName(QStringLiteral("stepUpButton"));

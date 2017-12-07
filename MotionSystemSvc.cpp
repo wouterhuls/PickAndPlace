@@ -201,13 +201,13 @@ namespace PAP
     sprintf(acommand,"%d%s",id.axis,command) ;
     m_serialport->addCommand(id.controller,acommand,true,&var) ;
   }
-  
-  void MotionSystemSvc::switchMotorsOn( int controllerid, bool on ) const
-  {
-    qInfo() << "Switching motors on/off for controller " << controllerid << " " << on ;
-    m_serialport->addCommand(controllerid, on ? "MO" : "MF") ;
-  }
 
+  void MotionSystemSvc::applyControllerCommand( const MotionControllerID& id,
+						const char* command ) const
+  {
+    m_serialport->addCommand(id, command ) ;
+  }
+  
   void MotionSystemSvc::emergencyStop() const
   {
     qWarning() << "Emergency stop" ;

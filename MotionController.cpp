@@ -15,9 +15,14 @@ namespace PAP
   {
   }
   
-  void MotionController::switchMotorsOn( bool on) const
+  void MotionController::switchMotorsOn(bool on) const
   {
-    MotionSystemSvc::instance()->switchMotorsOn( m_id, on ) ;
+    MotionSystemSvc::instance()->applyControllerCommand( m_id, on ? "MO" : "MF") ;
+  }
+  
+  void MotionController::searchHome() const
+  {
+    MotionSystemSvc::instance()->applyControllerCommand( m_id, "OR" ) ;
   }
   
   bool MotionController::hasMotorsOn() const

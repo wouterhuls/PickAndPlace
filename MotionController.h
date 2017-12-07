@@ -16,6 +16,7 @@ namespace PAP
     MotionController( const int& id, const std::string& name ) ;
     virtual ~MotionController() {}
     void switchMotorsOn(bool on = true) const ;
+    void searchHome() const ;
     bool hasMotorsOn() const ;
     const std::string name() const { return m_name ; }
     int id() const { return m_id ; }

@@ -33,7 +33,11 @@ namespace PAP
     m_motorsonbutton->setCheckable(true) ;
     m_motorsonbutton->setChecked( m_controller->hasMotorsOn() ) ;
     layout->addWidget( m_motorsonbutton ) ;
-    
+
+    auto homesearchbutton = new QPushButton("Search Home",this) ;
+    layout->addWidget( homesearchbutton ) ;
+    connect(homesearchbutton,&QPushButton::clicked,[=](){ m_controller->searchHome(); }) ;
+        
     m_statuslabel = new QLabel(this) ;
     m_statuslabel->setText("status unknown") ;
     layout->addWidget( m_statuslabel) ;
