@@ -8,7 +8,8 @@ class QLabel ;
 namespace QtCharts
 {
   class QChart ;
-  class QLineSeries ;
+  class QXYSeries ;
+  class QChartView ;
 };
 
 namespace PAP
@@ -53,8 +54,9 @@ namespace PAP
     QLabel* m_focusView ;
    
     // series with focus data
-    QtCharts::QLineSeries* m_focusmeasurements ;
+    QtCharts::QXYSeries* m_focusmeasurements ;
     QtCharts::QChart* m_focuschart ;
+    QtCharts::QChartView* m_chartview ;
     
     //
     bool m_isFocussing ;

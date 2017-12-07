@@ -117,8 +117,26 @@ namespace PAP
 	}
       }
       // now solve
+      qDebug() << "First derivative: "
+	       << halfdchi2dpar(0)
+	       << halfdchi2dpar(1)
+	       << halfdchi2dpar(2) ;
+      qDebug() << "second derivative: "
+	       << double(halfd2chi2dpar2(0,0))
+	       << halfd2chi2dpar2(0,1)
+	       << halfd2chi2dpar2(0,2) 
+	       << halfd2chi2dpar2(1,0)
+	       << halfd2chi2dpar2(1,1)
+	       << halfd2chi2dpar2(1,2) 
+	       << halfd2chi2dpar2(2,0)
+	       << halfd2chi2dpar2(2,1)
+	       << halfd2chi2dpar2(2,2) ;
+	
       Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
       qDebug() << "Solution: " << delta(0) << delta(1) << delta(2) ;
+
+
+      
       return delta ;
     }
   }

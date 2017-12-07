@@ -37,8 +37,8 @@ namespace PAP
       m_viewfinder(0),
       m_videoProbe(0),
       m_chipPixelSize(0.00345),
-      //m_magnification("Cam.Magnification",5.03),
-      m_magnification("Cam.Magnification",4.865),
+      //m_magnification("Cam.Magnification",4.865),
+      m_magnification("Cam.Magnification",2.159),
       m_rotation("Cam.Rotation",+M_PI/2),
       m_currentViewDirection(NSideView),
       m_numScheduledScalings(0)

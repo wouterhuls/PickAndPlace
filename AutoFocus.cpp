@@ -11,7 +11,7 @@
 #include <QVBoxLayout>
 #include <QtCharts/QChartView>
 #include <QtCharts/QChart>
-#include <QtCharts/QLineSeries>
+#include <QtCharts/QScatterSeries>
 
 #include <cmath>
 #include "MotionSystemSvc.h"
@@ -46,7 +46,7 @@ namespace PAP
     hlayout->addWidget( m_focusView ) ;
     vlayout->addLayout( hlayout ) ;
 
-    m_focusmeasurements = new QtCharts::QLineSeries() ;
+    m_focusmeasurements = new QtCharts::QScatterSeries() ;
     m_focusmeasurements->append( -1,1 ) ;
     m_focusmeasurements->append(  0,0 ) ;
     m_focusmeasurements->append(  1,1 ) ;
@@ -54,9 +54,9 @@ namespace PAP
     m_focuschart = new QtCharts::QChart() ;
     m_focuschart->addSeries( m_focusmeasurements ) ;
     m_focuschart->createDefaultAxes();
-    auto chartView = new QtCharts::QChartView(m_focuschart);
-    chartView->setRenderHint(QPainter::Antialiasing);
-    hlayout->addWidget( chartView ) ;
+    m_chartview = new QtCharts::QChartView(m_focuschart);
+    m_chartview->setRenderHint(QPainter::Antialiasing);
+    hlayout->addWidget( m_chartview ) ;
     
     //auto label = new QLabel{"Here we should add a graph", this} ;
     //hlayout->addWidget( label ) ;
@@ -275,12 +275,19 @@ namespace PAP
     m_focusView->setPixmap(QPixmap::fromImage(*m_focusImage));
     //m_focusView->setPixmap(QPixmap::fromImage(img));
     
-    }
-    
     m_focusMeasurement.I = rc ;
     m_focusMeasurement.z = MotionSystemSvc::instance()->focusAxis().position() ;
+
+    qDebug() << "NUmber of focus measurements: "
+	     << m_focusmeasurements->count() ;
     m_focusmeasurements->append( m_focusMeasurement.z, rc ) ;
+
+    m_focuschart->removeSeries( m_focusmeasurements ) ;
+    m_focuschart->addSeries( m_focusmeasurements ) ;
+    
     m_focuschart->createDefaultAxes();
+    m_chartview->repaint() ;
+    }
     
     emit focusMeasureUpdated() ;
     return rc ;
@@ -352,7 +359,7 @@ namespace PAP
 	//   http://doc.qt.io/qt-5/qsignalspy.html#wait
 	// the problem with this one is that it starts a separate event loop. if it waits for-ever in this 
 	QSignalSpy spy( &axis, SIGNAL(movementStopped())) ;
-	spy.wait( 1000 ) ;
+	spy.wait( 10000 ) ;
       }
     } else {
       qDebug() << "Cannot focus because Motor is not on" ;
@@ -491,7 +498,7 @@ namespace PAP
 	axis.moveTo( zstart ) ;
       }
       m_isFocussing = false ;
-      hide() ;
+      m_focuschart->createDefaultAxes();
     }
   }
 

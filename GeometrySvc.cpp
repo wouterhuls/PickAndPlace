@@ -51,8 +51,8 @@ namespace PAP
     double y() const { return m_stackY ; }
     double phi() const { return m_stackPhi ; }
     void setX(double x) { m_stackX = x ; }
-    void setY(double y) { m_stackX = y ; }
-    void setPhi(double r) { m_stackX = r ; }
+    void setY(double y) { m_stackY = y ; }
+    void setPhi(double r) { m_stackPhi = r ; }
     
   } ;
   
@@ -225,9 +225,14 @@ namespace PAP
   {
     auto it = m_tileStackPositions.find( name ) ;
     if ( it != m_tileStackPositions.end() ) {
-      it->second->setX( it->second->x() + dx ) ;
-      it->second->setY( it->second->y() + dy ) ;
-      it->second->setPhi( it->second->phi() + dphi ) ;
+      it->second->setX( it->second->x() - dx ) ;
+      it->second->setY( it->second->y() - dy ) ;
+      it->second->setPhi( it->second->phi() - dphi ) ;
+      qDebug() << "Changing stack parameters for tile: "
+	       << dx << dy << dphi
+	       << it->second->x() 
+	       << it->second->y() 
+	       << it->second->phi()  ;
     } else {
       qWarning() << "Cannot find tile with name: "
 		 << name ;
