@@ -227,7 +227,7 @@ namespace PAP
     auto tmptext1 = new QLabel{this} ;
     tmptext1->setText("a. press the 'position stack' button\n"
 		      "b. press the button for the first marker\n"
-		      "c. take a recording\n"
+		      "c. take a recording. YOU MAY MOVE THE MAIN STAGE BUT NOT THE STACK\n"
 		      "d. do the same for the 2nd marker\n"
 		      "e. press the calibrate button\n"
 		      "f. press again the 'position stack' button\n"

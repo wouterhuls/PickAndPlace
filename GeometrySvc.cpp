@@ -98,8 +98,8 @@ namespace PAP
 
     // these are the stack parameters for the CSI chip. not yet
     // exactly clear what I mean by that, but it works, for now
-    m_tileStackPositions["CLI"] = new TileStackPosition{"CLI",13.05,19.86,0.2235} ;
-    m_tileStackPositions["CSO"] = new TileStackPosition{"CSO",0,0,0} ;
+    m_tileStackPositions["CLI"] = new TileStackPosition{"CLI",13.127,20.282,0.28715} ;
+    m_tileStackPositions["CSO"] = new TileStackPosition{"CSO",13.419,12.143,-1.2900} ;
     m_tileStackPositions["NSI"] = new TileStackPosition{"NSI",0,0,0} ;
     m_tileStackPositions["NLO"] = new TileStackPosition{"NLO",0,0,0} ;
   }
@@ -225,14 +225,15 @@ namespace PAP
   {
     auto it = m_tileStackPositions.find( name ) ;
     if ( it != m_tileStackPositions.end() ) {
-      it->second->setX( it->second->x() - dx ) ;
-      it->second->setY( it->second->y() - dy ) ;
-      it->second->setPhi( it->second->phi() - dphi ) ;
+      it->second->setX( it->second->x() + dx ) ;
+      it->second->setY( it->second->y() + dy ) ;
+      it->second->setPhi( it->second->phi() + dphi ) ;
       qDebug() << "Changing stack parameters for tile: "
 	       << dx << dy << dphi
 	       << it->second->x() 
 	       << it->second->y() 
 	       << it->second->phi()  ;
+      qWarning() << "We should change this into the /current/ stack position!" ;
     } else {
       qWarning() << "Cannot find tile with name: "
 		 << name ;
