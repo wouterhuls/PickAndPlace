@@ -83,15 +83,15 @@ namespace PAP
 	       [=](){ this->updatePositionLabel() ; } ) ;
       hlayout->addWidget( m_axisPositionLabel ) ;
       
-      auto addbutton = new QPushButton{ "Add", this } ;
-      connect( addbutton, &QPushButton::clicked, [=](){ this->add() ; } ) ;
-      hlayout->addWidget( addbutton ) ;
-
       auto testbutton = new QPushButton{ "Test", this } ;
       connect( testbutton, &QPushButton::clicked, [=](){ this->test() ; } ) ;
       hlayout->addWidget( testbutton ) ;
       
-      m_measurementsdisplaybox = new QTextEdit{this} ;
+      auto addbutton = new QPushButton{ "Add", this } ;
+      connect( addbutton, &QPushButton::clicked, [=](){ this->add() ; } ) ;
+      hlayout->addWidget( addbutton ) ;
+
+       m_measurementsdisplaybox = new QTextEdit{this} ;
       layout->addWidget( m_measurementsdisplaybox ) ;
       m_measurementsdisplaybox->resize(500,100) ;
 
@@ -165,9 +165,11 @@ namespace PAP
 	// which is conveniently also entirely linear.  since X and Y
 	// are independent, we could as well compute them
 	// separately.
-	Eigen::Vector3d halfdchi2dparX   ;
-	Eigen::Vector3d halfdchi2dparY   ;
-	Eigen::Matrix3d halfd2chi2dpar2 ;
+	const double sigma  = 0.005 ; // 5 micron per marker
+	
+	Eigen::Vector3d halfdchi2dparX = Eigen::Vector3d::Zero() ;
+	Eigen::Vector3d halfdchi2dparY = Eigen::Vector3d::Zero()  ;
+	Eigen::Matrix3d halfd2chi2dpar2 = Eigen::Matrix3d::Zero();
 	for( const auto& m : m_measurements ) {
 	  Eigen::Vector3d deriv ;
 	  deriv(0) = 1 ;
@@ -180,15 +182,37 @@ namespace PAP
 	      halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
 	}
 	m_parX = halfd2chi2dpar2.ldlt().solve(halfdchi2dparX) ;
-	m_parY = halfd2chi2dpar2.ldlt().solve(halfdchi2dparY) ;	
+	m_parY = halfd2chi2dpar2.ldlt().solve(halfdchi2dparY) ;
+	auto cov = halfd2chi2dpar2.inverse() ;
+	
+	qDebug() << "derivX: "
+		 << halfdchi2dparX(0)
+		 << halfdchi2dparX(1)
+		 << halfdchi2dparX(2) ;
+	qDebug() << "derivX: "
+		 << halfdchi2dparY(0)
+		 << halfdchi2dparY(1)
+		 << halfdchi2dparY(2) ;
+	qDebug() << "2nd derivative: "
+		 << halfd2chi2dpar2(0,0)
+		 << halfd2chi2dpar2(0,1)
+		 << halfd2chi2dpar2(0,2)
+		 << halfd2chi2dpar2(1,0)
+		 << halfd2chi2dpar2(1,1)
+		 << halfd2chi2dpar2(1,2)
+		 << halfd2chi2dpar2(2,0)
+		 << halfd2chi2dpar2(2,1)
+		 << halfd2chi2dpar2(2,2) ;
+	
 	//clear() ;
 	// add some text to the display box:
 	char textje[256] ;
-	sprintf( textje, "parX: %f %f %f\n", m_parX(0),m_parX(1),m_parX(2) ) ;
-	m_measurementsdisplaybox->append(textje) ;
-	sprintf( textje, "parY: %f %f %f\n", m_parY(0),m_parY(1),m_parY(2) ) ;
-	m_measurementsdisplaybox->append(textje) ;
 	
+	for(int i=0; i<3; ++i) {
+	  sprintf( textje, "%d: x: %f  y: %f sigma: %f", i,
+		   m_parX(i), m_parY(i), sigma*std::sqrt(cov(i,i)) ) ;
+	  m_measurementsdisplaybox->append(textje) ;
+	}
       } else {
 	// need to pop up a dialog
       }
