@@ -85,8 +85,8 @@ namespace PAP
       }
       
       // Now do the chi2 minimization
-      Eigen::Vector3d halfdchi2dpar   ;
-      Eigen::Matrix3d halfd2chi2dpar2 ;
+      Eigen::Vector3d halfdchi2dpar   = Eigen::Vector3d::Zero() ;
+      Eigen::Matrix3d halfd2chi2dpar2 = Eigen::Matrix3d::Zero() ;
       for( const auto& r : recordings ) {
 	// the residual is '2D'. however, x and y are
 	// independent. so we could as well compute them separately.
@@ -134,9 +134,6 @@ namespace PAP
 	
       Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
       qDebug() << "Solution: " << delta(0) << delta(1) << delta(2) ;
-
-
-      
       return delta ;
     }
   }

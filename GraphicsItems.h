@@ -141,7 +141,7 @@ namespace PAP
       const double Y = -0.2 ;
       QRectF rectangle{X,Y,width,height} ;
       pen.setColor( Qt::blue ) ;
-      pen.setWidthF(0.2);
+      pen.setWidthF(0.02);
       painter->setPen(pen) ;
       painter->drawRect( rectangle ) ;
     }

@@ -24,7 +24,7 @@ namespace PAP
     : QMainWindow(parent)
   {
     resize(900,500);
-    setWindowTitle("Velo Pick\&Place") ;
+    setWindowTitle("Velo Pick&Place") ;
     
     m_cameraview = new CameraView{this} ;
     

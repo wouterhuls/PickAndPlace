@@ -98,10 +98,10 @@ namespace PAP
 
     // these are the stack parameters for the CSI chip. not yet
     // exactly clear what I mean by that, but it works, for now
-    m_tileStackPositions["CLI"] = new TileStackPosition{"CLI",13.127,20.282,0.28715} ;
-    m_tileStackPositions["CSO"] = new TileStackPosition{"CSO",13.419,12.143,-1.2900} ;
-    m_tileStackPositions["NSI"] = new TileStackPosition{"NSI",0,0,0} ;
-    m_tileStackPositions["NLO"] = new TileStackPosition{"NLO",0,0,0} ;
+    m_tileStackPositions["CLI"] = new TileStackPosition{"CLI",13.176,20.209,0.27377} ;
+    m_tileStackPositions["CSO"] = new TileStackPosition{"CSO",13.504,12.179,-1.3030} ;
+    m_tileStackPositions["NSI"] = new TileStackPosition{"NSI",3.657,10.136, 0.0010} ;
+    m_tileStackPositions["NLO"] = new TileStackPosition{"NLO",24.554,1.687,-1.57576} ;
   }
 
   GeometrySvc::~GeometrySvc() {}
@@ -225,15 +225,21 @@ namespace PAP
   {
     auto it = m_tileStackPositions.find( name ) ;
     if ( it != m_tileStackPositions.end() ) {
+      qWarning() << "We should change this into the /current/ stack position!" ;
+      /*
       it->second->setX( it->second->x() + dx ) ;
       it->second->setY( it->second->y() + dy ) ;
       it->second->setPhi( it->second->phi() + dphi ) ;
+      */
+      auto current = MotionSystemSvc::instance()->stackcoordinates() ;
+      it->second->setX( current.x + dx ) ;
+      it->second->setY( current.y + dy ) ;
+      it->second->setPhi( current.phi + dphi ) ;
       qDebug() << "Changing stack parameters for tile: "
 	       << dx << dy << dphi
 	       << it->second->x() 
 	       << it->second->y() 
 	       << it->second->phi()  ;
-      qWarning() << "We should change this into the /current/ stack position!" ;
     } else {
       qWarning() << "Cannot find tile with name: "
 		 << name ;
