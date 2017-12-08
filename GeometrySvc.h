@@ -52,7 +52,9 @@ namespace PAP
     void positionStackForTile( const QString& name ) const ;
     void applyStackDeltaForTile( const QString& name,
 				 double dx, double dy, double dphi ) ;
-    
+
+    void updateMainAxisCalibration( double xA, double xB, double yA, double yB ) {
+      m_mainXA = xA ; m_mainXB = xB; m_mainYB = yA; m_mainYB = yB ; }
     
   public:
     // access to various marker positions in the 'Module' frame. these

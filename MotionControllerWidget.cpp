@@ -45,6 +45,7 @@ namespace PAP
     m_errorlabel = new QLabel(this) ;
     m_errorlabel = new QLabel(this) ;
     m_errorlabel->setText("error unknown") ;
+    m_errorlabel->setWordWrap( true ) ;
     layout->addWidget( m_errorlabel) ;
 
     // FIXME: this should just work with signals!
@@ -76,7 +77,7 @@ namespace PAP
     // 	     << m_controller->hasMotorsOn() ;
     
     QString s ;
-    s.sprintf("status = %02X\n error=%02X",m_controller->status(),m_controller->errorCode()) ;
+    s.sprintf("status = %02X",m_controller->status()) ;
     m_statuslabel->setText( s ) ;
     m_statuslabel->setAutoFillBackground(true); // IMPORTANT!
     QPalette pal = m_statuslabel->palette();

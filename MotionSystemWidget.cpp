@@ -12,6 +12,7 @@
 #include "MotionAxisWidget.h"
 #include "MotionControllerWidget.h"
 #include "MotionSystemWidget.h"
+#include "MotionSystemCalibration.h"
 
 namespace PAP
 {
@@ -20,6 +21,7 @@ namespace PAP
     QWidget(parent)
   {
     //
+    this->setWindowTitle("Motion System Controls") ;
     this->setObjectName("MotionSystemWidget") ;
     resize(600,500) ;
     
@@ -43,11 +45,12 @@ namespace PAP
     layout->addWidget( new MotionAxisWidget{ mssvc->stackYAxis(),this } ) ;
     layout->addWidget( new MotionAxisWidget{ mssvc->stackRAxis(),this } ) ;
 
+    auto calibrationdialog = new MotionSystemCalibration{this} ;
     auto calibratebutton = new QPushButton("Calibrate",this) ;
-    calibratebutton->setObjectName(QStringLiteral("calibrateButton"));
+    //calibratebutton->setObjectName(QStringLiteral("calibrateButton"));
+    connect(calibratebutton,&QPushButton::clicked,[=](){ calibrationdialog->show() ; } ) ;
     layout->addWidget( calibratebutton ) ;
 
-    
     auto quitbutton = new QPushButton("Quit",this) ;
     quitbutton->setObjectName(QStringLiteral("quitButton"));
     layout->addWidget( quitbutton ) ;

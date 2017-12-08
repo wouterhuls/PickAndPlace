@@ -24,7 +24,9 @@ namespace PAP
     : QMainWindow(parent)
   {
     resize(900,500);
-    m_cameraview = new CameraView{} ;
+    setWindowTitle("Velo Pick\&Place") ;
+    
+    m_cameraview = new CameraView{this} ;
     
     // add a vertical layout. if we derive from 'mainwindow', then
     // layout must be set to the central widget.

@@ -58,6 +58,7 @@ int main(int argc, char *argv[])
   mainwindow.resize(600,500) ;
   mainwindow.move(50,0) ;
   mainwindow.setWindowIcon( QIcon(":/images/VeloUpgradeLogoSmall.png") ) ;
+  mainwindow.setWindowTitle("Motion System Window") ;
     
   // auto centralWidget =
   new PAP::MotionSystemWidget(&mainwindow);

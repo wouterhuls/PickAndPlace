@@ -33,7 +33,8 @@ SOURCES += main.cpp \
     NamedValueInputWidget.cpp \
     GeometrySvc.cpp \
     MonitoredValue.cpp \
-    AlignPages.cpp
+    AlignPages.cpp \
+    MotionSystemCalibration.cpp
 
 HEADERS  += \
     NominalMarkers.h \
@@ -59,7 +60,8 @@ HEADERS  += \
     CameraWindow.h \
     CameraView.h \
     AutoFocus.h \
-    AlignPages.h 
+    AlignPages.h\
+    MotionSystemCalibration.h
 
 FORMS    += SerialPortSettingsDialog.ui
 
