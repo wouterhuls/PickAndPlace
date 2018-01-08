@@ -92,6 +92,20 @@ namespace PAP
       m_showNSideTiles->setCheckState( Qt::Checked ) ;
       m_showCSideTiles->setCheckState( Qt::Unchecked ) ;
     }
+
+    auto cameraresetbutton = new QPushButton{"Reset camera",this} ;
+    cameraresetbutton->setToolTip("Reset the camera if the view gets stuck.") ;
+    connect(cameraresetbutton , &QAbstractButton::clicked, [&]() { m_cameraview->resetCamera(); } ) ;
+    buttonlayout->addWidget(cameraresetbutton) ;
+
+    /*
+    auto lockwhitebalancebutton = new QPushButton{"Lock white balance",this} ;
+    lockwhitebalancebutton->setToolTip("Lock the white balance of the camera view") ;
+    lockwhitebalancebutton->setCheckable(true) ;
+    connect(lockwhitebalancebutton, &QAbstractButton::clicked,
+	    [&]() { m_cameraview->lockWhiteBalance(lockwhitebalancebutton->toggled()); } ) ;
+    buttonlayout->addWidget(lockwhitebalancebutton) ;
+    */
     
     //m_cameraview->setSizePolicy(QSizePolicy::Ignored,QSizePolicy::Ignored);
     //m_cameraview->setGeometry(200,200,200,200);

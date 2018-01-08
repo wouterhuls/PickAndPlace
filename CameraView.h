@@ -43,6 +43,8 @@ namespace PAP
 
     void updateGeometryView() ;
     void updateStackAxisView() ;
+    void resetCamera() ;
+    void lockWhiteBalance( bool lock = true ) ;
 
     QTransform fromCameraToPixel() const
     {
@@ -60,6 +62,8 @@ namespace PAP
     }
 
     ViewDirection currentViewDirection() const { return m_currentViewDirection ; }
+
+    const QPointF& localOrigin() const { return m_localOrigin ; }
   signals:
     void recording( const CoordinateMeasurement& ) const ;
     

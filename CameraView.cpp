@@ -67,6 +67,7 @@ namespace PAP
 
     // Add the camera viewfinder
     m_viewfinder = new QGraphicsVideoItem{} ;
+    m_viewfinder->setToolTip("Camera view") ;
     //m_viewfinder->setSize( QSize{622,512} ) ;
     m_numPixelsX = 2448 ;
     m_numPixelsY = 2048 ;
@@ -83,6 +84,7 @@ namespace PAP
 
     // Add a rectangle such that we always now where the camerawindow ends (also on my laptop)
     m_viewfinderborder = new QGraphicsRectItem{QRectF{-200,-200,double(m_numPixelsX+400),double(m_numPixelsY+400)}} ;
+    m_viewfinderborder->setToolTip("Camera view border") ;
     //m_viewfinderborder->setScale( pixelSize() ) ;
     {
       QPen pen ;
@@ -190,6 +192,11 @@ namespace PAP
   
   void CameraView::setCamera(const QCameraInfo &cameraInfo)
   {
+    // we should really read this documentation:
+    //     http://doc.qt.io/qt-5/cameraoverview.html
+    // among others it explains how to adjust the camera
+    // settings. perhaps we can make a nice popup for that.
+    
     qInfo() << "CamereView::setCamera" ;
     bool isDFKcamera = cameraInfo.description().contains("DFK") ;
     
@@ -212,8 +219,6 @@ namespace PAP
       qDebug() << "Resolution is now: "
 	       << m_camera->viewfinderSettings().resolution()
 	       << m_viewfinder->size() ;
-    
-
 
     // m_camera->setViewfinder(m_viewfinder);
 
@@ -230,7 +235,6 @@ namespace PAP
 	    this, SLOT(processFrame(QVideoFrame)));
     
     m_camera->start();
-    qDebug() << "CameraView E" ;
 
     } else {
       QCameraViewfinderSettings settings ;
@@ -238,6 +242,14 @@ namespace PAP
       settings.setPixelFormat(QVideoFrame::Format_UYVY) ;
       m_camera->setViewfinderSettings( settings ) ;
       m_viewfinder->setSize( QSize{2448, 2048} ) ;
+    }
+
+    
+    QCameraImageProcessing *imageProcessing = m_camera->imageProcessing();
+    if (imageProcessing->isAvailable()) {
+      imageProcessing->setWhiteBalanceMode(QCameraImageProcessing::WhiteBalanceFluorescent);
+    } else {
+      qWarning() << "Image processing no available!" ;
     }
   }
 
@@ -278,6 +290,20 @@ namespace PAP
     QTransform T1 = geomsvc->fromCameraToGlobal() ;
     QTransform T2 = geomsvc->fromStackToGlobal() ;
     m_stackaxis->setTransform( (T2 * T1.inverted()) * fromCameraToPixel() ) ;
+  }
+
+  void CameraView::resetCamera()
+  {
+    m_camera->stop() ;
+    m_camera->start() ;
+  }
+
+  void CameraView::lockWhiteBalance( bool lock )
+  {
+    /*
+    if(lock) m_camera->lock(QCamera::LockWhiteBalance) ;
+    else     m_camera->unlock(QCamera::LockWhiteBalance) ;
+    */
   }
 
   void CameraView::setViewDirection( ViewDirection dir )
