@@ -45,6 +45,13 @@ namespace PAP
     layout->addWidget( new MotionAxisWidget{ mssvc->stackYAxis(),this } ) ;
     layout->addWidget( new MotionAxisWidget{ mssvc->stackRAxis(),this } ) ;
 
+    auto moveoutbutton = new QPushButton("Move out",this) ;
+    connect(moveoutbutton,&QPushButton::clicked,[=](){
+	mssvc->mainXAxis().move( mssvc->mainXAxis().leftTravelLimit() ) ;
+	mssvc->mainYAxis().move( mssvc->mainYAxis().leftTravelLimit() ) ;
+      } ) ;
+    layout->addWidget( moveoutbutton ) ;
+    
     auto calibrationdialog = new MotionSystemCalibration{this} ;
     auto calibratebutton = new QPushButton("Calibrate",this) ;
     //calibratebutton->setObjectName(QStringLiteral("calibrateButton"));
@@ -67,7 +74,7 @@ namespace PAP
   {
     QCoreApplication::quit();
   }
-
+  
   void MotionSystemWidget::on_calibrateButton_clicked()
   {
     auto dialog = new QDialog{ this } ;
