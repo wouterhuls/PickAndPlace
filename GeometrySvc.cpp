@@ -64,9 +64,9 @@ namespace PAP
       m_mainYA( "Geo.mainYA", 0.0 ),
       m_mainYB( "Geo.mainYB", -1.0 ),
       m_cameraPhi( "Geo.cameraPhi", 0 ),
-      m_modulePhi( "Geo.modulePhi", -0.0027 ),
-      m_moduleX( "Geo.moduleX", -32.09), // perhaps we should move these into mainX0 and mainY0
-      m_moduleY( "Geo.moduleY", -64.51),
+      m_modulePhi( "Geo.modulePhi", -0.0005975 ),
+      m_moduleX( "Geo.moduleX", -32.47), // perhaps we should move these into mainX0 and mainY0
+      m_moduleY( "Geo.moduleY", -63.69),
       // these points define the position and orientation of the stack rotation axis in the global frame
       m_stackX0( "Geo.stackX0", -13. ),
       m_stackXA( "Geo.stackXA", -1.0 ),
@@ -102,6 +102,10 @@ namespace PAP
     m_tileStackPositions["CSO"] = new TileStackPosition{"CSO",13.504,12.179,-1.3030} ;
     m_tileStackPositions["NSI"] = new TileStackPosition{"NSI",3.657,10.136, 0.0010} ;
     m_tileStackPositions["NLO"] = new TileStackPosition{"NLO",24.554,1.687,-1.57576} ;
+
+    // focus values:
+    // - main marker jigs C-side: 14.405
+    // - main marker jigs N-side: 15.846
   }
 
   GeometrySvc::~GeometrySvc() {}

@@ -32,13 +32,15 @@ namespace PAP
       auto pos = line.indexOf("=") ;
       auto name  = line.leftRef(pos).trimmed() ;
       auto value = line.rightRef(line.size()-pos-1).trimmed() ;
-      qDebug() << "name,value: " << name << " " << value  ;
-      Property* prop = find( name.toString().toStdString().c_str() ) ;
-      if (! prop )
-	qDebug() << "Cannot find property read from file!" ;
-      else {
-	if( !prop->fromString( value.toString() ) ) {
-	  qDebug() << "Cannot convert property to target type!" ;
+      if(name[0] != '#') {
+	qDebug() << "name,value: " << name << " " << value  ;
+	Property* prop = find( name.toString().toStdString().c_str() ) ;
+	if (! prop )
+	  qDebug() << "Cannot find property read from file!" ;
+	else {
+	  if( !prop->fromString( value.toString() ) ) {
+	    qDebug() << "Cannot convert property to target type!" ;
+	  }
 	}
       }
     }

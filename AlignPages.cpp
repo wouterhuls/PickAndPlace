@@ -31,7 +31,7 @@ namespace PAP
     auto recordcentrebutton = new QPushButton{"record centre", this} ;
     hlayout->addWidget( recordcentrebutton ) ;
     connect(recordcentrebutton,&QPushButton::pressed,
-	    [=](){ camview->record( camview->localOrigin()) ; } ) ;
+	    [=](){ setStatus(Active) ; camview->record( camview->localOrigin()) ; } ) ;
     
     auto recordpointerbutton = new QPushButton{"record pointer", this} ;
     recordpointerbutton->setCheckable(true) ;

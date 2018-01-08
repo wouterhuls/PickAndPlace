@@ -47,8 +47,8 @@ namespace PAP
 
     auto moveoutbutton = new QPushButton("Move out",this) ;
     connect(moveoutbutton,&QPushButton::clicked,[=](){
-	mssvc->mainXAxis().move( mssvc->mainXAxis().leftTravelLimit() ) ;
-	mssvc->mainYAxis().move( mssvc->mainYAxis().leftTravelLimit() ) ;
+	mssvc->mainXAxis().moveTo( double(mssvc->mainXAxis().leftTravelLimit()+1.0) ) ;
+	mssvc->mainYAxis().moveTo( double(mssvc->mainYAxis().leftTravelLimit()+1.0) ) ;
       } ) ;
     layout->addWidget( moveoutbutton ) ;
     
