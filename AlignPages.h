@@ -13,7 +13,7 @@ namespace PAP
   {
     Q_OBJECT
   public:
-    enum Status { Uninitialized=0, Active=1, Ready=2 } ;
+    enum Status { Uninitialized=0, Active, Recorded, Calibrated} ;
     MarkerRecorderWidget(const char* markername,
 			 const PAP::CameraView* camview,
 			 QWidget* parent=0) ;

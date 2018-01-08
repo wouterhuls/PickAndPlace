@@ -28,25 +28,32 @@ namespace PAP
     connect(movetomarker1button,&QPushButton::clicked,[=](){ camview->moveCameraTo(markername) ; } ) ;
     hlayout->addWidget( movetomarker1button ) ;
     
-    auto recordbutton = new QPushButton{"record", this} ;
-    recordbutton->setCheckable(true) ;
-    hlayout->addWidget( recordbutton ) ;
-    connect(this, &MarkerRecorderWidget::ready, [=]() { recordbutton->setChecked(false) ; setStatus(Ready) ; } ) ;
-    connect(recordbutton,&QPushButton::toggled,this,&MarkerRecorderWidget::on_recordbutton_toggled) ;
+    auto recordcentrebutton = new QPushButton{"record centre", this} ;
+    hlayout->addWidget( recordcentrebutton ) ;
+    connect(recordcentrebutton,&QPushButton::pressed,
+	    [=](){ camview->record( camview->localOrigin()) ; } ) ;
+    
+    auto recordpointerbutton = new QPushButton{"record pointer", this} ;
+    recordpointerbutton->setCheckable(true) ;
+    hlayout->addWidget( recordpointerbutton ) ;
+    connect(this, &MarkerRecorderWidget::ready, [=]() { recordpointerbutton->setChecked(false) ; setStatus(Recorded) ; } ) ;
+    connect(recordpointerbutton,&QPushButton::toggled,this,&MarkerRecorderWidget::on_recordbutton_toggled) ;
+    
     // catch measurement updates
-    connect( camview, &CameraView::recording, this, &MarkerRecorderWidget::record  ) ;
+    connect( camview, &CameraView::recording, this, &MarkerRecorderWidget::record ) ;
+    
     // show a label with the status
     m_statuslabel = new QLabel{ this } ;
     setStatus( Uninitialized ) ;
     hlayout->addWidget( m_statuslabel ) ;
     
   }
-
+  
   void MarkerRecorderWidget::record( const CoordinateMeasurement& m) {
     if( m_status == Active ) {
       m_measurement = m ;
       m_markerposition = m_cameraview->globalPosition( objectName() ) ;
-      setStatus( Ready ) ;
+      setStatus( Recorded ) ;
       emit ready() ;
       qDebug() << "received measurement: (" << m.globalcoordinates.x << "," << m.globalcoordinates.y << ")" ;
       qDebug() << "marker position:      " << m_markerposition ;
@@ -55,10 +62,12 @@ namespace PAP
   
   void MarkerRecorderWidget::setStatus(Status s) {
     m_status = s ;
-    if( m_status == Ready )
-      m_statuslabel->setText( "Ready" ) ;
+    if( m_status == Recorded )
+      m_statuslabel->setText( "Recorded" ) ;
     else if( m_status == Active )
       m_statuslabel->setText( "Recording" ) ;
+    else if( m_status == Calibrated )
+      m_statuslabel->setText( "Calibrated" ) ;
     else
       m_statuslabel->setText( "Uninitialized" ) ;
   }
@@ -178,8 +187,8 @@ namespace PAP
     // update that transform.
     //
     // I decided to do everything in the 'global' frame. we then simply compute dx,dy and phi, and finally update the transform:
-    if( m_marker1recorder->status() == MarkerRecorderWidget::Ready &&
-	m_marker2recorder->status() == MarkerRecorderWidget::Ready ) {
+    if( m_marker1recorder->status() == MarkerRecorderWidget::Recorded &&
+	m_marker2recorder->status() == MarkerRecorderWidget::Recorded ) {
       std::vector< MarkerRecorderWidget* > recordings = { m_marker1recorder, m_marker2recorder } ;
       Eigen::Vector3d delta = computeAlignment(recordings) ;
       // now update the geometry
@@ -244,8 +253,8 @@ namespace PAP
     // update that transform.
     //
     // I decided to do everything in the 'global' frame. we then simply compute dx,dy and phi, and finally update the transform:
-    if( m_marker1recorder->status() == MarkerRecorderWidget::Ready &&
-	m_marker2recorder->status() == MarkerRecorderWidget::Ready ) {
+    if( m_marker1recorder->status() == MarkerRecorderWidget::Recorded &&
+	m_marker2recorder->status() == MarkerRecorderWidget::Recorded ) {
       std::vector< MarkerRecorderWidget* > recordings = { m_marker1recorder, m_marker2recorder } ;
       // the best thing is to compute a transform in the global frame,
       // then work from there. However, for now I'll compute with
