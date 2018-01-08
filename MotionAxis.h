@@ -49,7 +49,10 @@ namespace PAP
     NamedDouble& position() { return m_position ; }
     const NamedDouble& stepsize() const { return m_stepsize ; }
     NamedDouble& stepsize() { return m_stepsize ; }
-
+    
+    double leftTravelLimit() const { return m_leftTravelLimit->getValue().value().toDouble() ; }
+    double rightTravelLimit() const { return m_rightTravelLimit->getValue().value().toDouble() ; }
+    
     void readParameters() ;
     void setAllowPassTravelLimit( bool a ) { m_allowPassTravelLimit = a ; }
     bool allowPassTravelLimit() const { return m_allowPassTravelLimit ; }
