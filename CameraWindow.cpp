@@ -4,6 +4,7 @@
 
 #include "AutoFocus.h"
 #include "AlignPages.h"
+#include "CameraImageProcessingDialog.h"
 
 #include <iostream>
 #include <sstream>
@@ -16,6 +17,7 @@
 #include <QCoreApplication>
 #include <QCheckBox>
 #include <QTextEdit>
+#include <QCamera>
 
 
 namespace PAP
@@ -57,6 +59,16 @@ namespace PAP
     focusbutton->setObjectName(QStringLiteral("focusButton"));
     buttonlayout->addWidget( focusbutton ) ;
 
+    if( m_cameraview->camera() ) {
+      QCameraImageProcessing *imageProcessing = m_cameraview->camera()->imageProcessing();
+      if (imageProcessing->isAvailable()) {
+	auto camerasettingsdialog = new CameraImageProcessingDialog( *imageProcessing,this) ;
+	auto camerasettingsbutton = new QPushButton("Settings",this) ;
+	camerasettingsbutton->setToolTip("Show camera settings dialog") ;
+	connect(camerasettingsbutton,&QPushButton::clicked,[=](){ camerasettingsdialog->show() ; } ) ;
+      }
+    }
+    
     //auto quitbutton = new QPushButton("Quit",this) ;
     //quitbutton->setObjectName(QStringLiteral("quitButton"));
     //buttonlayout->addWidget( quitbutton ) ;
@@ -97,6 +109,7 @@ namespace PAP
     cameraresetbutton->setToolTip("Reset the camera if the view gets stuck.") ;
     connect(cameraresetbutton , &QAbstractButton::clicked, [&]() { m_cameraview->resetCamera(); } ) ;
     buttonlayout->addWidget(cameraresetbutton) ;
+
 
     /*
     auto lockwhitebalancebutton = new QPushButton{"Lock white balance",this} ;

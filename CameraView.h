@@ -64,6 +64,9 @@ namespace PAP
     ViewDirection currentViewDirection() const { return m_currentViewDirection ; }
 
     const QPointF& localOrigin() const { return m_localOrigin ; }
+
+    QCamera* camera() { return m_camera ; }
+    
   signals:
     void recording( const CoordinateMeasurement& ) const ;
     

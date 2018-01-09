@@ -231,8 +231,8 @@ namespace PAP
     m_videoProbe = new QVideoProbe(this);
     m_videoProbe->setSource(m_camera) ;
     // to analyze images we connect a function to the videoprobe signal
-    connect(m_videoProbe, SIGNAL(videoFrameProbed(QVideoFrame)),
-	    this, SLOT(processFrame(QVideoFrame)));
+    //connect(m_videoProbe, SIGNAL(videoFrameProbed(QVideoFrame)),
+    //	    this, SLOT(processFrame(QVideoFrame)));
     
     m_camera->start();
 

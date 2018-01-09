@@ -34,7 +34,8 @@ SOURCES += main.cpp \
     GeometrySvc.cpp \
     MonitoredValue.cpp \
     AlignPages.cpp \
-    MotionSystemCalibration.cpp
+    MotionSystemCalibration.cpp \
+    CameraImageProcessingDialog.cpp
 
 HEADERS  += \
     NominalMarkers.h \
