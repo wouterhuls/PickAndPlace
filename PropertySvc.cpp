@@ -29,10 +29,10 @@ namespace PAP
     QTextStream in(&file);
     while (!in.atEnd()) {
       QString line = in.readLine();
-      auto pos = line.indexOf("=") ;
-      auto name  = line.leftRef(pos).trimmed() ;
-      auto value = line.rightRef(line.size()-pos-1).trimmed() ;
-      if(name[0] != '#') {
+      if( line.size() > 0 && line[0] != '#') {
+	auto pos = line.indexOf("=") ;
+	auto name  = line.leftRef(pos).trimmed() ;
+	auto value = line.rightRef(line.size()-pos-1).trimmed() ;
 	qDebug() << "name,value: " << name << " " << value  ;
 	Property* prop = find( name.toString().toStdString().c_str() ) ;
 	if (! prop )
