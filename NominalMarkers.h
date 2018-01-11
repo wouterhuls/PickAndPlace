@@ -71,10 +71,24 @@ namespace PAP
 	    //{"ModuleJigMarker2",+62.5,-146.3}
 	    //{"MainJigMarker1", -35.0,-81.0},
 	    //{"MainJigMarker2",+146.3,+62.5}
-	    {"MainJigMarker1", -50.0,-60.0},
-	    {"MainJigMarker2",+110.0,+45.0}
+	    // {"MainJigMarker1", -50.0,-60.0}, // NOMINAL
+	    // {"MainJigMarker2",+110.0,+45.0}  // NOMINAL
+	    {"MainJigMarker1", -50.040,-59.883}, // Measured 10/01/2018
+	    {"MainJigMarker2",+109.846,+45.306}  //  Measured 10/01/2018
 	  } ;
+	
       }
+
+    // Martijn's measurements 10/01/2018:
+    //  X Value_Marker 1 (ViScan 1x)    142.306
+    //  Y Value_Marker 1 (ViScan 1x)    165.154
+    //  X Value_Marker 2 (ViScan 1x)    37.117
+    //  Y Value_Marker 2 (ViScan 1x)    325.040
+    // X and Y are swapped wrt LHCb frame. Measurements are These are
+    // wrt to the pen on the foot. This pen is at y=97 x=275 in the
+    // LHCb frame.
+    
+    
   }
 }
 
