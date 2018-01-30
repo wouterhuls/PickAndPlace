@@ -49,7 +49,7 @@ namespace PAP
     void applyControllerCommand( const MotionControllerID&, const char* command ) const ;
 
     
-    float position( const MotionAxisID& id ) const ;
+    double position( const MotionAxisID& id ) const ;
     std::string name( const MotionAxisID& id ) const ;
 
     //const AxisContainer& axes() const { return m_axes ; }
