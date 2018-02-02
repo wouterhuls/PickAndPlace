@@ -250,7 +250,7 @@ namespace PAP
 		 << m_lastcommand.cmd.c_str()
 		 << result.data ;
       // just try again?
-      // m_commandqueue.push_back( m_lastcommand ) ;
+      m_commandqueue.push_back( m_lastcommand ) ;
     } else {
       if( m_lastcommand.target==0 )
 	m_parent->parseData( result.controller, result.data ) ;
