@@ -2,6 +2,7 @@
 #define PAP_COORDINATES_H
 
 #include <QString>
+#include <QPointF>
 
 namespace PAP
 {
@@ -9,7 +10,8 @@ namespace PAP
   
   struct Coordinates2D
   {
-  Coordinates2D( double _x=0, double _y=0, double _phi=0 ) : x(_x),y(_y),phi(_phi) {}
+    Coordinates2D( double _x=0, double _y=0, double _phi=0 ) : x(_x),y(_y),phi(_phi) {}
+    Coordinates2D( const QPointF& p ) : x(p.x()),y(p.y()),phi(0) {}
     double x ;
     double y ;
     double phi ;
@@ -38,7 +40,7 @@ namespace PAP
 
   struct FiducialDefinition
   {
-    FiducialDefinition( QString _name, double _x, double _y)
+    FiducialDefinition( const QString& _name, double _x, double _y)
     : name(_name),x(_x),y(_y) {}
     QString name ;
     double x ;
