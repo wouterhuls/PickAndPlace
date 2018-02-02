@@ -3,6 +3,8 @@
 #include <QSlider>
 #include <QCameraImageProcessing>
 #include <QVBoxLayout>
+#include <QLabel>
+#include <QPushButton>
 
 namespace PAP
 {
@@ -10,7 +12,7 @@ namespace PAP
   class IPSlider : public QSlider
   {
   private:
-    
+    QCameraImageProcessing* m_ip ;
   public:
   IPSlider(QCameraImageProcessing& ip,
 	   void (QCameraImageProcessing::*setter)(qreal),
@@ -18,7 +20,8 @@ namespace PAP
 	   double minval,
 	   double maxval,
 	   int numbins)
-    : QSlider(Qt::Horizontal)
+    : QSlider(Qt::Horizontal),
+      m_ip(&ip)
       {
 	setTickPosition( QSlider::TicksBelow ) ;
 	setMinimum(0) ;
@@ -28,7 +31,7 @@ namespace PAP
 	double curr = (ip.*getter)() ;
 	setSliderPosition( (curr-offset)/delta ) ;
 	connect(this,&QAbstractSlider::sliderMoved,
-		[&]() { (ip.*setter)(this->sliderPosition() * delta + offset) ; } ) ;
+		[=]() { (m_ip->*setter)(this->sliderPosition() * delta + offset) ; } ) ;
       }
   } ;
   
@@ -38,16 +41,39 @@ namespace PAP
   {
     resize(600,600) ;
     setWindowTitle("CameraSettings") ;
-    
+
     auto layout = new QVBoxLayout{} ;
     this->setLayout( layout ) ;
     
-    //QStyleOptionSlider sliderstyle ;
-    auto contrastslider = new IPSlider{*m_ip,
-				       &QCameraImageProcessing::setContrast,
-				       &QCameraImageProcessing::contrast,
-				       -1.0,1.0,100} ;
-    layout->addWidget( contrastslider ) ;
+    auto tmptext1 = new QLabel{this} ;
+    tmptext1->setText("Unfortunately the camera does not support imageprocessing parameters.") ;
+    tmptext1->setWordWrap(true);
+    layout->addWidget( tmptext1 ) ;
+        
+ 
+    auto wbbutton = new QPushButton{"Auto white Balance"} ;
+    wbbutton->setCheckable(true) ;
+    connect(wbbutton,&QPushButton::clicked,
+	    [=]() {
+	      m_ip->setWhiteBalanceMode( wbbutton->isChecked()
+					 ? QCameraImageProcessing::WhiteBalanceAuto
+					 : QCameraImageProcessing::WhiteBalanceManual ) ; } ) ;
+    layout->addWidget( wbbutton ) ;
+    
+    m_ip->setWhiteBalanceMode(QCameraImageProcessing::WhiteBalanceManual) ;
+    
+
+    
+    layout->addWidget(new IPSlider{*m_ip,
+	  &QCameraImageProcessing::setManualWhiteBalance,
+	  &QCameraImageProcessing::manualWhiteBalance,
+	  0,5000,1000}) ;
+
+       //QStyleOptionSlider sliderstyle ;
+    layout->addWidget( new IPSlider{*m_ip,
+	  &QCameraImageProcessing::setContrast,
+	  &QCameraImageProcessing::contrast,
+	  -1.0,1.0,100} ) ;
     
   }
 }
