@@ -3,6 +3,7 @@
 #include <QPushButton>
 #include <QLCDNumber>
 #include <QVBoxLayout>
+#include <QGridLayout>
 #include <QPushButton>
 #include <QCoreApplication>
 #include <QDebug>
@@ -45,22 +46,33 @@ namespace PAP
     layout->addWidget( new MotionAxisWidget{ mssvc->stackYAxis(),this } ) ;
     layout->addWidget( new MotionAxisWidget{ mssvc->stackRAxis(),this } ) ;
 
-    auto moveoutbutton = new QPushButton("Move out",this) ;
-    connect(moveoutbutton,&QPushButton::clicked,[=](){
+    auto extrabuttonlayout = new QGridLayout{} ;
+    layout->addLayout( extrabuttonlayout ) ;
+
+    auto parkbutton = new QPushButton("Park position",this) ;
+    connect(parkbutton,&QPushButton::clicked,[=](){
 	mssvc->mainXAxis().moveTo( double(mssvc->mainXAxis().leftTravelLimit()+1.0) ) ;
 	mssvc->mainYAxis().moveTo( double(mssvc->mainYAxis().leftTravelLimit()+1.0) ) ;
       } ) ;
-    layout->addWidget( moveoutbutton ) ;
+    extrabuttonlayout->addWidget(parkbutton,0,0) ;
+    
+    auto camerasafebutton = new QPushButton("Camera safe position",this) ;
+    connect(camerasafebutton,&QPushButton::clicked,[=](){
+	mssvc->focusAxis().moveTo( double(18.0) ) ;
+      } ) ;
+    extrabuttonlayout->addWidget(camerasafebutton,0,1) ;
     
     auto calibrationdialog = new MotionSystemCalibration{this} ;
     auto calibratebutton = new QPushButton("Calibrate",this) ;
     //calibratebutton->setObjectName(QStringLiteral("calibrateButton"));
     connect(calibratebutton,&QPushButton::clicked,[=](){ calibrationdialog->show() ; } ) ;
-    layout->addWidget( calibratebutton ) ;
-
+    //layout->addWidget( calibratebutton ) ;
+    extrabuttonlayout->addWidget( calibratebutton,1,0) ;
+			   
     auto quitbutton = new QPushButton("Quit",this) ;
     quitbutton->setObjectName(QStringLiteral("quitButton"));
-    layout->addWidget( quitbutton ) ;
+    extrabuttonlayout->addWidget( quitbutton,1,1) ;
+
     setLayout( layout ) ;
     
     QMetaObject::connectSlotsByName(this);
