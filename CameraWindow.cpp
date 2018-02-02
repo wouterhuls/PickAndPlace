@@ -54,19 +54,25 @@ namespace PAP
     stopbutton->setIconSize(QSize(100,100)) ;
     buttonlayout->addWidget( stopbutton ) ;
     
-    auto focusbutton = new QPushButton("Focus",this) ;
+    auto focusbutton = new QPushButton("Auto-Focus",this) ;
     focusbutton->setToolTip("Start autofocus sequence") ;
     focusbutton->setObjectName(QStringLiteral("focusButton"));
     buttonlayout->addWidget( focusbutton ) ;
 
+    auto markerfocusbutton = new QPushButton("Marker focus",this) ;
+    markerfocusbutton->setToolTip("Move to the default focus position of the closest marker") ;
+    connect( markerfocusbutton, &QPushButton::clicked, this, &CameraWindow::focusOnMarker ) ;
+    buttonlayout->addWidget( markerfocusbutton ) ;
+    
     if( m_cameraview->camera() ) {
       QCameraImageProcessing *imageProcessing = m_cameraview->camera()->imageProcessing();
       if (imageProcessing->isAvailable()) {
-	auto camerasettingsdialog = new CameraImageProcessingDialog( *imageProcessing,this) ;
-	auto camerasettingsbutton = new QPushButton("Settings",this) ;
-	camerasettingsbutton->setToolTip("Show camera settings dialog") ;
-	connect(camerasettingsbutton,&QPushButton::clicked,[=](){ camerasettingsdialog->show() ; } ) ;
-      }
+    	auto camerasettingsdialog = new CameraImageProcessingDialog( *imageProcessing,this) ;
+    	auto camerasettingsbutton = new QPushButton("Settings",this) ;
+    	camerasettingsbutton->setToolTip("Show camera settings dialog") ;
+    	connect(camerasettingsbutton,&QPushButton::clicked,[=](){ camerasettingsdialog->show() ; } ) ;
+    	buttonlayout->addWidget(camerasettingsbutton) ;
+      } 
     }
     
     //auto quitbutton = new QPushButton("Quit",this) ;
@@ -183,5 +189,36 @@ namespace PAP
       m_showCSideTiles->setCheckState( Qt::Checked ) ;
     } 
   }
-  
+
+  void CameraWindow::focusOnMarker()
+  {
+    // this routine focusses the camera on the closest marker, using
+    // stored marker z-positions. for now, there are only three
+    // z-positions.
+    auto closestmarker = m_cameraview->closestMarkerName() ;
+    double m_zpositionNSideJigMarker1 = 24.675 ; // 
+    double m_zpositionNSideJigMarker2 = 24.465 ; // 
+    double m_zpositionCSideJigMarker1 = 23.243 ; // 
+    double m_zpositionCSideJigMarker2 = 23.223 ; // 
+    double m_zpositionVelopixMarker  = 23.610 ;
+
+    double z=0 ;
+    bool success = true ;
+    if( closestmarker.contains("MainJigMarker1") ) {
+      z = m_cameraview->currentViewDirection()== PAP::NSideView ?
+	m_zpositionNSideJigMarker1 : m_zpositionCSideJigMarker1 ;
+    } else if( closestmarker.contains("MainJigMarker2") ) {
+      z = m_cameraview->currentViewDirection()== PAP::NSideView ?
+	m_zpositionNSideJigMarker2 : m_zpositionCSideJigMarker2 ;
+    } else if( closestmarker.contains("VP") ) {
+      z = m_zpositionVelopixMarker ;
+    } else {
+      success = false ;
+    }
+    if(success) {
+      // perhaps it is best to pop up a dialog, just to make sure we
+      // now what we are doing?
+      MotionSystemSvc::instance()->focusAxis().moveTo( z ) ;
+    }
+  }
 }

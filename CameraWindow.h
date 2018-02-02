@@ -26,6 +26,7 @@ namespace PAP
     void on_quitButton_clicked();
     void on_stopButton_clicked();
     void toggleView(int view) ;
+    void focusOnMarker() ;
   private:
     CameraView* m_cameraview ;
     AutoFocus* m_autofocus ;
