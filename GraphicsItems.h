@@ -6,19 +6,38 @@
 
 namespace PAP
 {
+  // Interface class to markers. Markers have a name and position
+  class Marker : public QGraphicsItem
+  {
+  public:
+    // constructor
+    Marker( const QString& name, double x, double y, QGraphicsItem *parent )
+      : QGraphicsItem(parent)
+    {
+      setToolTip( name ) ;
+      setPos( x, y ) ;
+    } ;
+    Marker( const FiducialDefinition & def,QGraphicsItem *parent)
+      : QGraphicsItem(parent)
+    {
+      setToolTip( def.name ) ;
+      setPos( def.x, def.y ) ;
+    } ;
+    QString name() const { return toolTip() ; }
+  } ;
+    
+  
   // Implements graphics item for Velopix marker. Center of marker is
   // center of system. Units are now in mm
-  class VelopixMarker : public QGraphicsItem
+  class VelopixMarker : public Marker
   {
   private:
     const float m_size = 0.1 ; // size in micron
   public:
-    VelopixMarker(QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItem(parent) {} 
-    VelopixMarker(const FiducialDefinition& def, QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItem(parent)
+    VelopixMarker(const FiducialDefinition& def, QGraphicsItem *parent = Q_NULLPTR)
+      : Marker(def,parent)
     {
       setRotation(45) ;
-      setPos(def.x,def.y) ;  // convert from mm to micron
-      setToolTip(def.name) ;
     }
     
     virtual QRectF boundingRect() const
@@ -157,16 +176,13 @@ namespace PAP
   
 
   // Implements graphics item for a marker of the Jig.
-  class JigMarker : public QGraphicsItem
+  class JigMarker : public Marker
   {
   private:
     const float m_size = 10.0 ; // size in mm
   public:
-    JigMarker(const FiducialDefinition& def, QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItem(parent)
-    {
-      setPos(def.x,def.y) ;  // convert from mm to micron
-      setToolTip(def.name) ;
-    } ;
+    JigMarker(const FiducialDefinition& def, QGraphicsItem *parent = Q_NULLPTR)
+      : Marker(def,parent) {}
     
     virtual QRectF boundingRect() const
     {
