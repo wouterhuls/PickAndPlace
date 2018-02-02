@@ -29,15 +29,10 @@ namespace PAP
     hlayout->addWidget( movetomarker1button ) ;
     
     auto recordcentrebutton = new QPushButton{"record centre", this} ;
+    recordcentrebutton->setToolTip("Record the current centre of the camera view as the position of this marker.") ;
     hlayout->addWidget( recordcentrebutton ) ;
     connect(recordcentrebutton,&QPushButton::pressed,
 	    [=](){ setStatus(Active) ; camview->record( camview->localOrigin()) ; } ) ;
-    
-    auto recordpointerbutton = new QPushButton{"record pointer", this} ;
-    recordpointerbutton->setCheckable(true) ;
-    hlayout->addWidget( recordpointerbutton ) ;
-    connect(this, &MarkerRecorderWidget::ready, [=]() { recordpointerbutton->setChecked(false) ; setStatus(Recorded) ; } ) ;
-    connect(recordpointerbutton,&QPushButton::toggled,this,&MarkerRecorderWidget::on_recordbutton_toggled) ;
     
     // catch measurement updates
     connect( camview, &CameraView::recording, this, &MarkerRecorderWidget::record ) ;
@@ -50,12 +45,14 @@ namespace PAP
   }
   
   void MarkerRecorderWidget::record( const CoordinateMeasurement& m) {
-    if( m_status == Active ) {
+    if( m_status == Active ||
+	m.markername == objectName() ) {
       m_measurement = m ;
       m_markerposition = m_cameraview->globalPosition( objectName() ) ;
       setStatus( Recorded ) ;
       emit ready() ;
       qDebug() << "received measurement: (" << m.globalcoordinates.x << "," << m.globalcoordinates.y << ")" ;
+      qDebug() << m.markername << " " << objectName() ;
       qDebug() << "marker position:      " << m_markerposition ;
     }
   }
@@ -195,8 +192,8 @@ namespace PAP
       GeometrySvc::instance()->applyModuleDelta(delta(0),delta(1),delta(2)) ;
       m_cameraview->updateGeometryView() ;
       // and don't forget to reset
-      m_marker1recorder->reset() ;
-      m_marker2recorder->reset() ;
+      m_marker1recorder->setStatus( MarkerRecorderWidget::Calibrated ) ;
+      m_marker2recorder->setStatus( MarkerRecorderWidget::Calibrated ) ;
     } else {
       qWarning() << "Recordings not complete: "
 		 << m_marker1recorder->status() << " "
@@ -274,14 +271,12 @@ namespace PAP
       // now update the geometry
       //GeometrySvc::instance()->applyModuleDelta(delta(0),delta(1),delta(2)) ;
 
-      
-
       //m_cameraview->updateStackAxisView() ;
       // Fix me: perhaps we would directly like to call the 'moveStack' thingy here
       
       // and don't forget to reset
-      m_marker1recorder->reset() ;
-      m_marker2recorder->reset() ;
+      m_marker1recorder->setStatus( MarkerRecorderWidget::Calibrated ) ;
+      m_marker2recorder->setStatus( MarkerRecorderWidget::Calibrated ) ;
     } else {
       qWarning() << "Recordings not complete: "
 		 << m_marker1recorder->status() << " "
