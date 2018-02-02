@@ -28,11 +28,11 @@ namespace PAP
     void setZero() ;
     void step( Direction dir ) ;   // move default stepsize in the direction dir
     void move( Direction dir ) ;   // move until stoppped
-    void move( float delta ) ;     // move by delta
-    void moveTo( float position ) ;
+    void move( double delta ) ;     // move by delta
+    void moveTo( double position ) ;
     void stop() ;
-    //float position() const { return m_position ; }
-    //void setPosition( float p ) { m_position = p ; }
+    //double position() const { return m_position ; }
+    //void setPosition( double p ) { m_position = p ; }
     const QString name() const { return m_name ; }
     const MotionAxisID& id() const { return m_id ; }
     const MotionController& controller() const { return *m_controller ; }
@@ -62,7 +62,7 @@ namespace PAP
       void movementStopped() ;
       
     public slots:
-      //void setDefaultVelocity( float v ) const ;
+      //void setDefaultVelocity( double v ) const ;
       // void handleParameterUpdate() const ;
       //void writeParameter( const MSParameter& par ) const ;
       //void readParameter( MSParameter& par ) ;
@@ -70,7 +70,7 @@ namespace PAP
       void readPosition() ;
       
   private:
-      float updatePosition() ;
+      double updatePosition() ;
   private:
       MotionAxisID m_id ;
       QString m_name ;

@@ -124,7 +124,7 @@ namespace PAP
     move( dir * m_stepsize ) ;
   }
 
-  void MotionAxis::move( float delta )
+  void MotionAxis::move( double delta )
   {
     setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PR",delta) ;
@@ -153,7 +153,7 @@ namespace PAP
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"ST") ;
   }
   
-  void MotionAxis::moveTo( float position )
+  void MotionAxis::moveTo( double position )
   {
     qDebug() << "Movint to: " << position ;
     setIsMoving( true ) ;
@@ -191,7 +191,7 @@ namespace PAP
   bool MotionAxis::parseData( const QString& cmd, const QString& value) {
     bool success = true ;
     if( cmd == "TP" ) {
-      m_position = value.toFloat() ;
+      m_position = value.toDouble() ;
     } else if (cmd == "MS") {
       // it may be that this doesn't work, because we need to go via a char
       //m_status = value.toUInt() ;
