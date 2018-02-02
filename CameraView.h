@@ -21,6 +21,7 @@ class QGraphicsRectItem ;
 namespace PAP
 {
   class CoordinateMeasurement ;
+  class Marker ;
   
   class CameraView : public QGraphicsView
   {
@@ -32,7 +33,7 @@ namespace PAP
     void setCamera(const QCameraInfo &cameraInfo) ;
 
     // return the pixelsize = microns
-    float pixelSize() const { return m_chipPixelSize / m_magnification ; }
+    double pixelSize() const { return m_chipPixelSize / m_magnification ; }
     double pixelSizeX() const { return pixelSize() ; }
     double pixelSizeY() const { return pixelSize() ; }
 
@@ -44,7 +45,7 @@ namespace PAP
     void updateGeometryView() ;
     void updateStackAxisView() ;
     void resetCamera() ;
-    void lockWhiteBalance( bool lock = true ) ;
+    //void lockWhiteBalance( bool lock = true ) ;
 
     QTransform fromCameraToPixel() const
     {
@@ -66,6 +67,10 @@ namespace PAP
     const QPointF& localOrigin() const { return m_localOrigin ; }
 
     QCamera* camera() { return m_camera ; }
+
+    const PAP::Marker* closestMarker( const QPointF& localpoint ) const ;
+    const PAP::Marker* closestMarker() const { return closestMarker(localOrigin()) ; }
+    QString closestMarkerName() const ;
     
   signals:
     void recording( const CoordinateMeasurement& ) const ;
@@ -113,7 +118,7 @@ namespace PAP
     QPointF m_localOrigin ;
     int m_numPixelsX ;
     int m_numPixelsY ;
-    const float m_chipPixelSize ;
+    const double m_chipPixelSize ;
     NamedDouble m_magnification ;
     NamedDouble m_rotation ;
     double m_nominalscale ;

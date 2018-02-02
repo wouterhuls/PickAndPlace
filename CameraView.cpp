@@ -37,8 +37,8 @@ namespace PAP
       m_viewfinder(0),
       m_videoProbe(0),
       m_chipPixelSize(0.00345),
-      //m_magnification("Cam.Magnification",4.865),
-      m_magnification("Cam.Magnification",2.159),
+      m_magnification("Cam.Magnification",4.865),
+      //m_magnification("Cam.Magnification",2.159),
       m_rotation("Cam.Rotation",+M_PI/2),
       m_currentViewDirection(NSideView),
       m_numScheduledScalings(0)
@@ -298,13 +298,13 @@ namespace PAP
     m_camera->start() ;
   }
 
-  void CameraView::lockWhiteBalance( bool lock )
-  {
-    /*
-    if(lock) m_camera->lock(QCamera::LockWhiteBalance) ;
-    else     m_camera->unlock(QCamera::LockWhiteBalance) ;
-    */
-  }
+  // void CameraView::lockWhiteBalance( bool lock )
+  // {
+  //   /*
+  //   if(lock) m_camera->lock(QCamera::LockWhiteBalance) ;
+  //   else     m_camera->unlock(QCamera::LockWhiteBalance) ;
+  //   */
+  // }
 
   void CameraView::setViewDirection( ViewDirection dir )
   {
@@ -372,12 +372,21 @@ namespace PAP
     // let's pop up a dialog with the cursos position
     if(event->button() == Qt::RightButton)
       {
-	char message[256] ;
 	int x = event->pos().x() ;
 	int y = event->pos().y() ;
 	QPointF local = mapToScene( x,y ) ;
-	sprintf(message,"pos=(%d,%d) --> (%f,%f) pixels --> (%f,%f) mm",x,y,
-		local.x()-m_localOrigin.x(),local.y()-m_localOrigin.y(),
+
+	char message[256] ;
+	// sprintf(message,
+	// 	"position (x,y) to center [pixels]: (%d,%d)\n"
+	// 	"                [mm]: (%.4f,%.4f)",//x,y,
+	// 	int(local.x()-m_localOrigin.x()),
+	// 	int(local.y()-m_localOrigin.y()),
+	// 	(local.x()-m_localOrigin.x())*pixelSize(),
+	// 	(local.y()-m_localOrigin.y())*pixelSize()
+	// 	) ;
+	sprintf(message,
+		"position [mm]: (%.4f,%.4f)",//x,y,
 		(local.x()-m_localOrigin.x())*pixelSize(),
 		(local.y()-m_localOrigin.y())*pixelSize()
 		) ;
@@ -460,7 +469,20 @@ namespace PAP
       }
       return rc ;
     }
+
+    void collectVisibleMarkers(const QGraphicsItem& item,
+			       std::vector<const PAP::Marker*>& markers)
+    {
+      auto m = dynamic_cast<const PAP::Marker*>(&item) ;
+      if( m ) {
+	if(m->isVisible()) markers.push_back(m) ;
+      } else {
+	for( const auto& dau : item.childItems() ) 
+	  collectVisibleMarkers(*dau,markers) ;
+      }
+    }
   }
+  
   
   void CameraView::moveCameraTo( const QString& markername ) const
   {
@@ -485,6 +507,31 @@ namespace PAP
     }
     return rc ;
   }
+
+  const PAP::Marker* CameraView::closestMarker(const QPointF& localpoint ) const
+  {
+    const PAP::Marker* rc(0) ;
+    std::vector<const PAP::Marker*> markers ;
+    collectVisibleMarkers(*m_detectorgeometry,markers) ;
+    double dist2=0 ;
+    for( const auto& m : markers ) {
+      const QPointF mpos = m_detectorgeometry->mapToScene( m->pos() ) ;
+      const double dx = mpos.x()-localpoint.x() ;
+      const double dy = mpos.y()-localpoint.y() ;
+      double thisdist2 = dx*dx+dy*dy ;
+      if( !rc || thisdist2 < dist2 ) {
+	dist2 = thisdist2 ;
+	rc = m ;
+      }
+    }
+    return rc ;
+  }
+
+  QString CameraView::closestMarkerName() const
+  {
+    const PAP::Marker* m = closestMarker() ;
+    return m ? m->name() : QString{} ;
+  }
   
   void CameraView::record( QPointF localpoint ) const
   {
@@ -506,7 +553,9 @@ namespace PAP
     auto globalpoint = T.map( localpoint ) ;
     measurement.globalcoordinates.x = globalpoint.x() ;
     measurement.globalcoordinates.y = globalpoint.y() ;
-    
+
+    // Let's also add the name of the marker
+    measurement.markername = closestMarkerName() ;
     emit recording( measurement ) ;
   }
   
