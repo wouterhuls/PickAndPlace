@@ -29,6 +29,7 @@ namespace PAP
     setWindowTitle("Velo Pick&Place") ;
     
     m_cameraview = new CameraView{this} ;
+    m_autofocus = new AutoFocus{ m_cameraview, this } ;
     
     // add a vertical layout. if we derive from 'mainwindow', then
     // layout must be set to the central widget.
@@ -61,7 +62,7 @@ namespace PAP
 
     auto markerfocusbutton = new QPushButton("Marker focus",this) ;
     markerfocusbutton->setToolTip("Move to the default focus position of the closest marker") ;
-    connect( markerfocusbutton, &QPushButton::clicked, this, &CameraWindow::focusOnMarker ) ;
+    connect( markerfocusbutton, &QPushButton::clicked, m_autofocus, &AutoFocus::applyMarkerFocus ) ;
     buttonlayout->addWidget( markerfocusbutton ) ;
     
     if( m_cameraview->camera() ) {
@@ -132,17 +133,16 @@ namespace PAP
     hlayout->addLayout( buttonlayout ) ;
     //m_cameraview->show() ;
 
-    m_autofocus = new AutoFocus{ m_cameraview, this } ;
+
 
     auto taskpages = new QTabWidget{this} ;
     layout->addWidget( taskpages ) ;
+    auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
 
     {
       auto nsidetaskpages = new QTabWidget{ taskpages } ;
       taskpages->addTab(nsidetaskpages,"N-side") ;
-      
-      auto page1widget = new AlignMainJigPage{m_cameraview} ;
-      nsidetaskpages->addTab(page1widget,"Align jig") ;
+      nsidetaskpages->addTab(mainjigalignwidget,"Align jig") ;
       nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NSI","NSI_VP20_Fid1","NSI_VP22_Fid2"},"Align NSI") ;
       nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NLO","NLO_VP10_Fid1","NLO_VP12_Fid2"},"Align NLO") ;
     }
@@ -150,9 +150,7 @@ namespace PAP
     {
       auto csidetaskpages = new QTabWidget{ taskpages } ;
       taskpages->addTab(csidetaskpages,"C-side") ;
-      
-      auto page1widget = new AlignMainJigPage{m_cameraview} ;
-      csidetaskpages->addTab(page1widget,"Align jig") ;
+      csidetaskpages->addTab(mainjigalignwidget,"Align jig") ;
       csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CLI","CLI_VP00_Fid1","CLI_VP02_Fid2"},"Align CLI") ;
       csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CSO","CSO_VP30_Fid1","CSO_VP32_Fid2"},"Align CSO") ;
     }
@@ -188,37 +186,5 @@ namespace PAP
       m_showNSideTiles->setCheckState( Qt::Unchecked ) ;
       m_showCSideTiles->setCheckState( Qt::Checked ) ;
     } 
-  }
-
-  void CameraWindow::focusOnMarker()
-  {
-    // this routine focusses the camera on the closest marker, using
-    // stored marker z-positions. for now, there are only three
-    // z-positions.
-    auto closestmarker = m_cameraview->closestMarkerName() ;
-    double m_zpositionNSideJigMarker1 = 24.675 ; // 
-    double m_zpositionNSideJigMarker2 = 24.465 ; // 
-    double m_zpositionCSideJigMarker1 = 23.243 ; // 
-    double m_zpositionCSideJigMarker2 = 23.223 ; // 
-    double m_zpositionVelopixMarker  = 23.610 ;
-
-    double z=0 ;
-    bool success = true ;
-    if( closestmarker.contains("MainJigMarker1") ) {
-      z = m_cameraview->currentViewDirection()== PAP::NSideView ?
-	m_zpositionNSideJigMarker1 : m_zpositionCSideJigMarker1 ;
-    } else if( closestmarker.contains("MainJigMarker2") ) {
-      z = m_cameraview->currentViewDirection()== PAP::NSideView ?
-	m_zpositionNSideJigMarker2 : m_zpositionCSideJigMarker2 ;
-    } else if( closestmarker.contains("VP") ) {
-      z = m_zpositionVelopixMarker ;
-    } else {
-      success = false ;
-    }
-    if(success) {
-      // perhaps it is best to pop up a dialog, just to make sure we
-      // now what we are doing?
-      MotionSystemSvc::instance()->focusAxis().moveTo( z ) ;
-    }
   }
 }

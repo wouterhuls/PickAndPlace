@@ -26,14 +26,13 @@ namespace PAP
     void on_quitButton_clicked();
     void on_stopButton_clicked();
     void toggleView(int view) ;
-    void focusOnMarker() ;
   private:
     CameraView* m_cameraview ;
     AutoFocus* m_autofocus ;
     // some labels that tell where the cursor position is
     QLabel* m_cursorposition ;
     QCheckBox* m_showNSideTiles ;
-    QCheckBox* m_showCSideTiles ;       
+    QCheckBox* m_showCSideTiles ;
   } ;
 
 }
