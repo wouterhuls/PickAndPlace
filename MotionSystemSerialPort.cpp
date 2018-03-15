@@ -56,7 +56,7 @@ namespace PAP
     m_serialport(portinfo),
     m_currentcontrollerid(-1),
     m_sleeptimeaddresschange("MotionSystem.SleepTimeAddressChange",200),
-    m_sleeptimereadcommand("MotionSystem.SleepTimeReadCommand",100)
+    m_sleeptimereadcommand("MotionSystem.SleepTimeReadCommand",200)
   {
     // let;s open it in this thread and not in the other one.
     m_serialport.setParent(this) ;
@@ -144,7 +144,7 @@ namespace PAP
       // while (m_serialport.waitForReadyRead(m_timeout))
       //   readData.append(m_serialport.readAll());
       // and this is how I want to try it:
-      bool success = m_serialport.waitForReadyRead(1000) ;
+      bool success = m_serialport.waitForReadyRead(2000) ;
       readData = m_serialport.readAll();
       if(!success)
 	qWarning() << "WaitForReadyRead timed out!" ;
