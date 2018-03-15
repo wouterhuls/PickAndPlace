@@ -58,7 +58,7 @@ namespace PAP
     
     auto camerasafebutton = new QPushButton("Camera safe position",this) ;
     connect(camerasafebutton,&QPushButton::clicked,[=](){
-	mssvc->focusAxis().moveTo( double(18.0) ) ;
+	mssvc->focusAxis().moveTo( double(20.0) ) ;
       } ) ;
     extrabuttonlayout->addWidget(camerasafebutton,0,1) ;
     
