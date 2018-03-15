@@ -94,6 +94,11 @@ namespace PAP
     }
     m_scene->addItem( m_viewfinderborder ) ;
 
+    m_markertext = new QGraphicsSimpleTextItem{"hallo"} ;
+    m_markertext->setBrush( QBrush{QColor{255,69,0} } ) ;
+    m_markertext->setPos(1000,1000) ;
+    m_scene->addItem( m_markertext ) ;
+ 
 		      
     // let's add a cross at (0,0) in the cameraview. here it would be
     // nice to have some size in 'absolute' coordinates. but for that
@@ -158,7 +163,8 @@ namespace PAP
     connect(MotionSystemSvc::instance(),&MotionSystemSvc::mainStageMoved,
 	    this,&CameraView::updateStackAxisView) ;
     updateStackAxisView() ;
-    
+
+   
     //m_cursor = new QGraphicsTextItem("0, 0", 0, this); //Fixed at 0, 0
 
     //m_view = new QGraphicsView{m_scene,this} ;
@@ -282,6 +288,10 @@ namespace PAP
     QTransform T1 = geomsvc->fromCameraToGlobal() ;
     QTransform T2 = geomsvc->fromModuleToGlobal( m_currentViewDirection ) ;
     m_detectorgeometry->setTransform( (T2 * T1.inverted() ) * fromCameraToPixel() ) ;
+
+    //
+    m_markertext->setText(closestMarkerName()) ;
+    
   }
 
   void CameraView::updateStackAxisView()
@@ -385,10 +395,17 @@ namespace PAP
 	// 	(local.x()-m_localOrigin.x())*pixelSize(),
 	// 	(local.y()-m_localOrigin.y())*pixelSize()
 	// 	) ;
+	QTransform fromModuleToGlobal = GeometrySvc::instance()->fromModuleToGlobal(m_currentViewDirection) ;
+	QTransform fromPixelToGlobal =
+	  fromCameraToPixel().inverted() * GeometrySvc::instance()->fromCameraToGlobal() ;
+	QTransform fromLocalToModule = fromPixelToGlobal * fromModuleToGlobal.inverted() ;
+	auto modulepoint = fromLocalToModule.map( local ) ;
 	sprintf(message,
-		"position [mm]: (%.4f,%.4f)",//x,y,
+		"position wrt camera centre [mm]: (%.4f,%.4f)\n"
+		"position in module frame [mm]:   (%.4f,%.4f)",//x,y,
 		(local.x()-m_localOrigin.x())*pixelSize(),
-		(local.y()-m_localOrigin.y())*pixelSize()
+		(local.y()-m_localOrigin.y())*pixelSize(),
+		modulepoint.x(),modulepoint.y()
 		) ;
 	
 	//QMessageBox dialog(this) ;
@@ -547,12 +564,11 @@ namespace PAP
 	    << mscoord.stack.phi << ")" ;
     CoordinateMeasurement measurement ;
     measurement.mscoordinates = mscoord ;
-    // besides this, we also want to global coordinates. First mape the transform:
+    // besides this, we also want to global coordinates. First map the transform:
     QTransform T = fromCameraToPixel().inverted() * GeometrySvc::instance()->fromCameraToGlobal() ;
     //GeometrySvc::instance()->fromCameraToGlobal().inverted() * fromCameraToPixel() ;
     auto globalpoint = T.map( localpoint ) ;
-    measurement.globalcoordinates.x = globalpoint.x() ;
-    measurement.globalcoordinates.y = globalpoint.y() ;
+    measurement.globalcoordinates = globalpoint ;
 
     // Let's also add the name of the marker
     measurement.markername = closestMarkerName() ;

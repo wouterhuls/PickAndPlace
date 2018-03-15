@@ -17,6 +17,7 @@ class QCameraViewfinder ;
 class QVideoProbe ;
 class QVideoFrame ;
 class QGraphicsRectItem ;
+class QGraphicsSimpleTextItem ;
 
 namespace PAP
 {
@@ -132,6 +133,9 @@ namespace PAP
     
     // needed for the smooth zoom function
     int m_numScheduledScalings ;
+
+    // text with name of closest marker
+    QGraphicsSimpleTextItem* m_markertext ;
     
   };
 }
