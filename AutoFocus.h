@@ -2,6 +2,7 @@
 #define __AUTOFOCUS_HH__
 
 #include <QDialog>
+#include "NamedValue.h"
 class QImage ;
 class QVideoFrame ;
 class QLabel ;
@@ -45,12 +46,14 @@ namespace PAP
     
   public slots:      
     void processFrame( const QVideoFrame& frame ) ;
+    void storeMarkerFocus() ;
+    void applyMarkerFocus() const ;
   private:
     FocusMeasurement takeMeasurement( MotionAxis& axis, double zpos ) ;
   
   private:
+    CameraView* m_cameraView ;
     QImage* m_focusImage ;
-
     QLabel* m_focusView ;
    
     // series with focus data
@@ -63,6 +66,9 @@ namespace PAP
     bool m_focusTriggered ;
     // the last focus measurement. at some point we can put this in a signal.
     FocusMeasurement m_focusMeasurement ;
+
+    // map that stores markers with focus point
+    std::map< QString,NamedDouble> m_markerfocuspoints[2] ;
   } ;
 
 } ;

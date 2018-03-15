@@ -15,11 +15,13 @@
 
 #include <cmath>
 #include "MotionSystemSvc.h"
+#include "GeometrySvc.h"
+#include "PropertySvc.h"
 
 namespace PAP
 {
   AutoFocus::AutoFocus(CameraView* camview, QWidget* parent)
-    : QDialog(parent)
+    : QDialog(parent), m_cameraView(camview)
   {
     connect(camview->videoProbe(), SIGNAL(videoFrameProbed(QVideoFrame)),
 	    this, SLOT(processFrame(QVideoFrame)));
@@ -79,13 +81,58 @@ namespace PAP
     connect( clearbutton,  &QPushButton::clicked, [=](){ this->m_focusmeasurements->clear() ; } ) ;
     buttonlayout->addWidget( clearbutton ) ;
 
+    auto storebutton = new QPushButton{"Store", this} ;
+    connect( storebutton,  &QPushButton::clicked, [=](){ this->storeMarkerFocus() ; } ) ;
+    buttonlayout->addWidget( storebutton ) ;
+    
     auto hidebutton = new QPushButton{"Hide", this} ;
     connect( hidebutton,  &QPushButton::clicked, [=](){ this->hide() ; } ) ;
     buttonlayout->addWidget( hidebutton ) ;
+
+    // fill markerfocuspoint map
+    // double m_zpositionNSideJigMarker1 = 24.675 ; // 
+    // double m_zpositionNSideJigMarker2 = 24.465 ; // 
+    // double m_zpositionCSideJigMarker1 = 23.243 ; // 
+    // double m_zpositionCSideJigMarker2 = 23.223 ; // 
+    // double m_zpositionVelopixMarker   = 23.610 ;
     
+    for( const auto& m : GeometrySvc::instance()->jigmarkers() ) {
+      m_markerfocuspoints[NSideView].insert( {m.name,NamedDouble{QString{"Focus.NSide."} + m.name,24.5} } ) ;
+      m_markerfocuspoints[CSideView].insert( {m.name,NamedDouble{QString{"Focus.CSide."} + m.name,23.2} } ) ;
+    }
+    for( const auto& m : GeometrySvc::instance()->velopixmarkersNSide() )
+      m_markerfocuspoints[NSideView].insert( {m.name,NamedDouble{QString{"Focus.NSide."} + m.name,23.61} } ) ;
+    for( const auto& m : GeometrySvc::instance()->velopixmarkersCSide() ) {
+      m_markerfocuspoints[CSideView].insert( {m.name,NamedDouble{QString{"Focus.CSide."} + m.name,23.61} } ) ;
+    }
+    for(int i=0; i<2; ++i)
+      for(auto& it: m_markerfocuspoints[i])
+	PropertySvc::instance()->add( it.second ) ;
   }
 
   AutoFocus::~AutoFocus() {}
+
+  void AutoFocus::storeMarkerFocus()
+  {
+    auto closestmarker = m_cameraView->closestMarkerName() ;
+    auto dir = m_cameraView->currentViewDirection() ;
+    auto it = m_markerfocuspoints[dir].find( closestmarker ) ;
+    if( it != m_markerfocuspoints[dir].end() ) {
+      double zpos = MotionSystemSvc::instance()->focusAxis().position() ;
+      it->second.setValue( zpos ) ;
+    }
+  }
+
+  void AutoFocus::applyMarkerFocus() const
+  {
+    auto closestmarker = m_cameraView->closestMarkerName() ;
+    auto dir = m_cameraView->currentViewDirection() ;
+    auto it = m_markerfocuspoints[dir].find( closestmarker ) ;
+    if( it != m_markerfocuspoints[dir].end() ) {
+      double zpos = it->second.value() ;
+      MotionSystemSvc::instance()->focusAxis().moveTo( zpos ) ;
+    }
+  }
   
  void AutoFocus::processFrame( const QVideoFrame& frame )
   {
