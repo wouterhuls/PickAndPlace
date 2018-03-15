@@ -4,6 +4,7 @@
 #include "CoordinateMeasurement.h"
 #include <QWidget>
 class QLabel ;
+class QPlainTextEdit ;
 
 namespace PAP
 {
@@ -19,13 +20,13 @@ namespace PAP
 			 QWidget* parent=0) ;
     const CoordinateMeasurement& measurement() const { return m_measurement ; }
     const QPointF& markerposition() const { return m_markerposition; }
-    double dx() const { return m_markerposition.x() - m_measurement.globalcoordinates.x; }
-    double dy() const { return m_markerposition.y() - m_measurement.globalcoordinates.y; }
+    double dx() const { return m_markerposition.x() - m_measurement.globalcoordinates.x(); }
+    double dy() const { return m_markerposition.y() - m_measurement.globalcoordinates.y(); }
     Status status() const { return m_status ; }
     void reset() { setStatus(Uninitialized) ; }
     void setStatus( Status s ) ;
-  signals:
-    void ready() ;
+    //signals:
+    //void ready() ;
   public slots:
     void record( const CoordinateMeasurement& m) ;
     void on_recordbutton_toggled(bool checked) {
@@ -48,6 +49,7 @@ namespace PAP
     MarkerRecorderWidget* m_marker1recorder ;
     MarkerRecorderWidget* m_marker2recorder ;
     CameraView* m_cameraview ;
+    QPlainTextEdit* m_textbox ;
   public:
     AlignMainJigPage(PAP::CameraView* camview) ;
   public slots:
@@ -67,6 +69,7 @@ namespace PAP
     MarkerRecorderWidget* m_marker2recorder ;
     CameraView* m_cameraview ;
     QString m_tilename ;
+    QPlainTextEdit* m_textbox ;
   public slots:
     void updateAlignment() const ;
   } ;

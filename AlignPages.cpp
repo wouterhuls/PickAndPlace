@@ -10,11 +10,28 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QLabel>
+#include <QPlainTextEdit>
+
 
 
 namespace PAP
 {
-
+  // wrapper class that allows to stream to a qtextedit using stringstream
+  class TextEditStream
+  {
+  private:
+    QPlainTextEdit* m_textbox ;
+  public:
+    TextEditStream( QPlainTextEdit& textbox) : m_textbox(&textbox) {}
+    template<typename T>
+    TextEditStream& operator<<( const T& text) {
+      std::stringstream os ;
+      os << text ;
+      m_textbox->appendPlainText( os.str().c_str() ) ;
+      return *this ;
+    }
+  };
+  
   // helper class for page for alignment of the main jig
   MarkerRecorderWidget::MarkerRecorderWidget(const char* markername,
 					     const PAP::CameraView* camview,
@@ -44,16 +61,26 @@ namespace PAP
     
   }
   
-  void MarkerRecorderWidget::record( const CoordinateMeasurement& m) {
-    if( m_status == Active ||
+  void MarkerRecorderWidget::record( const CoordinateMeasurement& m ) {
+    if( //m_status == Active ||
 	m.markername == objectName() ) {
-      m_measurement = m ;
       m_markerposition = m_cameraview->globalPosition( objectName() ) ;
-      setStatus( Recorded ) ;
-      emit ready() ;
-      qDebug() << "received measurement: (" << m.globalcoordinates.x << "," << m.globalcoordinates.y << ")" ;
-      qDebug() << m.markername << " " << objectName() ;
+      //emit ready() ;
+      qDebug() << "received measurement: " << objectName() << m.markername ;
+      qDebug() << "global coordinates: (" << m.globalcoordinates.x() << "," << m.globalcoordinates.y() << ")" ;
       qDebug() << "marker position:      " << m_markerposition ;
+      if( m_status != Uninitialized) {
+	qDebug() << "Change in measurement: ("
+		 << m_measurement.globalcoordinates.x() - m.globalcoordinates.x() << ","
+		 << m_measurement.globalcoordinates.y() - m.globalcoordinates.y() << ")" ;
+      }
+      m_measurement = m ;
+      setStatus( Recorded ) ;
+      //auto T = GeometrySvc::instance()->fromModuleToGlobal(m_cameraview->currentViewDirection()).inverted() ;
+      // qDebug() << "Measured position in module frame: "
+      // 	       << T.map( QPointF{m.globalcoordinates} ) ;
+      // qDebug() << "Nominal position in module frame:  "
+      // 	       << T.map( QPointF{m_markerposition} ) ;
     }
   }
   
@@ -73,21 +100,24 @@ namespace PAP
 
     // routine that computes dx,dy,dphi from a set of marker measurements
     Eigen::Vector3d computeAlignment( const std::vector<MarkerRecorderWidget* >& recordings,
-				      Coordinates2D pivot = Coordinates2D{} )
+				      Coordinates2D pivot = Coordinates2D{},
+				      QPlainTextEdit* textbox=0)
     {
       // Let's first print the measured and expected distance between
       // the markers. This gives an idea of how accurate we can ever
       // be.
+      std::stringstream text ;
+      
       {
 	const auto& m1 = recordings.front() ;
 	const auto& m2 = recordings.back() ;
 	double Lx = m1->markerposition().x() - m2->markerposition().x() ;
 	double Ly = m1->markerposition().y() - m2->markerposition().y() ;
-	double Lx_m = m1->measurement().globalcoordinates.x - m2->measurement().globalcoordinates.x ;
-	double Ly_m = m1->measurement().globalcoordinates.y - m2->measurement().globalcoordinates.y ;
-	qDebug() << "Distance in X: " << Lx << Lx_m << Lx-Lx_m ;
-	qDebug() << "Distance in Y: " << Ly << Ly_m << Ly-Ly_m ;
-	qDebug() << "2D distance  : " << std::sqrt(Lx*Lx+Ly*Ly) - std::sqrt(Lx_m*Lx_m+Ly_m*Ly_m) ;
+	double Lx_m = m1->measurement().globalcoordinates.x() - m2->measurement().globalcoordinates.x() ;
+	double Ly_m = m1->measurement().globalcoordinates.y() - m2->measurement().globalcoordinates.y() ;
+	text << "Distance in X: " << Lx << " " << Lx_m << " " << Lx-Lx_m << std::endl
+	     << "Distance in Y: " << Ly << " " << Ly_m << " " << Ly-Ly_m << std::endl
+	     << "2D distance  : " << std::sqrt(Lx*Lx+Ly*Ly) - std::sqrt(Lx_m*Lx_m+Ly_m*Ly_m) << std::endl ;
       }
       
       // Now do the chi2 minimization
@@ -102,8 +132,8 @@ namespace PAP
 	  Eigen::Vector3d deriv ;
 	  deriv(0) = 1 ;
 	  deriv(1) = 0 ;
-	  deriv(2) = pivot.y - markerpos.y() ;  // -r sin(phi) = -y
-	  double residual = r->measurement().globalcoordinates.x - markerpos.x() ;
+	  deriv(2) = pivot.y() - markerpos.y() ;  // -r sin(phi) = -y
+	  double residual = r->measurement().globalcoordinates.x() - markerpos.x() ;
 	  halfdchi2dpar += residual * deriv ;
 	  for(int irow=0; irow<3; ++irow)
 	    for(int icol=0; icol<3; ++icol)
@@ -114,8 +144,8 @@ namespace PAP
 	  Eigen::Vector3d deriv ;
 	  deriv(0) = 0 ;
 	  deriv(1) = 1 ;
-	  deriv(2) = markerpos.x() - pivot.x ;  // r cos(phi) = x
-	  double residual = r->measurement().globalcoordinates.y - markerpos.y() ;
+	  deriv(2) = markerpos.x() - pivot.x() ;  // r cos(phi) = x
+	  double residual = r->measurement().globalcoordinates.y() - markerpos.y() ;
 	  halfdchi2dpar += residual * deriv ;
 	  for(int irow=0; irow<3; ++irow)
 	    for(int icol=0; icol<3; ++icol)
@@ -139,7 +169,12 @@ namespace PAP
 	       << halfd2chi2dpar2(2,2) ;
 	
       Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
-      qDebug() << "Solution: " << delta(0) << delta(1) << delta(2) ;
+      text << "Solution: dx=" << delta(0) << " dy=" << delta(1) << " dphi=" << delta(2) << std::endl ;
+      if(textbox) {
+        TextEditStream{*textbox} << text.str() ;
+      }
+      else
+	qDebug() << text.str().c_str() ;
       return delta ;
     }
   }
@@ -153,26 +188,27 @@ namespace PAP
     
     auto vlayout = new QVBoxLayout{} ;
     hlayout->addLayout(vlayout) ;
-    m_marker1recorder = new MarkerRecorderWidget( "MainJigMarker1", camview ) ;
+    m_marker1recorder = new MarkerRecorderWidget{ "MainJigMarker1", camview } ;
     vlayout->addWidget( m_marker1recorder ) ;
-    m_marker2recorder = new MarkerRecorderWidget( "MainJigMarker2", camview ) ;
+    m_marker2recorder = new MarkerRecorderWidget{ "MainJigMarker2", camview } ;
     vlayout->addWidget( m_marker2recorder ) ;
     auto calibrationbutton = new QPushButton{"Calibrate", this} ;
     connect(calibrationbutton,&QPushButton::clicked,[=](){ this->updateAlignment() ; } ) ;
     vlayout->addWidget( calibrationbutton ) ;
-    auto tmptext1 = new QLabel{this} ;
-    tmptext1->setText("a. press the 'Marker1' button\n"
-		      "b. take a recording\n"
-		      "c. press the 'Marker2' button\n"
-		      "d. take a recording\n"
-		      "e. press the calibrate button\n"
-		      "f. repeat steps a-e until you are satisfied\n") ;
-    tmptext1->setWordWrap(true);
-    QFont font = tmptext1->font();
+
+    m_textbox = new QPlainTextEdit{this} ;
+    hlayout->addWidget( m_textbox ) ;
+    m_textbox->resize(300,100) ;
+    m_textbox->appendPlainText("a. press the 'Marker1' button\n"
+			       "b. take a recording\n"
+			       "c. press the 'Marker2' button\n"
+			       "d. take a recording\n"
+			       "e. press the calibrate button\n"
+			       "f. repeat steps a-e until you are satisfied\n") ;
+    //QFont font = tmptext1->font();
     //font.setPointSize(2);
-    font.setBold(true);
-    tmptext1->setFont(font);
-    hlayout->addWidget( tmptext1 ) ;
+    //font.setBold(true);
+    //tmptext1->setFont(font);
   }
 
   void AlignMainJigPage::updateAlignment() const
@@ -187,7 +223,7 @@ namespace PAP
     if( m_marker1recorder->status() == MarkerRecorderWidget::Recorded &&
 	m_marker2recorder->status() == MarkerRecorderWidget::Recorded ) {
       std::vector< MarkerRecorderWidget* > recordings = { m_marker1recorder, m_marker2recorder } ;
-      Eigen::Vector3d delta = computeAlignment(recordings) ;
+      Eigen::Vector3d delta = computeAlignment(recordings,Coordinates2D{},m_textbox) ;
       // now update the geometry
       GeometrySvc::instance()->applyModuleDelta(delta(0),delta(1),delta(2)) ;
       m_cameraview->updateGeometryView() ;
@@ -218,29 +254,40 @@ namespace PAP
 	    [=](){ GeometrySvc::instance()->positionStackForTile(m_tilename) ; } ) ;
     vlayout->addWidget( positionstackbutton ) ;
 
-    m_marker1recorder = new MarkerRecorderWidget( marker1, camview ) ;
+    m_marker1recorder = new MarkerRecorderWidget{ marker1, camview } ;
     vlayout->addWidget( m_marker1recorder ) ;
-    m_marker2recorder = new MarkerRecorderWidget( marker2, camview ) ;
+    m_marker2recorder = new MarkerRecorderWidget{ marker2, camview } ;
     vlayout->addWidget( m_marker2recorder ) ;
     
     auto calibrationbutton = new QPushButton{"Calibrate", this} ;
     connect(calibrationbutton,&QPushButton::clicked,[=](){ this->updateAlignment() ; } ) ;
     vlayout->addWidget( calibrationbutton ) ;
 
-    auto tmptext1 = new QLabel{this} ;
-    tmptext1->setText("a. press the 'position stack' button\n"
-		      "b. press the button for the first marker\n"
-		      "c. take a recording. YOU MAY MOVE THE MAIN STAGE BUT NOT THE STACK\n"
-		      "d. do the same for the 2nd marker\n"
-		      "e. press the calibrate button\n"
-		      "f. press again the 'position stack' button\n"
-		      "g. repeat steps b-f until you are satisfied\n") ;
-    tmptext1->setWordWrap(true);
-    QFont font = tmptext1->font();
-    //font.setPointSize(2);
-    font.setBold(true);
-    tmptext1->setFont(font);
-    hlayout->addWidget( tmptext1 ) ;
+    m_textbox = new QPlainTextEdit{this} ;
+    hlayout->addWidget( m_textbox ) ;
+    m_textbox->resize(300,100) ;
+    m_textbox->appendPlainText("a. press the 'position stack' button\n"
+			       "b. press the button for the first marker\n"
+			       "c. take a recording. YOU MAY MOVE THE MAIN STAGE BUT NOT THE STACK\n"
+			       "d. do the same for the 2nd marker\n"
+			       "e. press the calibrate button\n"
+			       "f. press again the 'position stack' button\n"
+			       "g. repeat steps b-f until you are satisfied\n") ;
+    
+    //auto tmptext1 = new QLabel{this} ;
+    // tmptext1->setText("a. press the 'position stack' button\n"
+    // 		      "b. press the button for the first marker\n"
+    // 		      "c. take a recording. YOU MAY MOVE THE MAIN STAGE BUT NOT THE STACK\n"
+    // 		      "d. do the same for the 2nd marker\n"
+    // 		      "e. press the calibrate button\n"
+    // 		      "f. press again the 'position stack' button\n"
+    // 		      "g. repeat steps b-f until you are satisfied\n") ;
+    // tmptext1->setWordWrap(true);
+    // QFont font = tmptext1->font();
+    // //font.setPointSize(2);
+    // font.setBold(true);
+    // tmptext1->setFont(font);
+    // hlayout->addWidget( tmptext1 ) ;
     
   }
   
@@ -259,7 +306,7 @@ namespace PAP
       // global frame. We can do it more correctly later.
       
       Coordinates2D pivot = GeometrySvc::instance()->stackAxisInGlobal() ;
-      Eigen::Vector3d delta = computeAlignment(recordings,pivot ) ;
+      Eigen::Vector3d delta = computeAlignment(recordings,pivot,m_textbox) ;
       GeometrySvc::instance()->applyStackDeltaForTile( m_tilename, delta(0), delta(1), delta(2) ) ;
       
       
