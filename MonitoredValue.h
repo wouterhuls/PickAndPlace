@@ -24,6 +24,9 @@ namespace PAP
   {
     Q_OBJECT
   public:
+    MonitoredValueBase() = default ;
+    MonitoredValueBase( const MonitoredValueBase&) : QObject{} {}
+    MonitoredValueBase( MonitoredValueBase&& ) : QObject{} {}
     virtual ~MonitoredValueBase() {}
     // to interface with property service
     virtual QString toString() const = 0 ;
@@ -38,8 +41,10 @@ namespace PAP
   {
   public:
     using ValueType = T ;
-    MonitoredValue( const ValueType& v) :  m_value(v) {}
-    MonitoredValue( const MonitoredValue& rhs) : m_value(rhs.m_value) {}
+    MonitoredValue() = default ;
+    MonitoredValue( const ValueType& v) :  MonitoredValueBase{}, m_value{v} {}
+    MonitoredValue( const MonitoredValue& rhs) = default ;//: m_value{rhs.m_value} {}
+    MonitoredValue( MonitoredValue&& rhs) = default ;//: m_value{std::move(rhs.value)} {} ;
     // we also want automatic type conversion
     const ValueType& value() const { return m_value; }
     operator ValueType() const { return m_value ; }

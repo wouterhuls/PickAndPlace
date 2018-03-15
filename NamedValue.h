@@ -10,8 +10,9 @@ namespace PAP
   {
    Q_OBJECT 
   public:
-    NamedValueBase( const QString& name ) : m_name(name) {}
-    NamedValueBase(const NamedValueBase& rhs) : m_name(rhs.m_name) {}
+    NamedValueBase( const QString& name ) : m_name{name} {}
+    NamedValueBase( const NamedValueBase& rhs) = default ;
+    NamedValueBase( NamedValueBase&& rhs) = default ;
     // make sure that we have a v-table
     virtual ~NamedValueBase() {}
     //const char* name() const { return m_name.c_str() ; }
