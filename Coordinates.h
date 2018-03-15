@@ -8,13 +8,20 @@ namespace PAP
 {
   enum ViewDirection { NSideView = 0 , CSideView=1 } ;
   
-  struct Coordinates2D
+  class Coordinates2D : public QPointF
   {
-    Coordinates2D( double _x=0, double _y=0, double _phi=0 ) : x(_x),y(_y),phi(_phi) {}
-    Coordinates2D( const QPointF& p ) : x(p.x()),y(p.y()),phi(0) {}
-    double x ;
-    double y ;
-    double phi ;
+  public:
+    Coordinates2D( double x=0, double y=0, double phi=0 ) : QPointF{x,y},m_phi{phi} {}
+    Coordinates2D( const QPointF& p ) : QPointF{p},m_phi{0} {}
+    qreal phi() const { return m_phi; }
+    qreal x() const { return QPointF::x(); }
+    qreal y() const { return QPointF::y(); }
+    qreal& phi() { return m_phi; }
+    qreal& x() { return rx(); }
+    qreal& y() { return ry(); }
+    
+  private:
+    qreal m_phi ;
   } ;
   
   struct MSMainCoordinates
