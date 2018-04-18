@@ -137,11 +137,12 @@ namespace PAP
 
     auto taskpages = new QTabWidget{this} ;
     layout->addWidget( taskpages ) ;
-    auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
+    //auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
 
     {
       auto nsidetaskpages = new QTabWidget{ taskpages } ;
       taskpages->addTab(nsidetaskpages,"N-side") ;
+      auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
       nsidetaskpages->addTab(mainjigalignwidget,"Align jig") ;
       nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NSI","NSI_VP20_Fid1","NSI_VP22_Fid2"},"Align NSI") ;
       nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NLO","NLO_VP10_Fid1","NLO_VP12_Fid2"},"Align NLO") ;
@@ -150,6 +151,7 @@ namespace PAP
     {
       auto csidetaskpages = new QTabWidget{ taskpages } ;
       taskpages->addTab(csidetaskpages,"C-side") ;
+      auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
       csidetaskpages->addTab(mainjigalignwidget,"Align jig") ;
       csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CLI","CLI_VP00_Fid1","CLI_VP02_Fid2"},"Align CLI") ;
       csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CSO","CSO_VP30_Fid1","CSO_VP32_Fid2"},"Align CSO") ;

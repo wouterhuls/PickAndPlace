@@ -22,7 +22,10 @@ namespace PAP
       m_isMoving(false),
       m_status(0),
       m_position{name + ".Position",0.},
+      m_setPosition{name + ".SetPosition",0.},
+      m_tolerance{name + ".Tolerance",0.0001},
       m_stepsize{name + ".Stepsize",0.005},
+      m_antihysteresisstep{ name + ".AntiHysteresisStep",0.},
       m_allowPassTravelLimit(false),
       m_controller{&c}
   {
@@ -31,7 +34,7 @@ namespace PAP
 	    << m_name << " " << m_type ;
     //m_position = MotionSystemSvc::instance()->readAxisFloat(m_id,"TP") ;
     //QObject::connect(&m_position,&QVariable::valueChanged,this,&MotionAxis::applyPosition);
-    if( false && MotionSystemSvc::instance()->isReady() ) {
+    if( false/*false && MotionSystemSvc::instance()->isReady() */) {
       QTimer *timer = new QTimer(this);
       QObject::connect(timer, SIGNAL(timeout()), this, SLOT(readPosition()));
       timer->start(1000);
@@ -42,7 +45,11 @@ namespace PAP
     QObject::connect(this,&MotionAxis::movementStarted,this,&MotionAxis::readPosition);
     QObject::connect(this,&MotionAxis::movementStopped,this,&MotionAxis::readPosition);
     QObject::connect(&m_position,&NamedValueBase::valueChanged,this,&MotionAxis::readPosition);
-    
+
+    // initialize the set position the first time the position is read
+    QObject::connect(&m_position,&NamedValueBase::valueChanged,
+		     [&]() { if(m_setPosition.value()==0) m_setPosition.setValue( m_position.value() ) ; } ) ;
+          
     // create the list of motion axis parameters.
     m_parameters.reserve( MSCommandLibrary::Parameters.size() ) ;
     for( const auto& p: MSCommandLibrary::Parameters ) {
@@ -57,6 +64,8 @@ namespace PAP
     assert( m_leftTravelLimit ) ;
     assert( m_rightTravelLimit ) ;
     PAP::PropertySvc::instance()->add( m_stepsize ) ;
+    PAP::PropertySvc::instance()->add( m_antihysteresisstep ) ;
+    PAP::PropertySvc::instance()->add( m_tolerance ) ;
   }
 
   /*
@@ -120,24 +129,25 @@ namespace PAP
   
   void MotionAxis::step( Direction dir )
   {
-    setIsMoving( true ) ;
     move( dir * m_stepsize ) ;
   }
 
   void MotionAxis::move( double delta )
   {
+    m_setPosition.setValue(m_position.value() + delta) ;
     setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PR",delta) ;
   }
   
   void MotionAxis::move( Direction dir )
   {
-    setIsMoving( true ) ;
+
     //MotionSystemSvc::instance()->applyAxisCommand(m_id,
     //     allowPassTravelLimit() ? "MT" : "MV",dir == Up ? "+" : "-") ;
-    if( allowPassTravelLimit() ) 
+    if( allowPassTravelLimit() ) {
+      setIsMoving( true ) ;      
       MotionSystemSvc::instance()->applyAxisCommand(m_id,"MT",dir == Up ? "+" : "-") ;
-    else {
+    } else {
       // for some reason the MV command does not work: is there something that disables continuous motion?
       // as an alternative, we could try to move to the travel limit explicitly.
       // MotionSystemSvc::instance()->applyAxisCommand(m_id,"MV",dir == Up ? "+" : "-") ;
@@ -148,14 +158,26 @@ namespace PAP
     }
   }
   
+  void MotionAxis::applyAntiHysteresisStep()
+  {
+    if(m_antihysteresisstep!=0) {
+      move( -m_antihysteresisstep ) ;
+      // For some reason, this does not do anything.
+      //MotionSystemSvc::instance()->applyAxisCommand(m_id,"WS10") ;
+      move( +m_antihysteresisstep ) ;
+    }
+  }
+  
   void MotionAxis::stop()
   {
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"ST") ;
+    m_setPosition.setValue( m_position.value() ) ;
   }
   
   void MotionAxis::moveTo( double position )
   {
-    qDebug() << "Movint to: " << position ;
+    qDebug() << "MotionAxis::moveTo: " << position ;
+    m_setPosition.setValue( position ) ;
     setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PA",position) ;
   }
@@ -181,11 +203,17 @@ namespace PAP
  
   void MotionAxis::setIsMoving(bool ismoving)
   {
-    if(  ismoving && !m_isMoving )
+    //qDebug() << "axis: " << name() << "set is moving: " << ismoving << " " << m_isMoving ;
+    // it seems I have some weird problem with synchronization here.
+    std::swap(m_isMoving,ismoving) ;
+    if( !ismoving && m_isMoving ) {
+      //qDebug() << "axis: " << name() << "emitted movementStarted" ;
       emit movementStarted() ;
-    else if( !ismoving && m_isMoving )
+    }
+    else if( ismoving && !m_isMoving ) {
+      //qDebug() << "axis: " << name() << "emitted movementStopped" ;
       emit movementStopped() ;
-    m_isMoving = ismoving ;
+    }
   }
 
   bool MotionAxis::parseData( const QString& cmd, const QString& value) {
@@ -217,4 +245,3 @@ namespace PAP
     return success ;
   }
 }
-  

@@ -39,7 +39,7 @@ namespace PAP
     }
     for(auto& axis : m_axes)
       axis->setIsMoving( status & (1 << (axis->id().axis-1) ) ) ;
-    emit statusChanged() ;
+    //emit statusChanged() ;
   }
   
   void MotionController::setErrorCode( unsigned int errorcode )

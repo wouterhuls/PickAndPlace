@@ -35,6 +35,7 @@ namespace PAP
     Coordinates2D toGlobal( const MSMainCoordinates& c) const;
     Coordinates2D toGlobalDelta( const MSMainCoordinates& c) const;
     MSMainCoordinates toMSMainDelta( const Coordinates2D& c) const ;
+    MSMainCoordinates toMSMain( const Coordinates2D& c) const ;
     
     QTransform fromCameraToGlobal() const ;
     QTransform fromModuleToGlobal( ViewDirection view ) const ;
@@ -56,6 +57,8 @@ namespace PAP
     void updateMainAxisCalibration( double xA, double xB, double yA, double yB ) {
       m_mainXA = xA ; m_mainXB = xB; m_mainYB = yA; m_mainYB = yB ; }
     
+    void updateStackCalibration( double X0, double XA, double XB,
+				 double Y0, double YA, double YB, double Phi0) ;
   public:
     // access to various marker positions in the 'Module' frame. these
     // have already been corrected for the 'view'.
@@ -67,6 +70,17 @@ namespace PAP
     std::vector<FiducialDefinition> velopixmarkersCSide() ;
     std::vector<FiducialDefinition> jigmarkers() ;
 
+    const auto& stackX0() const { return m_stackX0 ; }
+    const auto& stackXA() const { return m_stackXA ; }
+    const auto& stackXB() const { return m_stackXB ; }
+    const auto& stackY0() const { return m_stackY0 ; }
+    const auto& stackYA() const { return m_stackYA ; }
+    const auto& stackYB() const { return m_stackYB ; }
+    const auto& stackPhi0() const { return m_stackPhi0 ; }
+
+    
+    
+    
   private:
     // various calibration parameters
     NamedDouble m_mainX0 ;

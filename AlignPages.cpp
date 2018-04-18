@@ -307,8 +307,9 @@ namespace PAP
       
       Coordinates2D pivot = GeometrySvc::instance()->stackAxisInGlobal() ;
       Eigen::Vector3d delta = computeAlignment(recordings,pivot,m_textbox) ;
+      // Fixme: this does not take the stack calibration into account
+      // (apart from the position of the stack axis)
       GeometrySvc::instance()->applyStackDeltaForTile( m_tilename, delta(0), delta(1), delta(2) ) ;
-      
       
       // this is in the global frame. all we now need to do, is
       // compute it in the stack frame (with respect to the stack

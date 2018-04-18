@@ -32,12 +32,14 @@ namespace PAP
     m_controllers[4] = new MotionController(4,"Controller LEFT") ;
     std::vector<int> controllerid = {4,4,2,2,4,2} ;
     std::vector<int> axisid       = {2,1,1,2,3,3} ;
+    std::vector<double> tolerance = {0.001,0.001,0.0001,0.0001,1e-6,0.0001} ;
     std::vector<QString> axisname  = { "MainX","MainY","StackX","StackY","StackR","Focus" } ;
     for(int i=0; i<6; ++i) {
       MotionAxisID id(controllerid[i],axisid[i]) ;
       QString atype ;
       m_axes[id] = new MotionAxis{id,axisname[i],atype,*(m_controllers[id.controller])} ;
       m_controllers[controllerid[i]]->addAxis( m_axes[id] ) ;
+      m_axes[id]->tolerance() = tolerance[i] ;
     }
     m_mainXAxis = axis("MainX") ;
     m_mainYAxis = axis("MainY") ;

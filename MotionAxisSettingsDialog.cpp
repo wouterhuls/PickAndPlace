@@ -35,7 +35,10 @@ namespace PAP
     }
     
     layout->addWidget( new NamedValueInputWidget<double>{m_axis->stepsize(),0.0,10.0,5,this} ) ;
+    layout->addWidget( new NamedValueInputWidget<double>{m_axis->antiHysteresisStep(),-10,10.0,5,this} ) ;
     layout->addWidget( new NamedValueInputWidget<double>{m_axis->position(),-200.0,200.0,5,this} ) ;
+    layout->addWidget( new NamedValueInputWidget<double>{m_axis->setPosition(),-200.0,200.0,5,this} ) ;
+    layout->addWidget( new NamedValueInputWidget<double>{m_axis->tolerance(),0,1,6,this} ) ;
     
     m_allowpasstravellimitbox = new QCheckBox{"Allow pass travel limit", this} ;
     m_allowpasstravellimitbox->setCheckState( m_axis->allowPassTravelLimit() ? Qt::Checked : Qt::Unchecked) ;

@@ -47,8 +47,14 @@ namespace PAP
     
     const NamedDouble& position() const { return m_position ; }
     NamedDouble& position() { return m_position ; }
+    const NamedDouble& setPosition() const { return m_setPosition ; }
+    NamedDouble& setPosition() { return m_setPosition ; }
+    const NamedDouble& tolerance() const { return m_tolerance ; }
+    NamedDouble& tolerance() { return m_tolerance ; }
     const NamedDouble& stepsize() const { return m_stepsize ; }
     NamedDouble& stepsize() { return m_stepsize ; }
+    const NamedDouble& antiHysteresisStep() const { return m_antihysteresisstep ; }
+    NamedDouble& antiHysteresisStep() { return m_antihysteresisstep ; }
     
     double leftTravelLimit() const { return m_leftTravelLimit->getValue().value().toDouble() ; }
     double rightTravelLimit() const { return m_rightTravelLimit->getValue().value().toDouble() ; }
@@ -56,6 +62,8 @@ namespace PAP
     void readParameters() ;
     void setAllowPassTravelLimit( bool a ) { m_allowPassTravelLimit = a ; }
     bool allowPassTravelLimit() const { return m_allowPassTravelLimit ; }
+
+    void applyAntiHysteresisStep() ;
     
     signals:
       void movementStarted() ;
@@ -79,12 +87,15 @@ namespace PAP
       bool m_isMoving ;
       unsigned int m_status ;
       NamedDouble m_position ;
+      NamedDouble m_setPosition ;
+      NamedDouble m_tolerance ;
       // parameters of the axis
       MotionAxisParameters m_parameters ;
       MotionAxisParameter* m_leftTravelLimit ;
       MotionAxisParameter* m_rightTravelLimit ;
       // internal parameters
       NamedDouble m_stepsize ;
+      NamedDouble m_antihysteresisstep ;
       bool m_allowPassTravelLimit ;
       // parent controller
       const MotionController* m_controller ;

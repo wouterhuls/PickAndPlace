@@ -117,6 +117,7 @@ namespace PAP
       m_serialport.write(command) ;
       m_serialport.write("\n") ;
       m_serialport.waitForBytesWritten(1000) ;
+      //QThread::msleep(m_sleeptimeaddresschange) ;
     } ;
   }
   

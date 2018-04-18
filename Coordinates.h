@@ -27,12 +27,14 @@ namespace PAP
   struct MSMainCoordinates
   {
     MSMainCoordinates( double _x=0, double _y=0 ) : x(_x),y(_y) {}
-    double x ;
-    double y ;
+    double x{0} ;
+    double y{0} ;
   } ;
 
   struct MSStackCoordinates
   {
+    MSStackCoordinates(double _x=0, double _y=0, double _phi=0)
+    : x{_x},y{_y},phi{_phi}{}
     double x ;
     double y ;
     double phi ;

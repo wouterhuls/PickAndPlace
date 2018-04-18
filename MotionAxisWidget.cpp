@@ -6,6 +6,8 @@
 #include <QStyle>
 #include <QIcon>
 
+#include <cmath>
+
 #include "MotionAxisWidget.h"
 #include "MotionAxis.h"
 #include "MotionController.h"
@@ -31,16 +33,16 @@ namespace PAP
     nameLabel->setText( m_axis->name() ) ;
     horizontalLayout->addWidget(nameLabel);
     
-    auto downMoveButton = new QPushButton(widget);
-    downMoveButton->setObjectName(QStringLiteral("moveDownButton"));
-    //downMoveButton->setText("Down") ;
-    downMoveButton->setIcon(style()->standardIcon(QStyle::SP_MediaSeekBackward)) ;
-    horizontalLayout->addWidget(downMoveButton);
+    auto moveDownButton = new QPushButton(widget);
+    moveDownButton->setObjectName(QStringLiteral("moveDownButton"));
+    //moveDownButton->setText("Down") ;
+    moveDownButton->setIcon(style()->standardIcon(QStyle::SP_MediaSeekBackward)) ;
+    horizontalLayout->addWidget(moveDownButton);
     
-    auto downStepButton = new QPushButton(widget);
-    downStepButton->setObjectName(QStringLiteral("stepDownButton"));
-    downStepButton->setIcon(style()->standardIcon(QStyle::SP_ArrowLeft)) ;
-    horizontalLayout->addWidget(downStepButton);
+    auto stepDownButton = new QPushButton(widget);
+    stepDownButton->setObjectName(QStringLiteral("stepDownButton"));
+    stepDownButton->setIcon(style()->standardIcon(QStyle::SP_ArrowLeft)) ;
+    horizontalLayout->addWidget(stepDownButton);
 
     auto stopButton = new QPushButton(widget);
     stopButton->setObjectName(QStringLiteral("stopButton"));
@@ -48,15 +50,19 @@ namespace PAP
     connect(stopButton,&QPushButton::clicked,[=](){ m_axis->stop(); }) ;
     horizontalLayout->addWidget(stopButton);
     
-    auto upStepButton = new QPushButton(widget);
-    upStepButton->setObjectName(QStringLiteral("stepUpButton"));
-    upStepButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay)) ;
-    horizontalLayout->addWidget(upStepButton);
+    auto stepUpButton = new QPushButton(widget);
+    stepUpButton->setObjectName(QStringLiteral("stepUpButton"));
+    stepUpButton->setIcon(style()->standardIcon(QStyle::SP_MediaPlay)) ;
+    horizontalLayout->addWidget(stepUpButton);
     
     auto moveUpButton = new QPushButton(widget);
     moveUpButton->setObjectName(QStringLiteral("moveUpButton"));
     moveUpButton->setIcon(style()->standardIcon(QStyle::SP_MediaSeekForward)) ;
     horizontalLayout->addWidget(moveUpButton);
+
+    // auto ahButton = new QPushButton("AH",widget);
+    // connect(ahButton,&QPushButton::clicked,[=](){ m_axis->applyAntiHysteresisStep(); }) ;
+    // horizontalLayout->addWidget(ahButton);
     
     m_positionLabel = new QLCDNumber(widget);
     m_positionLabel->setObjectName(QStringLiteral("positionLabel"));
@@ -70,7 +76,7 @@ namespace PAP
     connect(m_axis,&MotionAxis::movementStarted,this,&MotionAxisWidget::showPosition) ;
     connect(m_axis,&MotionAxis::movementStopped,this,&MotionAxisWidget::showPosition) ;
     // this one we should not need, but for some reason the started and stopped signals are not enough:-(
-    connect(&(m_axis->controller()),&MotionController::statusChanged,this,&MotionAxisWidget::showPosition) ;
+    //connect(&(m_axis->controller()),&MotionController::statusChanged,this,&MotionAxisWidget::showPosition) ;
     showPosition() ;
     
     auto settingsButton = new QPushButton(QIcon(":/images/settings.png"),"",widget) ;
@@ -124,15 +130,21 @@ namespace PAP
   {
     //auto pos = dynamic_cast<const NamedValue*>(sender()) ;
     double pos = m_axis->position() ;
+    double setpos = m_axis->setPosition() ;
     m_positionLabel->display( pos ) ;
     // change color if moving?
     QPalette pal = m_positionLabel->palette();
+    // qDebug() << "MotionAxisWidget: "
+    // 	     << m_axis->name() << " ismoving: " << m_axis->isMoving() ;
     if( m_axis->isMoving() ) {
       m_positionLabel->setAutoFillBackground(true); // IMPORTANT!
       pal.setColor(QPalette::Window, QColor(Qt::yellow));
     } else {
       m_positionLabel->setAutoFillBackground(true); // IMPORTANT!
-      pal.setColor(QPalette::Window, QColor(Qt::green));
+      if( std::abs( pos-setpos ) <= 0.0015 )
+	pal.setColor(QPalette::Window, QColor(Qt::green));
+      else
+	pal.setColor(QPalette::Window, QColor(Qt::red));
     }
     m_positionLabel->setPalette(pal);   
   }

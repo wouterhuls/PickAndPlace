@@ -31,6 +31,7 @@ namespace PAP
   public:
     explicit CameraView(QWidget *parent = 0);
     ~CameraView();
+    enum MovementType { AbsolutePosition, RelativePosition } ;
     void setCamera(const QCameraInfo &cameraInfo) ;
 
     // return the pixelsize = microns
@@ -81,7 +82,7 @@ namespace PAP
     void scalingTime(qreal x) ;
     void animFinished() ;
     virtual void mousePressEvent( QMouseEvent* event) ;
-    void moveCameraTo( QPointF localpoint ) const ;
+    void moveCameraTo( QPointF localpoint, MovementType mode) const ;
     /// Move to a particular marker
     void moveCameraTo( const QString& name ) const ;
     /// Return the position of a marker in global coordinates

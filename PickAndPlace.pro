@@ -35,7 +35,8 @@ SOURCES += main.cpp \
     MonitoredValue.cpp \
     AlignPages.cpp \
     MotionSystemCalibration.cpp \
-    CameraImageProcessingDialog.cpp
+    StackCalibration.cpp \
+    CameraImageProcessingDialog.cpp 
 
 HEADERS  += \
     NominalMarkers.h \
@@ -62,7 +63,8 @@ HEADERS  += \
     CameraView.h \
     AutoFocus.h \
     AlignPages.h\
-    MotionSystemCalibration.h
+    MotionSystemCalibration.h \
+    StackCalibration.h
 
 FORMS    += SerialPortSettingsDialog.ui
 

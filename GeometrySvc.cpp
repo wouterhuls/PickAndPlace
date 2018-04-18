@@ -3,6 +3,7 @@
 #include "MotionSystemSvc.h"
 #include "NominalMarkers.h"
 
+#include <Eigen/Dense>
 #include <cmath>
 
 namespace PAP
@@ -68,13 +69,13 @@ namespace PAP
       m_moduleX( "Geo.moduleX", -32.47), // perhaps we should move these into mainX0 and mainY0
       m_moduleY( "Geo.moduleY", -63.69),
       // these points define the position and orientation of the stack rotation axis in the global frame
-      m_stackX0( "Geo.stackX0", -13. ),
+      m_stackX0( "Geo.stackX0", -15.054 ),
       m_stackXA( "Geo.stackXA", -1.0 ),
-      m_stackXB( "Geo.stackXB", 0.0 ),
-      m_stackY0( "Geo.stackY0", -40. ),
-      m_stackYA( "Geo.stackYA", 0.0 ),
+      m_stackXB( "Geo.stackXB", 0.00059 ),
+      m_stackY0( "Geo.stackY0", -40.356 ),
+      m_stackYA( "Geo.stackYA", -0.012 ),
       m_stackYB( "Geo.stackYB", -1.0 ),
-      m_stackPhi0( "Geo.stackPhi0", 0.491998 )
+      m_stackPhi0( "Geo.stackPhi0", 0.496 )
   {
     PAP::PropertySvc::instance()->add( m_mainX0 ) ;
     PAP::PropertySvc::instance()->add( m_mainXA ) ;
@@ -106,6 +107,9 @@ namespace PAP
     // focus values:
     // - main marker jigs C-side: 14.405
     // - main marker jigs N-side: 15.846
+    // - fiducials: 14.275 (for the mechanical asic: not sure if this is thinned)
+    // - fiducials for Raphael's pieces: 14.77
+    //
   }
 
   GeometrySvc::~GeometrySvc() {}
@@ -128,9 +132,28 @@ namespace PAP
   {
     // now we need the inverse of the matrix
     double D = m_mainYB*m_mainXA - m_mainXB * m_mainYA ;
-    double dx = (  m_mainYB * c.x - m_mainYA * c.y)/D ;
-    double dy = ( -m_mainXB * c.x + m_mainXA * c.y)/D ;
+    double dx = (  m_mainYB * c.x() - m_mainXB * c.y())/D ;
+    double dy = ( -m_mainYA * c.x() + m_mainXA * c.y())/D ;
+    
+    // Eigen::Matrix<double,2,2> A ;
+    // A << m_mainXA.value(), m_mainXB.value(),m_mainYA.value(),m_mainYB.value() ;
+    // auto B = A.inverse() ;
+    // dx = B(0,0)*c.x() + B(0,1)*c.y() ;
+    // dy = B(1,0)*c.x() + B(1,1)*c.y() ;
+    // qDebug() << "B00: " << B(0,0) << " " << m_mainYB.value() / D << "\n"
+    // 	     << "B01: " << B(0,1) << " " << -m_mainYA.value() / D << "\n"
+    // 	     << "B10: " << B(1,0) << " " << -m_mainXB.value() / D << "\n"
+    // 	     << "B11: " << B(1,1) << " " << m_mainXA.value() / D << "\n" ;
     return MSMainCoordinates{ dx, dy } ;
+  }
+  
+  MSMainCoordinates GeometrySvc::toMSMain( const Coordinates2D& c) const
+  {
+    // now we need the inverse of the matrix
+    Coordinates2D tmp = c ;
+    tmp.x() -= m_mainX0 ;
+    tmp.y() -= m_mainY0 ;
+    return toMSMainDelta( tmp ) ;
   }
   
   QTransform GeometrySvc::fromModuleToGlobal( ViewDirection view ) const
@@ -179,7 +202,7 @@ namespace PAP
     MSMainCoordinates main = MotionSystemSvc::instance()->maincoordinates() ;
     Coordinates2D offset = toGlobal( main ) ;
     rc.rotateRadians( m_cameraPhi ) ;
-    rc.translate( offset.x, offset.y ) ;
+    rc.translate( offset.x(), offset.y() ) ;
     //qDebug() << "fromCameraToGlobal: " << rc ;
     return rc ;
   }
@@ -202,8 +225,8 @@ namespace PAP
   {
     Coordinates2D coord = stackAxisInGlobal() ;
     QTransform rc ;
-    rc.translate( coord.x, coord.y ) ;
-    rc.rotateRadians( coord.phi ) ;
+    rc.translate( coord.x(), coord.y() ) ;
+    rc.rotateRadians( -coord.phi() ) ; // I do not know why I need the minus sign here :-(
     return rc ;
   }
 
@@ -236,6 +259,15 @@ namespace PAP
       it->second->setPhi( it->second->phi() + dphi ) ;
       */
       auto current = MotionSystemSvc::instance()->stackcoordinates() ;
+      qDebug() << "Preconfigured: "
+	       << it->second->x() 
+	       << it->second->y() 
+	       << it->second->phi() ;
+      qDebug() << "Current:       "
+	       << current.x
+	       << current.y 
+	       << current.phi ;
+      
       it->second->setX( current.x + dx ) ;
       it->second->setY( current.y + dy ) ;
       it->second->setPhi( current.phi + dphi ) ;
@@ -248,6 +280,49 @@ namespace PAP
       qWarning() << "Cannot find tile with name: "
 		 << name ;
     }
+  }
+
+  void GeometrySvc::updateStackCalibration( double X0, double XA, double XB,
+					    double Y0, double YA, double YB, double Phi0)
+  {
+    // update the preset parameters for all the tiles. for that we
+    // need to invert the transformation.
+    // FIXME: he stack positioning does not use the calibration, so this doesn't work yet!
+    /*
+    for( auto it : m_tileStackPositions ) {
+      auto& stack = it.second ;
+      // The linear transformation is
+      //  x'    = X0 + XA * x + XB * y 
+      //  y'   = Y0 + YA * x + YB * y
+      //  phi'   = Phi0 + phi
+      // Now adjust x and y, such that x' and y' are constant while
+      // changing X0, XA and XB, for each of the tiles.
+      
+      // phi is easy
+      stack->setPhi( stack->phi() + m_stackPhi0 - Phi0 ) ;
+      // now solve
+      //     X0 + XA * x + XB * y = X0_new + XA_new * x_new + XB_new * y_new
+      //     Y0 + YA * x + YB * y = Y0_new + YA_new * x_new + YB_new * y_new
+      // for x_new and y_new
+      Eigen::Matrix<double,2,2> A ;
+      A << XA, XB, YA, YB ;
+      Eigen::Matrix<double,2,1> b ;
+      b << m_stackX0 + m_stackXA*stack->x() + m_stackXB*stack->y() - X0,
+	m_stackY0 + m_stackYA*stack->x() + m_stackYB*stack->y() - Y0 ;
+      Eigen::Matrix<double,2,1> x = A.colPivHouseholderQr().solve(b);
+      stack->setX( x(0) ) ;
+      stack->setY( x(1) ) ;
+    }
+    */
+
+    // update the parameters
+    m_stackX0 = X0 ;
+    m_stackXA=XA;
+    m_stackXB = XB;
+    m_stackY0 = Y0 ;
+    m_stackYA=YA;
+    m_stackYB = YB;
+    m_stackPhi0 =Phi0 ;
   }
   
   std::vector<FiducialDefinition>

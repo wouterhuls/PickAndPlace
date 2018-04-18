@@ -400,13 +400,20 @@ namespace PAP
 	  fromCameraToPixel().inverted() * GeometrySvc::instance()->fromCameraToGlobal() ;
 	QTransform fromLocalToModule = fromPixelToGlobal * fromModuleToGlobal.inverted() ;
 	auto modulepoint = fromLocalToModule.map( local ) ;
+	auto globalpoint = fromPixelToGlobal.map( local ) ;
+	auto mscoordinates = GeometrySvc::instance()->toMSMain( globalpoint ) ;
 	sprintf(message,
 		"position wrt camera centre [mm]: (%.4f,%.4f)\n"
-		"position in module frame [mm]:   (%.4f,%.4f)",//x,y,
+		"position in module frame [mm]:   (%.4f,%.4f)\n"
+		"position in global frame [mm]:   (%.4f,%.4f)\n"
+		"MS main coordinates [mm]:        ((%.4f,%.4f)",
 		(local.x()-m_localOrigin.x())*pixelSize(),
 		(local.y()-m_localOrigin.y())*pixelSize(),
-		modulepoint.x(),modulepoint.y()
+		modulepoint.x(),modulepoint.y(),
+		globalpoint.x(),globalpoint.y(),
+		mscoordinates.x,mscoordinates.y
 		) ;
+
 	
 	//QMessageBox dialog(this) ;
 	//dialog.setText(message) ;
@@ -425,7 +432,7 @@ namespace PAP
 	layout.addWidget(&closebutton) ;
 	connect(&movebutton, &QPushButton::clicked, &dialog, &QDialog::accept);
 	connect(&recordbutton, &QPushButton::clicked, &dialog, &QDialog::accept);
-	connect(&movebutton, &QPushButton::clicked, [=](){ this->moveCameraTo(local) ; } ) ;	
+	connect(&movebutton, &QPushButton::clicked, [=](){ this->moveCameraTo(local,RelativePosition) ; } ) ;	
 	connect(&recordbutton, &QPushButton::clicked, [=](){ this->record(local) ; } ) ;
 	connect(&closebutton, &QPushButton::clicked, &dialog, &QDialog::reject);
 	dialog.setLayout( &layout ) ;
@@ -449,28 +456,59 @@ namespace PAP
       }
   }
  
-  void CameraView::moveCameraTo( QPointF localpoint ) const
+  void CameraView::moveCameraTo( QPointF localpoint, MovementType mode ) const
   {
     //QTransform T = m_detectorgeometry->transform().inverted() ;
     QTransform T = fromCameraToPixel().inverted() * GeometrySvc::instance()->fromCameraToGlobal() ;
     auto globalpoint = T.map( localpoint ) ;
-    auto globalorigin = T.map( m_localOrigin ) ;
-    PAP::Coordinates2D globaldx{
-      globalpoint.x() - globalorigin.x(),
-	globalpoint.y() - globalorigin.y() } ;
-    
-    // qDebug() << "Local point: " << localpoint ;
-    //qDebug() << "Global dx, dy: "
-    //      << globaldx.x << " " << globaldx.y ;
-    
-    auto mainstagedx = GeometrySvc::instance()->toMSMainDelta( globaldx ) ;
+    qDebug() << "Moving to local point: " << localpoint ;
+    qDebug() << "Moving to global point: " << globalpoint ;
 
-    //qDebug() << "Actual change in motor position: "
-    //      << mainstagedx.x << " " << mainstagedx.y ;
+    // After a long debugging session, it turns out that there is no
+    // problem in the transformations. We really just need to split in
+    // relative movements and absolute movements. Whether we then use
+    // 'move' or 'moveTo' is not so important.
     
-    // finally, move the motors!
-    MotionSystemSvc::instance()->mainXAxis().move(mainstagedx.x) ;
-    MotionSystemSvc::instance()->mainYAxis().move(mainstagedx.y) ;
+    if(mode==RelativePosition) {
+      auto globalorigin = T.map( m_localOrigin ) ;
+      PAP::Coordinates2D globaldx{
+	globalpoint.x() - globalorigin.x(), globalpoint.y() - globalorigin.y() } ;
+      // qDebug() << "Local point: " << localpoint ;
+      //qDebug() << "Global x, y: "
+      //		 << globalpoint.x() << " " << globalpoint.y() ;
+      //qDebug() << "Global dx, dy: "
+      //		 << globaldx.x() << " " << globaldx.y() ;
+      auto mainstagedx = GeometrySvc::instance()->toMSMainDelta( globaldx ) ;
+      qDebug() << "Desired change in motor position: "
+	       << mainstagedx.x << " " << mainstagedx.y ;
+      
+      // finally, move the motors!
+      MotionSystemSvc::instance()->mainXAxis().move(mainstagedx.x) ;
+      MotionSystemSvc::instance()->mainYAxis().move(mainstagedx.y) ;
+    } else {
+      auto mscoordinates = GeometrySvc::instance()->toMSMain( globalpoint ) ;
+      // {
+      // 	auto globalorigin = T.map( m_localOrigin ) ;
+      // 	auto mainstagex0 = GeometrySvc::instance()->toMSMain( globalorigin ) ;
+      // 	auto globaloriginprime = GeometrySvc::instance()->toGlobal( mainstagex0 ) ;
+      // 	auto mainstagex0prime = GeometrySvc::instance()->toMSMain( globaloriginprime ) ;
+	  
+      // 	qDebug() << "Local origin: " << m_localOrigin ;
+      // 	qDebug() << "Global origin: " << globalorigin ;
+      // 	qDebug() << "Parameters corresponding to origin: "
+      // 		 << mainstagex0.x << mainstagex0.y ;
+      // 	qDebug() << "Back to global origin: " << globaloriginprime ;
+      // 	qDebug() << "Back to local origin: " << T.inverted().map( globaloriginprime ) ;
+      // 	qDebug() << "And back to parameters: "
+      // 		 << mainstagex0prime.x << mainstagex0prime.y ;
+      // }
+      MotionSystemSvc::instance()->mainXAxis().moveTo(mscoordinates.x) ;
+      MotionSystemSvc::instance()->mainYAxis().moveTo(mscoordinates.y) ;
+     
+
+      
+      
+    }
   }
 
   namespace {
@@ -507,7 +545,7 @@ namespace PAP
     if(marker) {
       // get the coordinates in the scene
       QPointF localcoord = m_detectorgeometry->mapToScene( marker->pos() ) ;
-      moveCameraTo( localcoord ) ;
+      moveCameraTo( localcoord, AbsolutePosition ) ;
     } else {
       qWarning() << "Cannot find graphics item: " << markername ;
     }
