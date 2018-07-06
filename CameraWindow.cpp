@@ -18,12 +18,14 @@
 #include <QCheckBox>
 #include <QTextEdit>
 #include <QCamera>
-
+#include <QVideoFrame>
+#include <QFileDialog>
 
 namespace PAP
 {
   CameraWindow::CameraWindow(QWidget *parent)
-    : QMainWindow(parent)
+    : QMainWindow(parent),
+      m_stillImageTriggered{false}
   {
     resize(900,500);
     setWindowTitle("Velo Pick&Place") ;
@@ -117,6 +119,13 @@ namespace PAP
     connect(cameraresetbutton , &QAbstractButton::clicked, [&]() { m_cameraview->resetCamera(); } ) ;
     buttonlayout->addWidget(cameraresetbutton) ;
 
+    auto camerastillimagebutton = new QPushButton{"Take image",this} ;
+    camerastillimagebutton->setToolTip("Take a still image and save to file") ;
+    connect(camerastillimagebutton, &QAbstractButton::clicked, [&]() { m_stillImageTriggered=true; } ) ;
+    buttonlayout->addWidget(camerastillimagebutton) ;
+    
+    connect(m_cameraview->videoProbe(), SIGNAL(videoFrameProbed(QVideoFrame)),
+	    this, SLOT(processFrame(QVideoFrame)));
 
     /*
     auto lockwhitebalancebutton = new QPushButton{"Lock white balance",this} ;
@@ -188,5 +197,34 @@ namespace PAP
       m_showNSideTiles->setCheckState( Qt::Unchecked ) ;
       m_showCSideTiles->setCheckState( Qt::Checked ) ;
     } 
+  }
+
+  void CameraWindow::processFrame( const QVideoFrame& frame )
+  {
+    if( m_stillImageTriggered ) {
+      m_stillImageTriggered = false ;
+      // pop up a window asking for a filename
+      auto filename = QFileDialog::getSaveFileName(this, tr("Save image"),
+						   "/home/velouser/Documents/PickAndPlaceData/images/untitled.jpg",
+						   tr("Images (*.png *.xpm *.jpg)"));
+      
+      if(!filename.isEmpty()) {
+      // there must be a better way than this ...
+	const_cast<QVideoFrame&>(frame).map(QAbstractVideoBuffer::ReadOnly) ;
+	if( frame.bits() &&
+	    //(frame.pixelFormat() == QVideoFrame::Format_BGR32||
+	    frame.pixelFormat() == QVideoFrame::Format_RGB32 ) {
+	  QImage::Format imageFormat =
+	    QVideoFrame::imageFormatFromPixelFormat(frame.pixelFormat());
+	  QImage img( frame.bits(),
+		      frame.width(),
+		      frame.height(),
+		      frame.bytesPerLine(),
+		      imageFormat);
+	  img.save(filename) ;
+	}
+	const_cast<QVideoFrame&>(frame).unmap() ;
+      }
+    }
   }
 }

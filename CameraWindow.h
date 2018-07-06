@@ -7,6 +7,7 @@
 
 class QLabel;
 class QCheckBox ;
+class QVideoFrame;
 
 namespace PAP
 {
@@ -26,6 +27,7 @@ namespace PAP
     void on_quitButton_clicked();
     void on_stopButton_clicked();
     void toggleView(int view) ;
+    void processFrame( const QVideoFrame& frame ) ;
   private:
     CameraView* m_cameraview ;
     AutoFocus* m_autofocus ;
@@ -33,6 +35,9 @@ namespace PAP
     QLabel* m_cursorposition ;
     QCheckBox* m_showNSideTiles ;
     QCheckBox* m_showCSideTiles ;
+
+    // boolean to trigger taking a still image
+    bool m_stillImageTriggered ;
   } ;
 
 }
