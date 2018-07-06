@@ -25,6 +25,7 @@ namespace PAP
     const SetValueType& setValue() const { return m_setValue ; }
     const GetValueType& getValue() const { return m_getValue ; }
     const MSCommandLibrary::ParameterDefinition& pardef() const { return *m_pardef ; }
+    const QString& name() const { return m_setValue.name() ; }
     
     // this bypasses the other set method of NamedValue. it
     // immediately sends an update command to the motion system

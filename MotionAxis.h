@@ -41,9 +41,11 @@ namespace PAP
     void setIsMoving( bool ismoving ) ;
     bool hasMotorOn() const ;
     bool parseData( const QString& cmd, const QString& value ) ;
+    Direction direction() const { return m_direction ; }
     
     const MotionAxisParameters& parameters() const { return m_parameters ; }
     MotionAxisParameters& parameters() { return m_parameters ; }
+    MotionAxisParameter* parameter(const QString& name) ;
     
     const NamedDouble& position() const { return m_position ; }
     NamedDouble& position() { return m_position ; }
@@ -76,29 +78,29 @@ namespace PAP
       //void readParameter( MSParameter& par ) ;
       void applyPosition() { moveTo( m_position ) ; }
       void readPosition() ;
-      
-  private:
-      double updatePosition() ;
+      void updateDirection() ;
   private:
       MotionAxisID m_id ;
       QString m_name ;
       QString m_type ;
       // measurements, axis state
-      bool m_isMoving ;
-      unsigned int m_status ;
+      bool m_isMoving{false} ;
+      unsigned int m_status{0} ;
       NamedDouble m_position ;
       NamedDouble m_setPosition ;
       NamedDouble m_tolerance ;
+      double m_prevPosition{0} ;
+      Direction m_direction{Direction::Down} ;
       // parameters of the axis
       MotionAxisParameters m_parameters ;
-      MotionAxisParameter* m_leftTravelLimit ;
-      MotionAxisParameter* m_rightTravelLimit ;
+      MotionAxisParameter* m_leftTravelLimit{0} ;
+      MotionAxisParameter* m_rightTravelLimit{0} ;
       // internal parameters
       NamedDouble m_stepsize ;
       NamedDouble m_antihysteresisstep ;
-      bool m_allowPassTravelLimit ;
+      bool m_allowPassTravelLimit{false} ;
       // parent controller
-      const MotionController* m_controller ;
+      const MotionController* m_controller{0} ;
   };
 }
 

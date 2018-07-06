@@ -45,6 +45,7 @@ namespace PAP
     QObject::connect(this,&MotionAxis::movementStarted,this,&MotionAxis::readPosition);
     QObject::connect(this,&MotionAxis::movementStopped,this,&MotionAxis::readPosition);
     QObject::connect(&m_position,&NamedValueBase::valueChanged,this,&MotionAxis::readPosition);
+    QObject::connect(&m_position,&NamedValueBase::valueChanged,this,&MotionAxis::updateDirection);
 
     // initialize the set position the first time the position is read
     QObject::connect(&m_position,&NamedValueBase::valueChanged,
@@ -243,5 +244,34 @@ namespace PAP
     if( !success ) 
       qWarning() << "MotionAxis: Could not parse data " << cmd << value ;
     return success ;
+  }
+
+  void MotionAxis::updateDirection()
+  {
+    if( m_prevPosition > m_position.value() + m_tolerance.value() ) {
+      m_direction = MotionAxis::Direction::Down ;
+      m_prevPosition = m_position ;
+    } else if( m_prevPosition < m_position.value() - m_tolerance.value() ) {
+      m_direction = MotionAxis::Direction::Up ;
+      m_prevPosition = m_position ;
+    }
+  }
+  
+  MotionAxisParameter* MotionAxis::parameter(const QString& name)
+  {
+    auto it = std::find_if( m_parameters.begin(),
+			    m_parameters.end(),
+			    [name,this](const auto& par) {
+			      return par->name()==name || par->name() == this->name() + "." + name ;
+			    } ) ;
+    if( it == m_parameters.end() ) {
+      qDebug() << "Cannot find parameter '" << name << "'. Choose from: " ;
+      for_each(m_parameters.begin(),
+	       m_parameters.end(), [](const auto& p) {
+		 qDebug() << p->name() ;
+	       }) ;
+    }
+    
+    return it != m_parameters.end() ? *it : 0 ;
   }
 }
