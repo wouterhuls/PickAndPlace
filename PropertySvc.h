@@ -19,6 +19,7 @@ namespace PAP
   {
   public:
     void add( Property& var ) ;
+    void add( Property& var, const QString& name ) ;
     void read( const char* filename ) ;
     void write( const char* filename ) ;
     Property* find( const char* name ) ;
