@@ -64,7 +64,8 @@ HEADERS  += \
     AutoFocus.h \
     AlignPages.h\
     MotionSystemCalibration.h \
-    StackCalibration.h
+    StackCalibration.h \
+    MonitoredValueLabel.h
 
 FORMS    += SerialPortSettingsDialog.ui
 
