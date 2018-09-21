@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include "NamedValue.h"
+#include "MotionAxis.h"
 class QImage ;
 class QVideoFrame ;
 class QLabel ;
@@ -17,14 +18,19 @@ namespace PAP
 {
   class CameraView ;
   class MotionAxis ;
+  class AutoFocusSettingsWidget ;
+  
   struct FocusMeasurement
   {
     FocusMeasurement( double _z=0, double _I=0) : z(_z),I(_I) {}
+    MotionAxis::Direction zdir ;
     double z ;
     double I ;
     bool operator<(const FocusMeasurement& rhs) const { return z < rhs.z ; }
   } ;
-    
+
+  enum FocusSeriesType { None, Rising=1, Falling=2, Both=3 } ;
+
   class AutoFocus : public QDialog
   {
 
@@ -40,32 +46,44 @@ namespace PAP
     QLabel* focusView() { return m_focusView ; }
 
     void startFocusSequence() ;
-    
+    void startNearFocusSequence() ;
+    void startFastFocusSequence() ;
+    void startFastFocusSequenceSimple() ;
+   
   signals:
     void focusMeasureUpdated() ;
+    void focusMeasurement(PAP::FocusMeasurement result) ;
+    void focussed() ;
     
   public slots:      
     void processFrame( const QVideoFrame& frame ) ;
     void storeMarkerFocus() ;
     void applyMarkerFocus() const ;
+    void analyseFastFocus( PAP::FocusMeasurement result ) ;
+    void analyseSlowFocus( PAP::FocusMeasurement result ) ;
   private:
     FocusMeasurement takeMeasurement( MotionAxis& axis, double zpos ) ;
   
   private:
-    CameraView* m_cameraView ;
-    QImage* m_focusImage ;
-    QLabel* m_focusView ;
-   
+    CameraView* m_cameraView{0} ;
+    QImage* m_focusImage{0} ;
+    QLabel* m_focusView{0} ;
+
+    AutoFocusSettingsWidget* m_settings{0} ;
+    
     // series with focus data
-    QtCharts::QXYSeries* m_focusmeasurements ;
-    QtCharts::QChart* m_focuschart ;
-    QtCharts::QChartView* m_chartview ;
+    QtCharts::QXYSeries* m_focusmeasurements{nullptr} ;
+    QtCharts::QChart* m_focuschart{nullptr} ;
+    QtCharts::QChartView* m_chartview{nullptr} ;
     
     //
-    bool m_isFocussing ;
-    bool m_focusTriggered ;
-    // the last focus measurement. at some point we can put this in a signal.
-    FocusMeasurement m_focusMeasurement ;
+    MotionAxis* m_zaxis{0} ;
+    bool m_isFocussing{false} ;
+    bool m_focusTriggered{false} ;
+    // some data members that I need to communicate between slots
+    std::vector<FocusMeasurement> m_fastfocusmeasurements ;
+    FocusSeriesType m_focusseriestype ;
+    FocusMeasurement m_bestfocus ;
 
     // map that stores markers with focus point
     std::map< QString,NamedDouble> m_markerfocuspoints[2] ;
@@ -73,5 +91,6 @@ namespace PAP
 
 } ;
 
+Q_DECLARE_METATYPE(PAP::FocusMeasurement) ;
 
 #endif
