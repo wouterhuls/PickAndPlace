@@ -1,6 +1,8 @@
 #ifndef NOMINALMARKERS_H
 #define NOMINALMARKERS_H
 
+#include "Coordinates.h"
+
 namespace PAP
 {
   // Names and position of markers in the LHCb coordinate system.
