@@ -136,7 +136,9 @@ namespace PAP
     QPalette pal = m_positionLabel->palette();
     // qDebug() << "MotionAxisWidget: "
     // 	     << m_axis->name() << " ismoving: " << m_axis->isMoving() ;
-    if( m_axis->isMoving() ) {
+    if( pos == 0 ) {
+      pal.setColor(QPalette::Window, QColor(Qt::gray));
+    } else if( m_axis->isMoving() ) {
       m_positionLabel->setAutoFillBackground(true); // IMPORTANT!
       pal.setColor(QPalette::Window, QColor(Qt::yellow));
     } else {
