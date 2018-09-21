@@ -33,7 +33,7 @@ namespace PAP
 	auto pos = line.indexOf("=") ;
 	auto name  = line.leftRef(pos).trimmed() ;
 	auto value = line.rightRef(line.size()-pos-1).trimmed() ;
-	qDebug() << "name,value: " << name << " " << value  ;
+	//qDebug() << "name,value: " << name << " " << value  ;
 	Property* prop = find( name.toString().toStdString().c_str() ) ;
 	if (! prop )
 	  qDebug() << "Cannot find property read from file!" ;

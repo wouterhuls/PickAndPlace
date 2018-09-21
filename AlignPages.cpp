@@ -62,7 +62,7 @@ namespace PAP
   }
   
   void MarkerRecorderWidget::record( const CoordinateMeasurement& m ) {
-    if( //m_status == Active ||
+    if( m_status == Active ||
 	m.markername == objectName() ) {
       m_markerposition = m_cameraview->globalPosition( objectName() ) ;
       //emit ready() ;

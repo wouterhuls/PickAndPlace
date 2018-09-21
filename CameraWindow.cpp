@@ -5,6 +5,7 @@
 #include "AutoFocus.h"
 #include "AlignPages.h"
 #include "CameraImageProcessingDialog.h"
+#include "MonitoredValueLabel.h"
 
 #include <iostream>
 #include <sstream>
@@ -20,6 +21,7 @@
 #include <QCamera>
 #include <QVideoFrame>
 #include <QFileDialog>
+#include <QInputDialog>
 
 namespace PAP
 {
@@ -66,6 +68,13 @@ namespace PAP
     markerfocusbutton->setToolTip("Move to the default focus position of the closest marker") ;
     connect( markerfocusbutton, &QPushButton::clicked, m_autofocus, &AutoFocus::applyMarkerFocus ) ;
     buttonlayout->addWidget( markerfocusbutton ) ;
+
+    {
+      auto button = new QPushButton("Move to marker",this) ;
+      button->setToolTip("Move to camera to one of the default markers") ;
+      connect( button, &QPushButton::clicked, [&](){ this->moveToMarker(); } ) ;
+      buttonlayout->addWidget( button ) ;
+    }
     
     if( m_cameraview->camera() ) {
       QCameraImageProcessing *imageProcessing = m_cameraview->camera()->imageProcessing();
@@ -142,8 +151,14 @@ namespace PAP
     hlayout->addLayout( buttonlayout ) ;
     //m_cameraview->show() ;
 
-
-
+    // status bar with coordinate information
+    {
+      auto anotherhlayout = new QHBoxLayout{} ;
+      auto xlabel = new MonitoredValueLabel{ m_cameraview->cameraCentreInModuleFrame(),"Camera position"} ;
+      anotherhlayout->addWidget( xlabel ) ;
+      layout->addLayout( anotherhlayout ) ;
+    }
+    
     auto taskpages = new QTabWidget{this} ;
     layout->addWidget( taskpages ) ;
     //auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
@@ -170,10 +185,10 @@ namespace PAP
     QMetaObject::connectSlotsByName(this);
   }
 
-  void CameraWindow::on_quitButton_clicked()
-  {
-    QCoreApplication::quit();
-  }
+  // void CameraWindow::on_quitButton_clicked()
+  // {
+  //   QCoreApplication::quit();
+  // }
 
   void CameraWindow::on_stopButton_clicked()
   {
@@ -197,6 +212,18 @@ namespace PAP
       m_showNSideTiles->setCheckState( Qt::Unchecked ) ;
       m_showCSideTiles->setCheckState( Qt::Checked ) ;
     } 
+  }
+  
+  void CameraWindow::moveToMarker()
+  {
+    // pop-up a dialog with all markers such that the use can choose one to move to
+    auto markers = m_cameraview->visibleMarkers() ;
+    bool ok;
+    QString item = QInputDialog::getItem(this, tr("Marker"),
+					   tr("Season:"), markers, 0, false, &ok);
+    if (ok && !item.isEmpty()) {
+      m_cameraview->moveCameraTo( item ) ;
+    }
   }
 
   void CameraWindow::processFrame( const QVideoFrame& frame )

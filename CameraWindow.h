@@ -24,10 +24,11 @@ namespace PAP
 
   public slots:
     void on_focusButton_clicked() ;
-    void on_quitButton_clicked();
+    //void on_quitButton_clicked();
     void on_stopButton_clicked();
     void toggleView(int view) ;
     void processFrame( const QVideoFrame& frame ) ;
+    void moveToMarker() ;
   private:
     CameraView* m_cameraview ;
     AutoFocus* m_autofocus ;

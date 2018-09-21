@@ -87,12 +87,22 @@ namespace PAP
 	MSResult result ;
 	result.controller = command.controller ;
 	result.data = read() ;
+	
+	QString line{result.data} ;
+	if( !line.contains( command.cmd.c_str() ) ) {
+	  // very often we are just one read behind. let's just read once more.
+	  qWarning() << "Test in handleOuput failed already in worker!" 
+	 	     << command.cmd.c_str()
+	     	     << result.data ;
+	  result.data = read() ;
+	}
 	//qDebug() << "Result ready! "
 	//<< command.cmd.c_str()
 	//	       << result.data.size() ;
 	emit resultReady(result) ;
+      } else {
+	emit ready() ;
       }
-      emit ready() ;
     }
   }
   
@@ -152,8 +162,8 @@ namespace PAP
       //qDebug() << "Size was in read(): " << readData.size() ;
       // FIXME! so, I don't know what is wrong, but we are receiving garbage.
       // for now, truncate at the first newline.
-      int newend = readData.indexOf("\n") ;
-      readData.truncate(newend) ;
+      //int newend = readData.indexOf("\n") ;
+      //readData.truncate(newend) ;
     }
     //qDebug() << "Read: \"" << readData << "\"" ; //<< std::endl ;
     return readData ;
@@ -273,6 +283,7 @@ namespace PAP
 	}
       }
     }
+    next() ;
   }
   
 }

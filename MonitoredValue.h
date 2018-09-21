@@ -59,7 +59,7 @@ namespace PAP
     // conversion
     MonitoredValue<T>& operator=(const ValueType& rhs) { set(rhs) ; return *this ; }
     // to interface with property service
-    QString toString() const { return QVariant(m_value).toString() ; }
+    QString toString() const { return QVariant{m_value}.toString() ; }
     // this one will be implemented by template specialization
     bool fromString( const QString& val ) ;
     // return the qvariant type
@@ -67,6 +67,12 @@ namespace PAP
   private:
     T m_value ;
   } ;
+
+  using MonitoredDouble = MonitoredValue<double> ;
+  using MonitoredFloat  = MonitoredValue<float> ;
+  using MonitoredInteger = MonitoredValue<int> ;
+  using MonitoredQPointF = MonitoredValue<QPointF> ;
+
 }
 
 #endif
