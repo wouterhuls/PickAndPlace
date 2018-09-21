@@ -64,9 +64,7 @@ namespace PAP
     
     auto calibrationdialog = new MotionSystemCalibration{this} ;
     auto calibratebutton = new QPushButton("Calibrate",this) ;
-    //calibratebutton->setObjectName(QStringLiteral("calibrateButton"));
     connect(calibratebutton,&QPushButton::clicked,[=](){ calibrationdialog->show() ; } ) ;
-    //layout->addWidget( calibratebutton ) ;
     extrabuttonlayout->addWidget( calibratebutton,1,0) ;
 			   
     auto quitbutton = new QPushButton("Quit",this) ;
@@ -85,25 +83,5 @@ namespace PAP
   void MotionSystemWidget::on_quitButton_clicked()
   {
     QCoreApplication::quit();
-  }
-  
-  void MotionSystemWidget::on_calibrateButton_clicked()
-  {
-    auto dialog = new QDialog{ this } ;
-    dialog->resize(500,200) ;
-    auto label = new QLabel{ dialog } ;
-    label->setText("a. place the glass plate on the machine\n"
-		   "b. take a number of measurements of markers\n"
-		   "   - move to a marker \n"
-		   "   - record the coordinates by pressing right mouse button and 'record' \n"
-		   "   - manually insert the coordinates (X,y in mm) written on the glass plate \n"
-		   "   - press 'accept'\n"
-		   "c. press the calibrate button\n"
-		   "   - this will update the constants stored in GeomSvc\n"
-		   "d. test the result on a number of markers\n") ;
-    label->setWordWrap(true);
-    dialog->show();
-    dialog->raise();
-    dialog->activateWindow();
   }
 }
