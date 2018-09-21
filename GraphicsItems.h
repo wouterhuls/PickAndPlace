@@ -82,6 +82,7 @@ namespace PAP
     
   } ;
 
+  
   class Substrate : public QGraphicsItem
   {
   private:
@@ -124,8 +125,37 @@ namespace PAP
      }
   } ;
   
+class ReferenceMarker : public Marker
+  {
 
-  class Tile : public QGraphicsItem
+  private:
+    const float m_size = 0.05 ; // size in micron
+  public:
+    ReferenceMarker(const FiducialDefinition& def, QGraphicsItem *parent = Q_NULLPTR)
+      : Marker(def,parent){}
+    virtual QRectF boundingRect() const
+    {
+      //qreal penWidth = 1 ;
+      qreal bound = 1.02 * m_size ;
+      return QRectF{-0.5*bound,-0.5*bound,bound,bound} ;
+    }
+    virtual void paint(QPainter *painter,
+		       const QStyleOptionGraphicsItem* /*option*/,
+		       QWidget* /*widget*/)
+    {
+      // semitransparent yellow??
+      QPen pen ;
+      pen.setColor( Qt::yellow ) ;
+      // let's draw as a circle with some lines inside
+      pen.setWidthF(0.01*m_size); // in which units? this is shit ... rescaling does not work!      
+      painter->setPen(pen) ;
+      QRectF rectangle{-0.5*m_size,-0.5*m_size,m_size,m_size};
+      painter->drawRect( rectangle ) ;
+      painter->drawEllipse( rectangle ) ;
+    }
+  } ;
+ 
+  class Tile : public QGraphicsItemGroup
   {
   private:
     const double markerdist = 42.514 ; // approximately
@@ -133,7 +163,7 @@ namespace PAP
     const double height = 17.04 ;
   public:
   Tile( const std::vector<FiducialDefinition>& markerdefs,
-	  QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItem(parent) {
+	  QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItemGroup(parent) {
       //the position is the position of the first velopix marker
       setPos( markerdefs.front().x, markerdefs.front().y) ;
       setToolTip(QString("Tile ") + markerdefs.front().name.leftRef(3) ) ;
@@ -141,6 +171,20 @@ namespace PAP
       double dy = markerdefs.back().y - markerdefs.front().y ;
       double angle = std::atan2( dy, dx ) ;
       setRotation( angle * 180.0 / M_PI ) ;
+      // add a few markers for the sensor flatness measurements
+      const double X0 = -(width-markerdist)/2 + 0.5 ;
+      const double Y0 = +2.5 ;
+      bool nside = markerdefs.front().name.contains("N") ;
+      for(int j=0; j<4; ++j) {
+	int i = nside ? j : ( 2*(j/2) + (1 - j%2 ) ) ;
+	const double x = X0 + ((i+i/2)%2) * (width-1.0) ;
+	const double y = Y0 + (i/2) * (height-3.2) ;
+	QString refname = "Sensor" ;
+	refname += markerdefs.front().name.leftRef(3) ;
+	refname += QString::number( j+1 ) ;
+	FiducialDefinition def{refname,x,y} ;
+	(static_cast<QGraphicsItemGroup*>(parent))->addToGroup( new ReferenceMarker{ def, this } ) ;
+      }
     } ;
 
     // we'll draw just a 
@@ -301,7 +345,10 @@ namespace PAP
       painter->drawLine(QPointF(0,-L),QPointF(0,L)) ;
       painter->drawLine(QPointF(-L,0),QPointF(L,0)) ;
     }    
-  } ;  
+  } ;
+  
+  
+
 }
 #endif
 
