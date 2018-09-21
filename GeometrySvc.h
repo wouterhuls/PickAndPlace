@@ -70,13 +70,13 @@ namespace PAP
     std::vector<FiducialDefinition> velopixmarkersCSide() ;
     std::vector<FiducialDefinition> jigmarkers() ;
 
-    const auto& stackX0() const { return m_stackX0 ; }
-    const auto& stackXA() const { return m_stackXA ; }
-    const auto& stackXB() const { return m_stackXB ; }
-    const auto& stackY0() const { return m_stackY0 ; }
-    const auto& stackYA() const { return m_stackYA ; }
-    const auto& stackYB() const { return m_stackYB ; }
-    const auto& stackPhi0() const { return m_stackPhi0 ; }
+    const NamedDouble& stackX0() const { return m_stackX0 ; }
+    const NamedDouble& stackXA() const { return m_stackXA ; }
+    const NamedDouble& stackXB() const { return m_stackXB ; }
+    const NamedDouble& stackY0() const { return m_stackY0 ; }
+    const NamedDouble& stackYA() const { return m_stackYA ; }
+    const NamedDouble& stackYB() const { return m_stackYB ; }
+    const NamedDouble& stackPhi0() const { return m_stackPhi0 ; }
 
     
     
