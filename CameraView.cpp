@@ -131,18 +131,24 @@ namespace PAP
 
     m_nsidemarkers = new QGraphicsItemGroup{} ;
     m_detectorgeometry->addToGroup( m_nsidemarkers ) ;
-    m_nsidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersNSI() ) ) ;
-    m_nsidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersNLO() ) ) ;
+    m_nsidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersNSI(),
+					  m_nsidemarkers) ) ;
+    m_nsidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersNLO(),
+					  m_nsidemarkers ) ) ;
     for( const auto& m : GeometrySvc::instance()->velopixmarkersNSide() )
       m_nsidemarkers->addToGroup( new VelopixMarker{m,m_nsidemarkers} ) ;
+    for( const auto& m : GeometrySvc::instance()->mcpointsNSide() )
+      m_nsidemarkers->addToGroup( new ReferenceMarker{m,m_nsidemarkers} ) ;
     
     m_csidemarkers = new QGraphicsItemGroup{} ;
     m_detectorgeometry->addToGroup( m_csidemarkers ) ;
-    m_csidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersCLI() ) ) ;
-    m_csidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersCSO() ) ) ;
+    m_csidemarkers->addToGroup( new Tile{GeometrySvc::instance()->velopixmarkersCLI(),m_csidemarkers}) ;
+    m_csidemarkers->addToGroup( new Tile{GeometrySvc::instance()->velopixmarkersCSO(),m_csidemarkers} ) ;
     for( const auto& m : GeometrySvc::instance()->velopixmarkersCSide() )
       m_csidemarkers->addToGroup( new VelopixMarker{m,m_csidemarkers} ) ;
-
+    for( const auto& m : GeometrySvc::instance()->mcpointsCSide() )
+      m_csidemarkers->addToGroup( new ReferenceMarker{m,m_csidemarkers} ) ;
+ 
     auto beamline = new SightMarker( FiducialDefinition{"Beamline",0,0}, 2.0 ) ;
     m_detectorgeometry->addToGroup( beamline ) ;
     this->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
@@ -216,7 +222,7 @@ namespace PAP
       const int xsize = 2448 ;
       const int ysize = 2048 ;
       settings.setResolution(xsize,ysize) ;
-      settings.setMaximumFrameRate(5) ;
+      settings.setMaximumFrameRate(5) ; // accepted rates: {1,5,15,25} [Hz]
       settings.setMinimumFrameRate(5) ;
       settings.setPixelFormat(QVideoFrame::Format_BGR32) ;
       m_camera->setViewfinderSettings( settings ) ;
@@ -285,13 +291,21 @@ namespace PAP
     //qDebug() << "CameraView::updateGeometryView()" ;
     const auto geomsvc = GeometrySvc::instance() ;
     // Now watch the order!
-    QTransform T1 = geomsvc->fromCameraToGlobal() ;
-    QTransform T2 = geomsvc->fromModuleToGlobal( m_currentViewDirection ) ;
-    m_detectorgeometry->setTransform( (T2 * T1.inverted() ) * fromCameraToPixel() ) ;
+    const QTransform T1 = geomsvc->fromCameraToGlobal() ;
+    const QTransform T2 = geomsvc->fromModuleToGlobal( m_currentViewDirection ) ;
+    const QTransform fromModuleToCamera = T2 * T1.inverted() ;
+    // I am totally confused that this works:-)
+    m_detectorgeometry->setTransform( fromModuleToCamera * fromCameraToPixel() ) ;
 
     //
     m_markertext->setText(closestMarkerName()) ;
-    
+
+    // update camera coordinates (such that we can display them elsewhere)
+    const QTransform fromCameraToModule = fromModuleToCamera.inverted() ;
+    //QTransform fromModuleToGlobal = geomsvc->fromModuleToGlobal(m_currentViewDirection) ;
+    //QTransform fromCameraToModule = geomsvc->fromCameraToGlobal() * fromModuleToGlobal.inverted() ;
+    auto modulepoint = fromCameraToModule.map( QPointF{0,0} ) ;
+    m_cameraCentreInModuleFrame.setValue( modulepoint ) ;
   }
 
   void CameraView::updateStackAxisView()
@@ -504,10 +518,6 @@ namespace PAP
       // }
       MotionSystemSvc::instance()->mainXAxis().moveTo(mscoordinates.x) ;
       MotionSystemSvc::instance()->mainYAxis().moveTo(mscoordinates.y) ;
-     
-
-      
-      
     }
   }
 
@@ -537,7 +547,20 @@ namespace PAP
       }
     }
   }
-  
+
+  QStringList CameraView::visibleMarkers() const
+  {
+    std::vector<const PAP::Marker*> markers ;
+    collectVisibleMarkers(*m_detectorgeometry,markers) ;
+    QStringList markernames ;
+    markernames.reserve( markers.size() ) ;
+    std::transform( markers.begin(),
+		    markers.end(),
+		    std::back_inserter(markernames),
+		    [] ( const auto& m ) {
+		      return m->name() ; } ) ;
+    return markernames ;
+  }
   
   void CameraView::moveCameraTo( const QString& markername ) const
   {

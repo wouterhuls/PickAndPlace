@@ -38,7 +38,9 @@ namespace PAP
     double pixelSize() const { return m_chipPixelSize / m_magnification ; }
     double pixelSizeX() const { return pixelSize() ; }
     double pixelSizeY() const { return pixelSize() ; }
-
+    
+    MonitoredQPointF& cameraCentreInModuleFrame() { return m_cameraCentreInModuleFrame ; }
+    
     QVideoProbe* videoProbe() { return m_videoProbe ; }
 
     QGraphicsItemGroup* nsidemarkers() { return m_nsidemarkers; }
@@ -73,7 +75,9 @@ namespace PAP
     const PAP::Marker* closestMarker( const QPointF& localpoint ) const ;
     const PAP::Marker* closestMarker() const { return closestMarker(localOrigin()) ; }
     QString closestMarkerName() const ;
-    
+    QStringList visibleMarkers() const ;
+    /// Move to a particular marker
+    void moveCameraTo( const QString& name ) const ;
   signals:
     void recording( const CoordinateMeasurement& ) const ;
     
@@ -83,8 +87,7 @@ namespace PAP
     void animFinished() ;
     virtual void mousePressEvent( QMouseEvent* event) ;
     void moveCameraTo( QPointF localpoint, MovementType mode) const ;
-    /// Move to a particular marker
-    void moveCameraTo( const QString& name ) const ;
+    
     /// Return the position of a marker in global coordinates
     QPointF globalPosition( const QString& name ) const ;
     
@@ -138,6 +141,8 @@ namespace PAP
     // text with name of closest marker
     QGraphicsSimpleTextItem* m_markertext ;
     
+    // derived parameters for the camera centre in the module frame
+    MonitoredQPointF m_cameraCentreInModuleFrame ;
   };
 }
 
