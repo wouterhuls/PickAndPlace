@@ -62,6 +62,24 @@ namespace PAP
             {"NLO_VP12_Fid2", -2.319, 52.128}
 	  } ;
       }
+
+    std::vector<FiducialDefinition> velopixCLISensor()
+      {
+	return std::vector<FiducialDefinition>
+	  {
+	    {"CLI_Sensor_Fid1",-22.85,29.479},
+	    {"CLI_Sensor_Fid2",-22.85,30.257}
+	  } ;
+      }
+    
+    std::vector<FiducialDefinition> velopixNSISensor()
+      {
+	return std::vector<FiducialDefinition>
+	  {
+	    {"NSI_Sensor_Fid1",-0.294,-6.923},
+	      {"NSI_Sensor_Fid2",-0.294,-7.700}
+	  } ;
+      }
     
     std::vector<FiducialDefinition> jigNCSide()
       {
@@ -77,6 +95,33 @@ namespace PAP
 	    {"MainJigMarker2",+109.846,+45.306}  //  Measured 10/01/2018
 	  } ;
 	
+      }
+
+    std::vector<FiducialDefinition> microchannelNSide()
+      {
+	return std::vector<FiducialDefinition> {
+	  {"MC_NLO_Fid1",28.16,22.39},
+	  {"MC_NLO_Fid2",-2.51,52.79},
+	  {"MC_NLO_Fid3",-15.41,39.82},
+	  {"MC_NLO_Fid4", 14.68,10.00},
+	  {"MC_NSI_Fid1",11.78,-18.93},
+	  {"MC_NSI_Fid2",41.94,11.79},
+	  {"MC_NSI_Fid3",10.1,5.34}
+	} ;
+      }
+    
+    std::vector<FiducialDefinition> microchannelCSide()
+      {
+	return std::vector<FiducialDefinition> {
+	  {"MC_CLI_Fid1",-11.42, 41.78},
+	  {"MC_CLI_Fid2", 19.60, 11.2},
+	  {"MC_CLI_Fid3", 13.25,  2.35},
+	  {"MC_CLI_Fid4",-19.97, 35.54},
+	  {"MC_CSO_Fid1", 51.79,  1.49},
+	  {"MC_CSO_Fid2", 21.27,-29.05},
+	  {"MC_CSO_Fid3",  8.84,-15.43},
+	  {"MC_CSO_Fid4", 41.09, 14.01}
+	    } ;
       }
 
     // Martijn's measurements 10/01/2018:
