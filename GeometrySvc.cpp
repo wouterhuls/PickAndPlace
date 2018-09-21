@@ -326,36 +326,53 @@ namespace PAP
   }
   
   std::vector<FiducialDefinition>
-  GeometrySvc::velopixmarkersNSI() { return Markers::velopixNSI() ; }
+  GeometrySvc::velopixmarkersNSI() const { return Markers::velopixNSI() ; }
   
   std::vector<FiducialDefinition>
-  GeometrySvc::velopixmarkersNLO() { return Markers::velopixNLO() ; }
+  GeometrySvc::velopixmarkersNLO() const { return Markers::velopixNLO() ; }
   
   std::vector<FiducialDefinition>
-  GeometrySvc::velopixmarkersCLI() { return Markers::velopixCLI() ; }
+  GeometrySvc::velopixmarkersCLI() const { return Markers::velopixCLI() ; }
   
   std::vector<FiducialDefinition>
-  GeometrySvc::velopixmarkersCSO() { return Markers::velopixCSO() ; }
-
+  GeometrySvc::velopixmarkersCSO() const { return Markers::velopixCSO() ; }
+  
   std::vector<FiducialDefinition>
-  GeometrySvc::velopixmarkersNSide()
+  GeometrySvc::velopixmarkersCLISensor() const { return Markers::velopixCLISensor() ; }
+  
+  std::vector<FiducialDefinition>
+  GeometrySvc::velopixmarkersNSISensor() const { return Markers::velopixNSISensor() ; }
+  
+  std::vector<FiducialDefinition>
+  GeometrySvc::velopixmarkersNSide() const
   {
     auto rc = velopixmarkersNSI() ;
     auto rc2 = velopixmarkersNLO() ;
     rc.insert(rc.end(),rc2.begin(),rc2.end()) ;
+    auto rc3 = velopixmarkersCLISensor() ;
+    rc.insert(rc.end(),rc3.begin(),rc3.end()) ;
     return rc ;
   }
 
   std::vector<FiducialDefinition>
-  GeometrySvc::velopixmarkersCSide()
+  GeometrySvc::velopixmarkersCSide() const
   {
     auto rc = velopixmarkersCLI() ;
     auto rc2 = velopixmarkersCSO() ;
     rc.insert(rc.end(),rc2.begin(),rc2.end()) ;
+    auto rc3 = velopixmarkersNSISensor() ;
+    rc.insert(rc.end(),rc3.begin(),rc3.end()) ;
     return rc ;
   }
   
   std::vector<FiducialDefinition>
-  GeometrySvc::jigmarkers() { return Markers::jigNCSide() ; }
+  GeometrySvc::jigmarkers() const { return Markers::jigNCSide() ; }
+
+  std::vector<FiducialDefinition>
+  GeometrySvc::mcpointsNSide() const { return Markers::microchannelNSide() ; }
+  
+  std::vector<FiducialDefinition>
+  GeometrySvc::mcpointsCSide() const { return Markers::microchannelCSide() ; }
+
   
 }

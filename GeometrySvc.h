@@ -62,13 +62,17 @@ namespace PAP
   public:
     // access to various marker positions in the 'Module' frame. these
     // have already been corrected for the 'view'.
-    std::vector<FiducialDefinition> velopixmarkersNSI() ;
-    std::vector<FiducialDefinition> velopixmarkersNLO() ;
-    std::vector<FiducialDefinition> velopixmarkersCLI() ;
-    std::vector<FiducialDefinition> velopixmarkersCSO() ;
-    std::vector<FiducialDefinition> velopixmarkersNSide() ;
-    std::vector<FiducialDefinition> velopixmarkersCSide() ;
-    std::vector<FiducialDefinition> jigmarkers() ;
+    std::vector<FiducialDefinition> velopixmarkersNSI() const ;
+    std::vector<FiducialDefinition> velopixmarkersNLO() const ;
+    std::vector<FiducialDefinition> velopixmarkersCLI() const ;
+    std::vector<FiducialDefinition> velopixmarkersCSO() const ;
+    std::vector<FiducialDefinition> velopixmarkersCLISensor() const ;
+    std::vector<FiducialDefinition> velopixmarkersNSISensor() const ;
+    std::vector<FiducialDefinition> velopixmarkersNSide() const ;
+    std::vector<FiducialDefinition> velopixmarkersCSide() const ;
+    std::vector<FiducialDefinition> jigmarkers() const ;
+    std::vector<FiducialDefinition> mcpointsNSide() const ;
+    std::vector<FiducialDefinition> mcpointsCSide() const ;
 
     const auto& stackX0() const { return m_stackX0 ; }
     const auto& stackXA() const { return m_stackXA ; }
@@ -103,7 +107,7 @@ namespace PAP
     NamedDouble m_stackYB ;
     NamedDouble m_stackPhi0 ;
 
-    // paramaters for all the stacks. we better tabulate these end access by name
+  // paramaters for all the stacks. we better tabulate these end access by name
     std::map<QString,TileStackPosition*> m_tileStackPositions ;
   } ;
 
