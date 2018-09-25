@@ -6,7 +6,7 @@
 
 namespace PAP
 {
-  enum ViewDirection { NSideView = 0 , CSideView=1 } ;
+  enum ViewDirection { NSideView = 0 , CSideView=1, NumViews=2 } ;
   
   class Coordinates2D : public QPointF
   {

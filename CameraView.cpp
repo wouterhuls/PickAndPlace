@@ -557,7 +557,7 @@ namespace PAP
     std::transform( markers.begin(),
 		    markers.end(),
 		    std::back_inserter(markernames),
-		    [] ( const auto& m ) {
+		    [] ( const PAP::Marker* m ) {
 		      return m->name() ; } ) ;
     return markernames ;
   }

@@ -4,6 +4,7 @@
 #include <QWidget>
 #include <QMainWindow>
 #include "CoordinateMeasurement.h"
+#include "Singleton.h"
 
 class QLabel;
 class QCheckBox ;
@@ -13,6 +14,7 @@ namespace PAP
 {
   class CameraView ;
   class AutoFocus ;
+  class MeasurementReportPage ;
   
   class CameraWindow : public QMainWindow
   {
@@ -21,6 +23,9 @@ namespace PAP
   public:
     explicit CameraWindow(QWidget *parent = 0);
     ~CameraWindow() {}
+    CameraView* cameraview() { return m_cameraview ; }
+    AutoFocus* autofocus() { return m_autofocus ; }
+    MeasurementReportPage* measurementreport() { return m_measurementreport ; }
 
   public slots:
     void on_focusButton_clicked() ;
@@ -32,6 +37,7 @@ namespace PAP
   private:
     CameraView* m_cameraview ;
     AutoFocus* m_autofocus ;
+    MeasurementReportPage* m_measurementreport ;
     // some labels that tell where the cursor position is
     QLabel* m_cursorposition ;
     QCheckBox* m_showNSideTiles ;

@@ -6,6 +6,10 @@
 
 QT       += core gui serialport multimedia multimediawidgets testlib charts
 
+
+QMAKE_MAC_SDK = macosx10.14
+CONFIG+=sdk_no_version_check
+
 #INCLUDEPATH+=$HOME/surfdrive/QtProjects
 INCLUDEPATH+=/usr/local/include
 
@@ -65,7 +69,8 @@ HEADERS  += \
     AlignPages.h\
     MotionSystemCalibration.h \
     StackCalibration.h \
-    MonitoredValueLabel.h
+    MonitoredValueLabel.h \
+    MeasurementReport.h
 
 FORMS    += SerialPortSettingsDialog.ui
 
@@ -74,3 +79,4 @@ FORMS    += SerialPortSettingsDialog.ui
 
 RESOURCES += \
     PickAndPlace.qrc
+

@@ -6,6 +6,7 @@
 #include "AlignPages.h"
 #include "CameraImageProcessingDialog.h"
 #include "MonitoredValueLabel.h"
+#include "MeasurementReport.h"
 
 #include <iostream>
 #include <sstream>
@@ -34,6 +35,7 @@ namespace PAP
     
     m_cameraview = new CameraView{this} ;
     m_autofocus = new AutoFocus{ m_cameraview, this } ;
+    m_measurementreport = new MeasurementReportPage{*this} ;
     
     // add a vertical layout. if we derive from 'mainwindow', then
     // layout must be set to the central widget.
@@ -73,6 +75,12 @@ namespace PAP
       auto button = new QPushButton("Move to marker",this) ;
       button->setToolTip("Move to camera to one of the default markers") ;
       connect( button, &QPushButton::clicked, [&](){ this->moveToMarker(); } ) ;
+      buttonlayout->addWidget( button ) ;
+    }
+    {
+      auto button = new QPushButton("MeasurementReport",this) ;
+      button->setToolTip("Pop-up meusurementreportwindow") ;
+      connect( button, &QPushButton::clicked, [&](){ m_measurementreport->show() ; } ) ;
       buttonlayout->addWidget( button ) ;
     }
     
@@ -166,7 +174,7 @@ namespace PAP
     {
       auto nsidetaskpages = new QTabWidget{ taskpages } ;
       taskpages->addTab(nsidetaskpages,"N-side") ;
-      auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
+      auto mainjigalignwidget = new AlignMainJigPage{ViewDirection::NSideView,m_cameraview} ;
       nsidetaskpages->addTab(mainjigalignwidget,"Align jig") ;
       nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NSI","NSI_VP20_Fid1","NSI_VP22_Fid2"},"Align NSI") ;
       nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NLO","NLO_VP10_Fid1","NLO_VP12_Fid2"},"Align NLO") ;
@@ -175,7 +183,7 @@ namespace PAP
     {
       auto csidetaskpages = new QTabWidget{ taskpages } ;
       taskpages->addTab(csidetaskpages,"C-side") ;
-      auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
+      auto mainjigalignwidget = new AlignMainJigPage{ViewDirection::CSideView,m_cameraview} ;
       csidetaskpages->addTab(mainjigalignwidget,"Align jig") ;
       csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CLI","CLI_VP00_Fid1","CLI_VP02_Fid2"},"Align CLI") ;
       csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CSO","CSO_VP30_Fid1","CSO_VP32_Fid2"},"Align CSO") ;

@@ -87,6 +87,10 @@ namespace PAP
     void animFinished() ;
     virtual void mousePressEvent( QMouseEvent* event) ;
     void moveCameraTo( QPointF localpoint, MovementType mode) const ;
+    void moveCameraToPointInModule( QPointF modulepoint ) const {
+      QPointF localcoord = m_detectorgeometry->mapToScene( modulepoint ) ;
+      moveCameraTo( localcoord, MovementType::AbsolutePosition ) ;
+    }
     
     /// Return the position of a marker in global coordinates
     QPointF globalPosition( const QString& name ) const ;
