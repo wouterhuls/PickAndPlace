@@ -70,8 +70,6 @@ namespace PAP
 		     std::back_inserter(m_measurements),
 		     [=](const FiducialDefinition& def) {
 		       return ReportCoordinate{def,moduleZ} ; } ) ;
-      qDebug() << "*** ModuleZ: " << moduleZ ;
-      std::cout << "*** ModuleZ: " << moduleZ << std::endl ;
       
       // make a table to view the measurements. we should do this with
       // the model/view thing, but I find that a bit too complicated.

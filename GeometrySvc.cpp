@@ -55,18 +55,24 @@ namespace PAP
     NamedDouble m_y ;
     NamedDouble m_phi ;
     NamedDouble m_z ;
+    NamedDouble m_dzdx ;
+    NamedDouble m_dzdy ;
   public:
     ModulePosition( const QString& side, double x, double y, double phi, double z=0 )
       : m_x{QString{"Geo.ModuleX"}+side,x},
 	m_y{QString{"Geo.ModuleY"}+side,y},
 	m_phi{QString{"Geo.ModulePhi"}+side,phi},
-	m_z{QString{"Geo.ModuleZ"}+side,z}
+	m_z{QString{"Geo.ModuleZ"}+side,z},
+	m_dzdx{QString{"Geo.ModuledZdX"}+side,0},
+	m_dzdy{QString{"Geo.ModuledZdY"}+side,0}
     {
       PAP::PropertySvc* papsvc = PAP::PropertySvc::instance() ;
       papsvc->add( m_x ) ;
       papsvc->add( m_y ) ;
       papsvc->add( m_phi ) ;
       papsvc->add( m_z ) ;
+      papsvc->add( m_dzdx ) ;
+      papsvc->add( m_dzdy ) ;
     }
     void applyDelta(double dx, double dy, double phi ) {
       QTransform T ;
@@ -84,7 +90,13 @@ namespace PAP
     const NamedDouble& x() const { return m_x ; }
     const NamedDouble& y() const { return m_y ; }
     const NamedDouble& z() const { return m_z ; }
-    void setZ( double z ) { m_z = z ; }
+    double z(const Coordinates2D& globalpos) const {
+      return m_z + globalpos.x()*m_dzdx + globalpos.y()*m_dzdy ; }
+    void setZ( double z, double dzdx=0, double dzdy=0 ) {
+      m_z = z ;
+      m_dzdx = dzdx ;
+      m_dzdy = dzdy ;
+    }
   } ;
   
   GeometrySvc::GeometrySvc()
@@ -210,8 +222,8 @@ namespace PAP
 	     << m_moduleposition[view]->phi() ;
   }
   
-  void GeometrySvc::setModuleZ(ViewDirection view, double z) {
-    m_moduleposition[view]->setZ(z) ;
+  void GeometrySvc::setModuleZ(ViewDirection view, double z, double dzdx, double dzdy) {
+    m_moduleposition[view]->setZ(z,dzdx,dzdy) ;
   }
   
   double GeometrySvc::moduleZ(ViewDirection view) const {

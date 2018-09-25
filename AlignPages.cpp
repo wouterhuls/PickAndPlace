@@ -3,6 +3,8 @@
 #include "GeometrySvc.h"
 #include "CoordinateMeasurement.h"
 #include "CameraView.h"
+#include "CameraWindow.h"
+#include "AutoFocus.h"
 
 #include <cmath>
 #include "Eigen/Dense"
@@ -11,6 +13,7 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QPlainTextEdit>
+#include <QTableWidget>
 
 
 
@@ -226,10 +229,6 @@ namespace PAP
       Eigen::Vector3d deltaXYPhi = computeAlignment(recordings,Coordinates2D{},m_textbox) ;
       // now update the geometry
       GeometrySvc::instance()->applyModuleDelta(m_viewdirection,deltaXYPhi(0),deltaXYPhi(1),deltaXYPhi(2)) ;
-      // let's also keep track of the Z position. For now just the average Z.
-      GeometrySvc::instance()->setModuleZ(m_viewdirection,
-					  (m_marker1recorder->measurement().mscoordinates.focus +
-					   m_marker2recorder->measurement().mscoordinates.focus)/2.0) ;
       m_cameraview->updateGeometryView() ;
       // and don't forget to reset
       m_marker1recorder->setStatus( MarkerRecorderWidget::Calibrated ) ;
@@ -337,6 +336,129 @@ namespace PAP
     }
   }
 
+  AlignMainJigZPage::AlignMainJigZPage(ViewDirection view,CameraWindow& camerasvc)
+    : QWidget{&camerasvc},m_viewdirection{view},m_camerasvc(&camerasvc)
+  {
+    // just two buttons: start and stop + a label to tell that it is
+    // ready, running, done or something like that.
+    auto vlayout = new QVBoxLayout{} ;
+    setLayout(vlayout) ;
+    auto hlayout = new QHBoxLayout{} ;
+    vlayout->addLayout(hlayout) ;
+    auto startbutton = new QPushButton{"Start",this} ;
+    connect(startbutton,&QPushButton::clicked,[&]() {
+	//
+	m_measurements.clear() ;
+	m_status = Active ;
+	// connect the signals
+	this->connectsignals() ;
+	// start the movement
+	move() ;
+      });
+    hlayout->addWidget(startbutton) ;
+    auto stopbutton = new QPushButton{"Abort",this} ;
+    connect(stopbutton,&QPushButton::clicked,[&]() {
+	// connect the signals
+	this->disconnectsignals() ;
+	// start the movement
+	m_status = Inactive ;
+      });
+    hlayout->addWidget(stopbutton) ;
+    // add a table with the results of the measurements
+    int nrow = refcoordinates.size() ;
+    m_measurementtable = new QTableWidget{nrow,3,this} ;
+    m_measurementtable->setHorizontalHeaderLabels(QStringList{"Main X","Main Y","focus Z"}) ;
+    vlayout->addWidget(m_measurementtable) ;
+  }
+
+  void AlignMainJigZPage::disconnectsignals()
+  {
+    for( auto& c : m_conns ) QObject::disconnect(c) ;
+    m_conns.clear() ;
+  }
+    
+  void AlignMainJigZPage::connectsignals()
+  {
+    m_conns.emplace_back( connect( MotionSystemSvc::instance(), &MotionSystemSvc::mainStageMoved, [&]() { this->focus() ; } ) ) ;
+    m_conns.emplace_back( connect( m_camerasvc->autofocus(), &AutoFocus::focussed,  [&]() { this->measure() ; } ) ) ;
+  }
+    
+  void AlignMainJigZPage::move() {
+    // move to next reference z position
+    auto n = m_measurements.size()+1 ;
+    if( n<refcoordinates.size() ) {
+      auto mscoordinates = refcoordinates[n] ;
+      MotionSystemSvc::instance()->mainXAxis().moveTo(mscoordinates.x) ;
+      MotionSystemSvc::instance()->mainYAxis().moveTo(mscoordinates.y) ;
+    }
+  }
+  
+  void AlignMainJigZPage::focus() {
+    if( m_status == Active )
+      m_camerasvc->autofocus()->startNearFocusSequence() ;
+  }
+  
+  void AlignMainJigZPage::measure() {
+    if( m_status == Active ) {
+      m_measurements.push_back(MotionSystemSvc::instance()->coordinates()) ;
+      // update the table. a bit ugly: we'll just fill it from scratch. to be improved.
+      {
+	QTableWidgetItem prototype ;
+	prototype.setBackground( QBrush{ QColor{Qt::gray} } ) ;
+	prototype.setFlags( Qt::ItemIsSelectable ) ;
+	int N = m_measurements.size();
+	m_measurementtable->setRowCount( N ) ;
+	for(int row=0; row<N; ++row ) {
+	  for(int col=0; col<3; ++col)
+	    if( !m_measurementtable->item( row,col) )
+	      m_measurementtable->setItem(row,col,new QTableWidgetItem{prototype} ) ;
+	  const auto& m = m_measurements[row] ;
+	  m_measurementtable->item(row,0)->setText( QString::number( m.main.x, 'g', 5 ) ) ;
+	  m_measurementtable->item(row,1)->setText( QString::number( m.main.y, 'g', 5 ) ) ;
+	  m_measurementtable->item(row,2)->setText( QString::number( m.focus, 'g', 5 ) ) ;
+	}
+      }
+      if( m_measurements.size()==refcoordinates.size() ) {
+	disconnectsignals() ;
+	calibrate() ;
+      } else {
+	move() ;
+      }
+    }
+  }
+
+  void AlignMainJigZPage::calibrate() {
+    qDebug() << "Measurements: " ;
+    for( const auto& m : m_measurements ) {
+      qDebug() << m.main.x
+	       << m.main.y
+	       << m.focus ;
+    }
+    // for now really simple:
+    //   z = z0 + aX * x + aY * y
+    Eigen::Vector3d halfdchi2dpar   = Eigen::Vector3d::Zero() ;
+    Eigen::Matrix3d halfd2chi2dpar2 = Eigen::Matrix3d::Zero() ;
+    for( const auto& m : m_measurements ) {
+      Eigen::Vector3d deriv ;
+      deriv(0) = 1 ;
+      deriv(1) = m.main.x ;
+      deriv(2) = m.main.y ;
+      halfdchi2dpar += m.focus * deriv ;
+      for(int irow=0; irow<3; ++irow)
+	for(int icol=0; icol<3; ++icol)
+	  halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
+    }
+    Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
+    qDebug() << "Solution: " << delta(0) << delta(1) << delta(2) ;
+    // sanity check
+    if( std::abs(delta(1))<0.01 && std::abs(delta(2))<0.01 ) {
+      GeometrySvc::instance()->setModuleZ(m_viewdirection,delta(0),delta(1),delta(2)) ;
+      m_status = Calibrated ;
+      m_measurements.clear() ;
+    } else {
+      qDebug() << "Calibration failed!" ;
+    }
+  }
   
 }
 

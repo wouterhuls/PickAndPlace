@@ -42,7 +42,7 @@ namespace PAP
 
     // update calibration
     void applyModuleDelta(ViewDirection dir, double dx, double dy, double dphi ) ;
-    void setModuleZ(ViewDirection dir, double z ) ;
+    void setModuleZ(ViewDirection dir, double z, double dzdx, double dzdy ) ;
     double moduleZ( ViewDirection dir ) const ;
 
     Coordinates2D stackAxisInGlobal() const ;

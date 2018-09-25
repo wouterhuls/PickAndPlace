@@ -5,10 +5,12 @@
 #include <QWidget>
 class QLabel ;
 class QPlainTextEdit ;
+class QTableWidget ;
 
 namespace PAP
 {
   class CameraView ;
+  class CameraWindow ;
   
   class MarkerRecorderWidget : public QWidget
   {
@@ -74,7 +76,29 @@ namespace PAP
   public slots:
     void updateAlignment() const ;
   } ;
-    
+
+  class AlignMainJigZPage : public QWidget
+  {
+  private:
+    enum Status { Inactive, Active, Calibrated } ;
+    ViewDirection m_viewdirection ;
+    CameraWindow* m_camerasvc{0} ;
+    Status m_status{Inactive} ;
+    const std::vector<MSMainCoordinates> refcoordinates{ {-85,-10},{-85,120},{80,120},{80,-10} } ;
+    std::vector<MSCoordinates> m_measurements ;
+    std::vector<QMetaObject::Connection> m_conns ;
+    QTableWidget* m_measurementtable{0} ;
+  public:
+    AlignMainJigZPage(ViewDirection view, CameraWindow& camerasvc) ;
+  private:
+    void disconnectsignals() ;
+    void connectsignals() ;
+    void move() ;
+    void focus() ;
+    void measure() ;
+    void calibrate() ;
+  } ;
+  
 }
 
 
