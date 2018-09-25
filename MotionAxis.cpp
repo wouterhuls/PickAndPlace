@@ -261,13 +261,13 @@ namespace PAP
   {
     auto it = std::find_if( m_parameters.begin(),
 			    m_parameters.end(),
-			    [name,this](const auto& par) {
+			    [name,this](const MotionAxisParameter* par) {
 			      return par->name()==name || par->name() == this->name() + "." + name ;
 			    } ) ;
     if( it == m_parameters.end() ) {
       qDebug() << "Cannot find parameter '" << name << "'. Choose from: " ;
       for_each(m_parameters.begin(),
-	       m_parameters.end(), [](const auto& p) {
+	       m_parameters.end(), [](const MotionAxisParameter* p) {
 		 qDebug() << p->name() ;
 	       }) ;
     }
