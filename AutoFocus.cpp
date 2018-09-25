@@ -172,6 +172,11 @@ namespace PAP
 
   AutoFocus::~AutoFocus() {}
 
+  void AutoFocus::moveFocusTo( double z ) const
+  {
+    m_zaxis->moveTo( z ) ;
+  }
+
   void AutoFocus::storeMarkerFocus()
   {
     auto closestmarker = m_cameraView->closestMarkerName() ;
@@ -188,10 +193,8 @@ namespace PAP
     auto closestmarker = m_cameraView->closestMarkerName() ;
     auto dir = m_cameraView->currentViewDirection() ;
     auto it = m_markerfocuspoints[dir].find( closestmarker ) ;
-    if( it != m_markerfocuspoints[dir].end() ) {
-      double zpos = it->second.value() ;
-      m_zaxis->moveTo( zpos ) ;
-    }
+    if( it != m_markerfocuspoints[dir].end() )
+      moveFocusTo( it->second.value()  ) ;
   }
   
  void AutoFocus::processFrame( const QVideoFrame& frame )
@@ -558,7 +561,7 @@ namespace PAP
       // for now just print the series
       for_each( m_fastfocusmeasurements.begin(),
 		m_fastfocusmeasurements.end(),
-		[]( const auto& m ) { qDebug() << m.z << " " << m.I ; } ) ;
+		[]( const FocusMeasurement& m ) { qDebug() << m.z << " " << m.I ; } ) ;
       // why does every measurement appear two times?
       // perform a parabola fit two measurements close to the maximum?
       std::vector<FocusMeasurement> selection =
@@ -638,7 +641,7 @@ namespace PAP
       // for now just print the series
       for_each( m_fastfocusmeasurements.begin(),
 		m_fastfocusmeasurements.end(),
-		[]( const auto& m ) { qDebug() << m.z << " " << m.I ; } ) ;
+		[]( const FocusMeasurement& m ) { qDebug() << m.z << " " << m.I ; } ) ;
       // why does every measurement appear two times?
       // perform a parabola fit two measurements close to the maximum?
       size_t imax=0 ;
@@ -736,7 +739,7 @@ namespace PAP
       // for now just print the series
       for_each( m_fastfocusmeasurements.begin(),
 		m_fastfocusmeasurements.end(),
-		[]( const auto& m ) { qDebug() << m.z << " " << m.I ; } ) ;
+		[]( const FocusMeasurement& m ) { qDebug() << m.z << " " << m.I ; } ) ;
       
       axisvelocity->setValue() = originalspeed ;
       m_isFocussing = false ;

@@ -18,7 +18,7 @@ namespace PAP
 {
   class CameraView ;
   class MotionAxis ;
-  class AutoFocusSettingsWidget ;
+  struct AutoFocusSettingsWidget ;
   
   struct FocusMeasurement
   {
@@ -49,6 +49,7 @@ namespace PAP
     void startNearFocusSequence() ;
     void startFastFocusSequence() ;
     void startFastFocusSequenceSimple() ;
+    void moveFocusTo( double z ) const ;
    
   signals:
     void focusMeasureUpdated() ;
