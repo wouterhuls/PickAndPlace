@@ -11,22 +11,22 @@ namespace PAP
 
   /* class that holds a total set of axis coordinates from the motion system */
   class TileStackPosition ;
+  class ModulePosition ;
   
   class GeometrySvc : public PAP::Singleton<GeometrySvc>
   {
   public:
     // Definition of frame of references
     // - the 'global' frame. This is the frame in which the two axis of the motion system operate,
-
     
     // - the 'camera' frame: this has it's origin as the central pixel
     //   in the picture. It's origin in the global frame is given by
     //   the motion system. The frame can be rotated by an angle
     //   phi_cam with respect to the global frame.
     
-    // - the 'global' frame is the frame of the cameraview
-    // - the 'MS' frame has coordinates of the main stage X and Y axis
-    // - the 'module' frame is the frame of the module (jig)
+    // - the 'module' frame is the frame of the module (jig,
+    //   LHCb coordinates). This is the frame in which the coordinates of the
+    //   fiducials are defined.
     
     GeometrySvc() ;
     virtual ~GeometrySvc() ;
@@ -41,7 +41,9 @@ namespace PAP
     QTransform fromModuleToGlobal( ViewDirection view ) const ;
 
     // update calibration
-    void applyModuleDelta( double dx, double dy, double dphi ) ;
+    void applyModuleDelta(ViewDirection dir, double dx, double dy, double dphi ) ;
+    void setModuleZ(ViewDirection dir, double z ) ;
+    double moduleZ( ViewDirection dir ) const ;
 
     Coordinates2D stackAxisInGlobal() const ;
     Coordinates2D stackAxisInGlobal( const MSStackCoordinates& coord ) const ;
@@ -70,6 +72,9 @@ namespace PAP
     std::vector<FiducialDefinition> velopixmarkersNSISensor() const ;
     std::vector<FiducialDefinition> velopixmarkersNSide() const ;
     std::vector<FiducialDefinition> velopixmarkersCSide() const ;
+    std::vector<FiducialDefinition> velopixmarkers( ViewDirection view ) const {
+      return view==NSideView ? velopixmarkersNSide() : velopixmarkersCSide()  ;
+    }
     std::vector<FiducialDefinition> jigmarkers() const ;
     std::vector<FiducialDefinition> mcpointsNSide() const ;
     std::vector<FiducialDefinition> mcpointsCSide() const ;
@@ -82,9 +87,6 @@ namespace PAP
     const NamedDouble& stackYB() const { return m_stackYB ; }
     const NamedDouble& stackPhi0() const { return m_stackPhi0 ; }
 
-    
-    
-    
   private:
     // various calibration parameters
     NamedDouble m_mainX0 ;
@@ -94,9 +96,10 @@ namespace PAP
     NamedDouble m_mainYA ;
     NamedDouble m_mainYB ;
     NamedDouble m_cameraPhi ;
-    NamedDouble m_modulePhi ;
-    NamedDouble m_moduleX ;
-    NamedDouble m_moduleY ;
+    std::unique_ptr<ModulePosition> m_moduleposition[2] ;
+    //NamedDouble m_modulePhi[2] ;
+    //NamedDouble m_moduleX[2] ;
+    //NamedDouble m_moduleY[2] ;
 
     // parameters that translate stack parameters into global position of stack rotation axis
     NamedDouble m_stackX0 ;

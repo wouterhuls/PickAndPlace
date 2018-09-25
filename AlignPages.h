@@ -46,12 +46,13 @@ namespace PAP
     Q_OBJECT
     
   private:
+    ViewDirection m_viewdirection ;
+    CameraView* m_cameraview ;
     MarkerRecorderWidget* m_marker1recorder ;
     MarkerRecorderWidget* m_marker2recorder ;
-    CameraView* m_cameraview ;
     QPlainTextEdit* m_textbox ;
   public:
-    AlignMainJigPage(PAP::CameraView* camview) ;
+    AlignMainJigPage(ViewDirection dir, PAP::CameraView* camview) ;
   public slots:
     void updateAlignment() const ;
   } ;

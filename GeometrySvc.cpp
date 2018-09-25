@@ -5,6 +5,7 @@
 
 #include <Eigen/Dense>
 #include <cmath>
+#include <memory>
 
 namespace PAP
 {
@@ -21,15 +22,6 @@ namespace PAP
   //  - position of all stages
   //  - reference marker (or reference position)
   
-  // This needs to be followed by some sort of routine that computes
-  // updated calibration constants. So this 'measurementsvc' is
-  // actually quite complicated.
-
-  // For the autofocus I need a simple way to compute a 'contrast'. I
-  // can either take several 'focus points', or a 'focus area' in the
-  // middle of the picture. Let's start with the latter and see how
-  // quick it is.
-
   class TileStackPosition
   {
   private:
@@ -54,7 +46,45 @@ namespace PAP
     void setX(double x) { m_stackX = x ; }
     void setY(double y) { m_stackY = y ; }
     void setPhi(double r) { m_stackPhi = r ; }
-    
+  } ;
+
+  class ModulePosition
+  {
+  private:
+    NamedDouble m_x;
+    NamedDouble m_y ;
+    NamedDouble m_phi ;
+    NamedDouble m_z ;
+  public:
+    ModulePosition( const QString& side, double x, double y, double phi, double z=0 )
+      : m_x{QString{"Geo.ModuleX"}+side,x},
+	m_y{QString{"Geo.ModuleY"}+side,y},
+	m_phi{QString{"Geo.ModulePhi"}+side,phi},
+	m_z{QString{"Geo.ModuleZ"}+side,z}
+    {
+      PAP::PropertySvc* papsvc = PAP::PropertySvc::instance() ;
+      papsvc->add( m_x ) ;
+      papsvc->add( m_y ) ;
+      papsvc->add( m_phi ) ;
+      papsvc->add( m_z ) ;
+    }
+    void applyDelta(double dx, double dy, double phi ) {
+      QTransform T ;
+      T.translate( m_x, m_y ) ;
+      T.rotateRadians( m_phi ) ;
+      QTransform dT ;
+      dT.translate( dx, dy) ;
+      dT.rotateRadians( phi ) ;
+      QTransform Tnew = T*dT ;
+      m_phi = std::atan2( Tnew.m12(), Tnew.m11() ) ;
+      m_x = Tnew.m31() ;
+      m_y = Tnew.m32() ;
+    }
+    const NamedDouble& phi() const { return m_phi ; }
+    const NamedDouble& x() const { return m_x ; }
+    const NamedDouble& y() const { return m_y ; }
+    const NamedDouble& z() const { return m_z ; }
+    void setZ( double z ) { m_z = z ; }
   } ;
   
   GeometrySvc::GeometrySvc()
@@ -65,9 +95,6 @@ namespace PAP
       m_mainYA( "Geo.mainYA", 0.0 ),
       m_mainYB( "Geo.mainYB", -1.0 ),
       m_cameraPhi( "Geo.cameraPhi", 0 ),
-      m_modulePhi( "Geo.modulePhi", -0.0005975 ),
-      m_moduleX( "Geo.moduleX", -32.47), // perhaps we should move these into mainX0 and mainY0
-      m_moduleY( "Geo.moduleY", -63.69),
       // these points define the position and orientation of the stack rotation axis in the global frame
       m_stackX0( "Geo.stackX0", -15.054 ),
       m_stackXA( "Geo.stackXA", -1.0 ),
@@ -84,10 +111,9 @@ namespace PAP
     PAP::PropertySvc::instance()->add( m_mainYA ) ;
     PAP::PropertySvc::instance()->add( m_mainYB ) ;
     PAP::PropertySvc::instance()->add( m_cameraPhi ) ;
-    PAP::PropertySvc::instance()->add( m_modulePhi ) ;
-    PAP::PropertySvc::instance()->add( m_moduleX ) ;
-    PAP::PropertySvc::instance()->add( m_moduleY ) ;
-
+    m_moduleposition[ViewDirection::NSideView] = std::unique_ptr<ModulePosition>(new ModulePosition{"NSide",-32.47, -63.69, -0.0005975, 24.0}) ;
+    m_moduleposition[ViewDirection::CSideView] = std::unique_ptr<ModulePosition>(new ModulePosition{"CSide",-32.47, -63.69, -0.0005975, 24.0}) ;
+    
     // stack
     PAP::PropertySvc::instance()->add( m_stackX0 ) ;
     PAP::PropertySvc::instance()->add( m_stackXA ) ;
@@ -168,28 +194,30 @@ namespace PAP
     // to do with the order: things set last will be applied on the
     // right.
     QTransform transform ;
-    transform.translate( m_moduleX, m_moduleY ) ;
-    transform.rotateRadians( m_modulePhi ) ;
+    transform.translate( m_moduleposition[view]->x(), m_moduleposition[view]->y() ) ;
+    transform.rotateRadians( m_moduleposition[view]->phi() ) ;
     QTransform rc = viewmirror * transform ;
     return rc ;
   }
 
-  void GeometrySvc::applyModuleDelta( double dx, double dy, double phi )
+  void GeometrySvc::applyModuleDelta(ViewDirection view, double dx, double dy, double phi )
   {
-    QTransform T ;
-    T.translate( m_moduleX, m_moduleY ) ;
-    T.rotateRadians( m_modulePhi ) ;
-    QTransform dT ;
-    dT.translate( dx, dy) ;
-    dT.rotateRadians( phi ) ;
-    QTransform Tnew = T*dT ;
-    m_modulePhi = std::atan2( Tnew.m12(), Tnew.m11() ) ;
-    m_moduleX   = Tnew.m31() ;
-    m_moduleY   = Tnew.m32() ;
+    m_moduleposition[view]->applyDelta(dx,dy,phi) ;
     qDebug() << "GeometrySvc::applyModuleDelta: "
-	     << m_moduleX << m_moduleY << m_modulePhi ;
+	     << view
+	     << m_moduleposition[view]->x() 
+	     << m_moduleposition[view]->y()
+	     << m_moduleposition[view]->phi() ;
   }
-
+  
+  void GeometrySvc::setModuleZ(ViewDirection view, double z) {
+    m_moduleposition[view]->setZ(z) ;
+  }
+  
+  double GeometrySvc::moduleZ(ViewDirection view) const {
+    return m_moduleposition[view]->z() ;
+  }
+  
   QTransform GeometrySvc::fromCameraToGlobal() const
   {
     // this needs to take into account the angles of the camera

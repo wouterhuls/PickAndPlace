@@ -180,8 +180,8 @@ namespace PAP
   }
 
   
-  AlignMainJigPage::AlignMainJigPage(PAP::CameraView* camview)
-    : m_cameraview(camview)
+  AlignMainJigPage::AlignMainJigPage(ViewDirection dir, PAP::CameraView* camview)
+    : m_viewdirection(dir), m_cameraview(camview)
   {
     auto hlayout = new QHBoxLayout{} ;
     this->setLayout(hlayout) ;
@@ -223,9 +223,13 @@ namespace PAP
     if( m_marker1recorder->status() == MarkerRecorderWidget::Recorded &&
 	m_marker2recorder->status() == MarkerRecorderWidget::Recorded ) {
       std::vector< MarkerRecorderWidget* > recordings = { m_marker1recorder, m_marker2recorder } ;
-      Eigen::Vector3d delta = computeAlignment(recordings,Coordinates2D{},m_textbox) ;
+      Eigen::Vector3d deltaXYPhi = computeAlignment(recordings,Coordinates2D{},m_textbox) ;
       // now update the geometry
-      GeometrySvc::instance()->applyModuleDelta(delta(0),delta(1),delta(2)) ;
+      GeometrySvc::instance()->applyModuleDelta(m_viewdirection,deltaXYPhi(0),deltaXYPhi(1),deltaXYPhi(2)) ;
+      // let's also keep track of the Z position. For now just the average Z.
+      GeometrySvc::instance()->setModuleZ(m_viewdirection,
+					  (m_marker1recorder->measurement().mscoordinates.focus +
+					   m_marker2recorder->measurement().mscoordinates.focus)/2.0) ;
       m_cameraview->updateGeometryView() ;
       // and don't forget to reset
       m_marker1recorder->setStatus( MarkerRecorderWidget::Calibrated ) ;
