@@ -28,6 +28,7 @@ namespace PAP
 {
   CameraWindow::CameraWindow(QWidget *parent)
     : QMainWindow(parent),
+      m_moduleName{"ModuleName","NRD000"},
       m_stillImageTriggered{false}
   {
     resize(900,500);
@@ -55,6 +56,39 @@ namespace PAP
     
     buttonlayout->setObjectName(QStringLiteral("CamWindow::hlayout"));
 
+    // start with a label for the name. perhaps we should make a new
+    // class that does all of this.
+    {
+      auto moduleNameButton = new QPushButton{m_moduleName.value(),this} ;
+      QFont font = moduleNameButton->font() ;
+      font.setBold(true) ;
+      font.setPointSize(32) ;
+      moduleNameButton->setFont(font) ;
+      //moduleNameButton->setFlat(true) ;
+      buttonlayout->addWidget( moduleNameButton ) ;
+      // make sure to update the label if the value changes
+      connect(&m_moduleName,&MonitoredValueBase::valueChanged,[&]() {
+	  //qDebug() << "Setting text of button: " ;
+	  //qDebug() << m_moduleName.value() ;
+	  moduleNameButton->setText( m_moduleName.value() ) ;
+	  //qDebug() << "That worked fine!" ;	      
+	}) ;
+      
+      // pop up a dialog to change the name if the label is pressed
+      qDebug() << "Module name ptr: " << &m_moduleName << this ;
+      connect(moduleNameButton,&QPushButton::clicked, [&]() {
+	  //connect(moduleNameButton,&QLabel::mousePressEvent,[&](QMouseEvent ) {
+	  QString v = this->m_moduleName.value() ;
+	  bool ok{false} ;
+	  QString d = QInputDialog::getText(this,v,v,QLineEdit::Normal,v, &ok) ;
+	  //qDebug() << "ok, d: " << ok << d << this ;
+	  //qDebug() << "Module name ptr: " << &this->m_moduleName ;
+	  if(ok) this->m_moduleName.setValue(d) ;
+	  //qDebug() << "Crash?" ;
+	  //moduleNameButton->setText( d ) ;
+	}) ;
+    }
+    
     auto stopbutton = new QPushButton{QIcon(":/images/emergencystop.png"),"",this} ;
     stopbutton->setObjectName(QStringLiteral("stopButton"));
     stopbutton->setToolTip("Abort all motions") ;

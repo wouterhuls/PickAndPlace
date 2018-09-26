@@ -36,7 +36,14 @@ namespace PAP
     if( success ) setValue( val.toInt() ) ;
     return success ;
   }
-  
+
+  template<>
+  bool MonitoredValue<QString>::fromString( const QString& val ) {
+    qDebug() << "MonitoredValue<QString>::fromString: " << this << val ;
+    setValue(val) ;
+    return true ;
+  }
+ 
   template<>
   bool MonitoredValue<QPointF>::fromString( const QString& val ) {
     QVariant qval(val) ;
@@ -53,5 +60,6 @@ namespace PAP
     sprintf(textje,"(%f,%f)", m_value.x(), m_value.y()) ;
     return QString{textje} ;
   }
+ 
 }
   

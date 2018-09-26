@@ -97,7 +97,8 @@ namespace PAP
 
   using NamedVariant = NamedValue<QVariant> ;
   using NamedDouble  = NamedValue<double> ;
-  using NamedFloat  = NamedValue<float> ;
+  using NamedFloat   = NamedValue<float> ;
   using NamedInteger = NamedValue<int> ;
+  using NamedString  = NamedValue<QString> ;
 }
 #endif

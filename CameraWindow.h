@@ -5,6 +5,7 @@
 #include <QMainWindow>
 #include "CoordinateMeasurement.h"
 #include "Singleton.h"
+#include "NamedValue.h"
 
 class QLabel;
 class QCheckBox ;
@@ -39,6 +40,7 @@ namespace PAP
     AutoFocus* m_autofocus ;
     MeasurementReportPage* m_measurementreport ;
     // some labels that tell where the cursor position is
+    NamedValue<QString> m_moduleName ;
     QLabel* m_cursorposition ;
     QCheckBox* m_showNSideTiles ;
     QCheckBox* m_showCSideTiles ;

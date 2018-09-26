@@ -71,6 +71,7 @@ namespace PAP
   using MonitoredDouble = MonitoredValue<double> ;
   using MonitoredFloat  = MonitoredValue<float> ;
   using MonitoredInteger = MonitoredValue<int> ;
+  using MonitoredString  = MonitoredValue<QString> ;
   using MonitoredQPointF = MonitoredValue<QPointF> ;
 
 }
