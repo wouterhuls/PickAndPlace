@@ -212,7 +212,7 @@ namespace PAP
       nsidetaskpages->addTab(mainjigalignwidget,"Align jig XY") ;
       nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NSI","NSI_VP20_Fid1","NSI_VP22_Fid2"},"Position NSI") ;
       nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NLO","NLO_VP10_Fid1","NLO_VP12_Fid2"},"Position NLO") ;
-      nsidetaskpages->addTab(new AlignMainJigZPage{ViewDirection::NSideView,*this},"Align jig Z") ;
+      nsidetaskpages->addTab(makeAlignMainJigZPage(ViewDirection::NSideView,*this),"Align jig Z") ;
     }
 
     {
@@ -222,7 +222,7 @@ namespace PAP
       csidetaskpages->addTab(mainjigalignwidget,"Align jig XY") ;
       csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CLI","CLI_VP00_Fid1","CLI_VP02_Fid2"},"Position CLI") ;
       csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CSO","CSO_VP30_Fid1","CSO_VP32_Fid2"},"Position CSO") ;
-      csidetaskpages->addTab(new AlignMainJigZPage{ViewDirection::CSideView,*this},"Align jig Z") ;
+      csidetaskpages->addTab(makeAlignMainJigZPage(ViewDirection::CSideView,*this),"Align jig Z") ;
     }
     connect( taskpages, &QTabWidget::tabBarClicked, this, &CameraWindow::toggleView ) ;
     
