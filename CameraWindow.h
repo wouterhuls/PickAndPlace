@@ -10,6 +10,7 @@
 class QLabel;
 class QCheckBox ;
 class QVideoFrame;
+class QPushButton ;
 
 namespace PAP
 {
@@ -36,17 +37,18 @@ namespace PAP
     void processFrame( const QVideoFrame& frame ) ;
     void moveToMarker() ;
   private:
-    CameraView* m_cameraview ;
-    AutoFocus* m_autofocus ;
-    MeasurementReportPage* m_measurementreport ;
+    CameraView* m_cameraview{0} ;
+    AutoFocus* m_autofocus{0} ;
+    MeasurementReportPage* m_measurementreport{0} ;
     // some labels that tell where the cursor position is
     NamedValue<QString> m_moduleName ;
-    QLabel* m_cursorposition ;
-    QCheckBox* m_showNSideTiles ;
-    QCheckBox* m_showCSideTiles ;
-
+    QPushButton* m_moduleNameButton{0} ;
+    QLabel* m_cursorposition{0} ;
+    QCheckBox* m_showNSideTiles{0} ;
+    QCheckBox* m_showCSideTiles{0} ;
+    
     // boolean to trigger taking a still image
-    bool m_stillImageTriggered ;
+    bool m_stillImageTriggered{false} ;
   } ;
 
 }

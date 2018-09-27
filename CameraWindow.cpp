@@ -59,33 +59,27 @@ namespace PAP
     // start with a label for the name. perhaps we should make a new
     // class that does all of this.
     {
-      auto moduleNameButton = new QPushButton{m_moduleName.value(),this} ;
-      QFont font = moduleNameButton->font() ;
+      m_moduleNameButton = new QPushButton{m_moduleName.value(),this} ;
+      //auto moduleNameButton = new ClickableLabel{this} ;
+      QFont font = m_moduleNameButton->font() ;
       font.setBold(true) ;
       font.setPointSize(32) ;
-      moduleNameButton->setFont(font) ;
+      m_moduleNameButton->setFont(font) ;
       //moduleNameButton->setFlat(true) ;
-      buttonlayout->addWidget( moduleNameButton ) ;
+      buttonlayout->addWidget( m_moduleNameButton ) ;
       // make sure to update the label if the value changes
       connect(&m_moduleName,&MonitoredValueBase::valueChanged,[&]() {
-	  //qDebug() << "Setting text of button: " ;
-	  //qDebug() << m_moduleName.value() ;
-	  moduleNameButton->setText( m_moduleName.value() ) ;
-	  //qDebug() << "That worked fine!" ;	      
+	  m_moduleNameButton->setText( m_moduleName.value() ) ;
 	}) ;
       
       // pop up a dialog to change the name if the label is pressed
       qDebug() << "Module name ptr: " << &m_moduleName << this ;
-      connect(moduleNameButton,&QPushButton::clicked, [&]() {
+      connect(m_moduleNameButton,&QPushButton::clicked, [&]() {
 	  //connect(moduleNameButton,&QLabel::mousePressEvent,[&](QMouseEvent ) {
 	  QString v = this->m_moduleName.value() ;
 	  bool ok{false} ;
 	  QString d = QInputDialog::getText(this,v,v,QLineEdit::Normal,v, &ok) ;
-	  //qDebug() << "ok, d: " << ok << d << this ;
-	  //qDebug() << "Module name ptr: " << &this->m_moduleName ;
 	  if(ok) this->m_moduleName.setValue(d) ;
-	  //qDebug() << "Crash?" ;
-	  //moduleNameButton->setText( d ) ;
 	}) ;
     }
     
@@ -276,7 +270,8 @@ namespace PAP
       m_stillImageTriggered = false ;
       // pop up a window asking for a filename
       auto filename = QFileDialog::getSaveFileName(this, tr("Save image"),
-						   "/home/velouser/Documents/PickAndPlaceData/images/untitled.jpg",
+						   QString("/home/velouser/Documents/PickAndPlaceData/") +
+						   m_moduleName.value() + "/images/untitled.jpg",
 						   tr("Images (*.png *.xpm *.jpg)"));
       
       if(!filename.isEmpty()) {

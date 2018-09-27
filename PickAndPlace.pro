@@ -70,7 +70,7 @@ HEADERS  += \
     MotionSystemCalibration.h \
     StackCalibration.h \
     MonitoredValueLabel.h \
-    MeasurementReport.h
+    MeasurementReport.h 
 
 FORMS    += SerialPortSettingsDialog.ui
 
