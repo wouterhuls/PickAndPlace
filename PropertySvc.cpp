@@ -36,7 +36,7 @@ namespace PAP
 	//qDebug() << "name,value: " << name << " " << value  ;
 	Property* prop = find( name.toString().toStdString().c_str() ) ;
 	if (! prop )
-	  qDebug() << "Cannot find property read from file!" ;
+	  qDebug() << "Cannot find property read from file!" << name.toString() ;
 	else {
 	  if( !prop->fromString( value.toString() ) ) {
 	    qDebug() << "Cannot convert property to target type!" ;
