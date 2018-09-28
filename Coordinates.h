@@ -54,6 +54,7 @@ namespace PAP
     QString name ;
     double x ;
     double y ;
+    double z ;
   } ;
 }
 
