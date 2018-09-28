@@ -14,6 +14,7 @@
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QTableWidget>
+#include <QSignalSpy>
 
 
 
@@ -336,6 +337,32 @@ namespace PAP
     }
   }
 
+
+  /************************************/
+  
+  class AlignMainJigZPage : public QWidget
+  {
+  private:
+    enum Status { Inactive, Active, Calibrated } ;
+    ViewDirection m_viewdirection ;
+    CameraWindow* m_camerasvc{0} ;
+    Status m_status{Inactive} ;
+    const std::vector<MSMainCoordinates> refcoordinates{ {-85,-10},{-85,120},{80,120},{80,-10} } ;
+    std::vector<MSCoordinates> m_measurements ;
+    std::vector<QMetaObject::Connection> m_conns ;
+    QTableWidget* m_measurementtable{0} ;
+  public:
+    AlignMainJigZPage(ViewDirection view, CameraWindow& camerasvc) ;
+  private slots:
+    void disconnectsignals() ;
+    void connectsignals() ;
+    void move() ;
+    void focus() ;
+    void measure() ;
+    void calibrate() ;
+  } ;
+
+
   AlignMainJigZPage::AlignMainJigZPage(ViewDirection view,CameraWindow& camerasvc)
     : QWidget{&camerasvc},m_viewdirection{view},m_camerasvc(&camerasvc)
   {
@@ -364,11 +391,25 @@ namespace PAP
 	m_status = Inactive ;
       });
     hlayout->addWidget(stopbutton) ;
+    {
+      // temporary
+      auto button = new QPushButton{"Focus",this} ;
+      connect(button,&QPushButton::clicked,[&]() {
+	  m_status = Active ;
+	  this->focus() ;
+	  m_status = Inactive ;
+	  //m_camerasvc->autofocus()->startNearFocusSequence() ;
+	});
+      hlayout->addWidget(button) ;
+    }
     // add a table with the results of the measurements
     int nrow = refcoordinates.size() ;
     m_measurementtable = new QTableWidget{nrow,3,this} ;
     m_measurementtable->setHorizontalHeaderLabels(QStringList{"Main X","Main Y","focus Z"}) ;
     vlayout->addWidget(m_measurementtable) ;
+    // connect( &(MotionSystemSvc::instance()->mainXAxis()), &MotionAxis::movementStopped,this, &AlignMainJigZPage::focus) ;
+    // connect( &(MotionSystemSvc::instance()->mainYAxis()), &MotionAxis::movementStopped,this, &AlignMainJigZPage::focus) ;
+
   }
 
   void AlignMainJigZPage::disconnectsignals()
@@ -379,13 +420,27 @@ namespace PAP
     
   void AlignMainJigZPage::connectsignals()
   {
-    m_conns.emplace_back( connect( MotionSystemSvc::instance(), &MotionSystemSvc::mainStageMoved, [&]() { this->focus() ; } ) ) ;
-    m_conns.emplace_back( connect( m_camerasvc->autofocus(), &AutoFocus::focussed,  [&]() { this->measure() ; } ) ) ;
+    //m_conns.emplace_back( connect( MotionSystemSvc::instance(), &MotionSystemSvc::mainStageMoved, [&]() { this->focus() ; } ) ) ;
+    Qt::ConnectionType type = Qt::QueuedConnection;
+    m_conns.emplace_back( connect( &(MotionSystemSvc::instance()->mainXAxis()), &MotionAxis::movementStopped, this, [=]() { this->focus() ; },
+				   type) ) ;
+    m_conns.emplace_back( connect( &(MotionSystemSvc::instance()->mainYAxis()), &MotionAxis::movementStopped, this, [=]() { this->focus() ; },
+				   type ) ) ;
+
+    //m_conns.emplace_back( connect( &(MotionSystemSvc::instance()->mainXAxis()), &MotionAxis::movementStopped,this, &AlignMainJigZPage::focus) ) ;
+    //m_conns.emplace_back( connect( &(MotionSystemSvc::instance()->mainYAxis()), &MotionAxis::movementStopped,this, &AlignMainJigZPage::focus)  ) ;
+
+    
+    m_conns.emplace_back( connect( m_camerasvc->autofocus(), &AutoFocus::focussed, this, [=]() { this->measure() ; },type ) ) ;
+    m_conns.emplace_back( connect( m_camerasvc->autofocus(), &AutoFocus::focusfailed, this, [=]() {
+	  this->disconnectsignals() ;
+	  m_status = Inactive ;
+	},type ) ) ;
   }
     
   void AlignMainJigZPage::move() {
     // move to next reference z position
-    auto n = m_measurements.size()+1 ;
+    auto n = m_measurements.size() ;
     if( n<refcoordinates.size() ) {
       auto mscoordinates = refcoordinates[n] ;
       MotionSystemSvc::instance()->mainXAxis().moveTo(mscoordinates.x) ;
@@ -394,13 +449,25 @@ namespace PAP
   }
   
   void AlignMainJigZPage::focus() {
-    if( m_status == Active )
-      m_camerasvc->autofocus()->startNearFocusSequence() ;
+    qDebug() << "AlignMainJigZPage::focus: "
+	     << MotionSystemSvc::instance()->mainXAxis().isMoving()
+	     << MotionSystemSvc::instance()->mainYAxis().isMoving() ;
+    if( m_status == Active &&
+	!MotionSystemSvc::instance()->mainXAxis().isMoving() &&
+	!MotionSystemSvc::instance()->mainYAxis().isMoving() ) {
+      //emit m_camerasvc->autofocus()->focus() ;
+      m_camerasvc->autofocus()->startFocusSequence(12.2,12.6) ;
+      //MotionSystemSvc::instance()->focusAxis().move(0.2) ;
+      //emit m_camerasvc->autofocus()->focussed() ;
+    } ;
   }
   
   void AlignMainJigZPage::measure() {
     if( m_status == Active ) {
       m_measurements.push_back(MotionSystemSvc::instance()->coordinates()) ;
+      qDebug() << "Z-axis seen in 'measure': "
+	       << m_measurements.back().focus
+	       << MotionSystemSvc::instance()->focusAxis().position().value() ;
       // update the table. a bit ugly: we'll just fill it from scratch. to be improved.
       {
 	QTableWidgetItem prototype ;
@@ -434,6 +501,8 @@ namespace PAP
 	       << m.main.y
 	       << m.focus ;
     }
+    const double zsurface = 12.5 ;
+    
     // for now really simple:
     //   z = z0 + aX * x + aY * y
     Eigen::Vector3d halfdchi2dpar   = Eigen::Vector3d::Zero() ;
@@ -452,7 +521,10 @@ namespace PAP
     qDebug() << "Solution: " << delta(0) << delta(1) << delta(2) ;
     // sanity check
     if( std::abs(delta(1))<0.01 && std::abs(delta(2))<0.01 ) {
-      GeometrySvc::instance()->setModuleZ(m_viewdirection,delta(0),delta(1),delta(2)) ;
+      // now we need to think waht we want the measurements to mean ...
+      // ... which xy position?
+      // ... what plane, or view?
+      GeometrySvc::instance()->setModuleZ(m_viewdirection,delta(0)+zsurface,delta(1),delta(2)) ;
       m_status = Calibrated ;
       m_measurements.clear() ;
     } else {
@@ -460,5 +532,8 @@ namespace PAP
     }
   }
   
+  QWidget* makeAlignMainJigZPage(ViewDirection view, CameraWindow& camerasvc) {
+    return new AlignMainJigZPage(view,camerasvc) ;
+  }
 }
 
