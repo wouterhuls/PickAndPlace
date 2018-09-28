@@ -5,6 +5,7 @@
 #include "NamedValue.h"
 #include "Coordinates.h"
 #include <QTransform>
+#include <memory>
 
 namespace PAP
 {
