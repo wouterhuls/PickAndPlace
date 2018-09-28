@@ -25,8 +25,9 @@ namespace PAP
   {
     NamedValue<double> zmin{"AutoFocus.ZMin",23.0} ;  // Minimal z for focus search
     NamedValue<double> zmax{"AutoFocus.ZMax",24.5} ;  // Maximal z for focus search
-    NamedValue<double> fastspeed{"AutoFocus.FastSearchVelocity",0.4} ;
-    NamedValue<double> slowspeed{"AutoFocus.SlowSearchVelocity",0.04} ;
+    NamedValue<double> movespeed{"AutoFocus.MoveVelocity",0.4} ;
+    NamedValue<double> fastspeed{"AutoFocus.FastSearchVelocity",0.2} ;
+    NamedValue<double> slowspeed{"AutoFocus.SlowSearchVelocity",0.02} ;
 
     AutoFocusSettingsWidget( QWidget *parent )
       : QDialog{parent}
@@ -41,6 +42,8 @@ namespace PAP
       layout->addWidget( new NamedValueInputWidget<double>{zmax,18.0,25.0,2} ) ;
       layout->addWidget( new NamedValueInputWidget<double>{slowspeed,0,0.4,2} ) ;
       layout->addWidget( new NamedValueInputWidget<double>{fastspeed,0,0.4,2} ) ;
+      layout->addWidget( new NamedValueInputWidget<double>{movespeed,0,0.4,2} ) ;
+
     }
   } ;
 
@@ -58,7 +61,8 @@ namespace PAP
     connect( m_zaxis, &MotionAxis::movementStopped,
 	     [=]{this->m_focusTriggered = true ; } ) ;
     connect(&(m_zaxis->position()),&NamedValueBase::valueChanged,[&]{this->m_focusTriggered = true ; }) ;
-        
+    connect( this, &AutoFocus::focus, [&](){ /*if(!m_isFocussing)*/ this->startNearFocusSequence() ; } ) ;
+
     // QObject::connect(camview->videoProbe(), &QVideoFrame::videoFrameProbed,
     // 		     this, 
 
@@ -67,9 +71,6 @@ namespace PAP
 
     m_focusView = new QLabel{this} ;
     m_focusView->setPixmap(QPixmap::fromImage(*m_focusImage));
-
-    m_isFocussing = false ;
-    m_focusTriggered = false ;
     
     resize(600,200) ;
     auto vlayout = new QVBoxLayout{} ;
@@ -390,9 +391,9 @@ namespace PAP
       focusmeasurement.z    = m_zaxis->position() ;
       focusmeasurement.zdir = m_zaxis->direction() ;
       emit focusMeasurement( focusmeasurement ) ;
-      
-      qDebug() << "NUmber of focus measurements: "
-	       << m_focusmeasurements->count() ;
+      if( m_focusmeasurements->count()/10==0 )
+	qDebug() << "Number of focus measurements: "
+		 << m_focusmeasurements->count() ;
       m_focusmeasurements->append( focusmeasurement.z, rc ) ;
 
       m_focuschart->removeSeries( m_focusmeasurements ) ;
@@ -479,6 +480,8 @@ namespace PAP
     std::vector<FocusMeasurement> selectnearfocusmeasurements( const std::vector<FocusMeasurement>& measurements,
 							       unsigned char N )
     {
+      if( measurements.size() < N ) return measurements ;
+      
       // selects the measurements with the best focus and N
       // measurements left and right. assumes the measurements are
       // ordered.
@@ -524,76 +527,102 @@ namespace PAP
 
   void AutoFocus::analyseSlowFocus( FocusMeasurement result )
   {
+    qDebug() << "AutoFocus::analyseSlowFocus: " << m_fastfocusmeasurements.size() << result.z << result.I;
     if( m_fastfocusmeasurements.empty() ||
 	std::abs(result.z - m_fastfocusmeasurements.back().z) >0.0001 )
       m_fastfocusmeasurements.push_back( result ) ;
+    //qDebug() << "End of AutoFocus::analyseSlowFocus: " ;
   }
 
   void AutoFocus::startNearFocusSequence()
   {
+    qDebug() << "AutoFocus::startNearFocusSequence" << m_zaxis ;
     if( !m_isFocussing ) {
       m_isFocussing = true ;
       auto axisvelocity =  m_zaxis->parameter("Velocity") ;
       const auto originalspeed = axisvelocity->getValue().value() ;
       double zstart = m_zaxis->position().value() ;
+      qDebug() << "zstart = " << zstart << originalspeed ;
       // move to 50 micron below it. perform a slow search
       {
 	m_zaxis->moveTo(zstart-0.06) ;
+	QCoreApplication::processEvents() ;
 	QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
 	spy.wait( 10000 ) ;
+	qDebug() << "Curent z: " <<  m_zaxis->position().value() ;
       }
       {
 	m_zaxis->moveTo(zstart-0.05) ;
+	QCoreApplication::processEvents() ;
 	QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
 	spy.wait( 10000 ) ;
+	qDebug() << "Curent z: " <<  m_zaxis->position().value() ;
       }
       // perform a slow search
       m_focusmeasurements->clear() ;
       m_fastfocusmeasurements.clear() ;
-      connect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
+      qDebug() << "Connecting signal to collect measurements" ;
+      auto connection = QObject::connect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
+      qDebug() << "Setting velocity" ;
       axisvelocity->setValue() = m_settings->slowspeed.value() ;
+      qDebug() << "Moving slowly to new z position: " ;
       {
 	m_zaxis->moveTo(zstart+0.05) ;
 	QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
 	spy.wait( 10000 ) ;
       }
-      disconnect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
-      // for now just print the series
-      for_each( m_fastfocusmeasurements.begin(),
-		m_fastfocusmeasurements.end(),
-		[]( const FocusMeasurement& m ) { qDebug() << m.z << " " << m.I ; } ) ;
-      // why does every measurement appear two times?
-      // perform a parabola fit two measurements close to the maximum?
-      std::vector<FocusMeasurement> selection =
-	selectnearfocusmeasurements(m_fastfocusmeasurements,2) ;
-      double z0 = selection[selection.size()/2 + selection.size()%2].z ;
-      bool success = estimatez0(selection,z0) ;
-      qDebug() << "near focus success/z0: " << success << " " << z0 ;
-      //if(!success) z0 = m_fastfocusmeasurements[imax].z ;
-      
-      // now we need to arrive from below
-      {
-	m_fastfocusmeasurements.clear() ;
-	connect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
-	m_zaxis->moveTo(z0-0.05) ;
-	QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
-	spy.wait( 10000 ) ;
+      qDebug() << "Disconnecting signal to collect measurements" ;
+      QObject::disconnect(connection) ;
+      if( m_fastfocusmeasurements.empty() ) {
+	qDebug() << "No measurements. Issue focusfailed signal" ;
+	m_isFocussing = false ;
+	emit focusfailed() ;
+	
+      } else {
+	// for now just print the series
+	for_each( m_fastfocusmeasurements.begin(),
+		  m_fastfocusmeasurements.end(),
+		  []( const FocusMeasurement& m ) { qDebug() << m.z << " " << m.I ; } ) ;
+	// why does every measurement appear two times?
+	// perform a parabola fit two measurements close to the maximum?
 	std::vector<FocusMeasurement> selection =
 	  selectnearfocusmeasurements(m_fastfocusmeasurements,2) ;
-	double z0tmp = selection[selection.size()/2 + selection.size()%2].z ;
-	bool success = estimatez0(selection,z0tmp) ;
-	qDebug() << "up/down measures of z0: "
-		 << z0 << " " << z0tmp << " " << z0 - z0tmp ;
-	disconnect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
+	double z0 = selection[selection.size()/2 + selection.size()%2].z ;
+	bool success = estimatez0(selection,z0) ;
+	qDebug() << "near focus success/z0: " << success << " " << z0 ;
+	//if(!success) z0 = m_fastfocusmeasurements[imax].z ;
+	
+	// now we need to arrive from below
+	{
+	  m_fastfocusmeasurements.clear() ;
+	  auto connection = QObject::connect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
+	  m_zaxis->moveTo(z0-0.05) ;
+	  QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
+	  spy.wait( 10000 ) ;
+	  std::vector<FocusMeasurement> selection =
+	    selectnearfocusmeasurements(m_fastfocusmeasurements,2) ;
+	  double z0tmp = selection[selection.size()/2 + selection.size()%2].z ;
+	  bool success = estimatez0(selection,z0tmp) ;
+	  qDebug() << "up/down measures of z0: "
+		   << z0 << " " << z0tmp << " " << z0 - z0tmp ;
+	  disconnect(connection) ;
+	}
+	axisvelocity->setValue() = originalspeed ;
+	m_zaxis->moveTo(z0) ;
+	m_isFocussing = false ;
+	emit focussed() ;
       }
-      axisvelocity->setValue() = originalspeed ;
-      m_zaxis->moveTo(z0) ;
-      m_isFocussing = false ;
-      emit focussed() ;
     }
+    qDebug() << "End of AutoFocus::startNearFocusSequence" ;
   }
-     
+
   void AutoFocus::startFastFocusSequenceSimple()
+  {
+    startFocusSequence( m_settings->zmin, m_settings->zmax) ;
+  }
+
+  
+  void AutoFocus::startFocusSequence(double zmin, double zmax)
   {
     if( !m_isFocussing ) {
       m_isFocussing = true ;
@@ -601,47 +630,60 @@ namespace PAP
       // cache the speed
       auto axisvelocity =  m_zaxis->parameter("Velocity") ;
       const auto originalspeed = axisvelocity->getValue().value() ;
-      // set the speed to the fast focusspeed
-      axisvelocity->setValue() = m_settings->fastspeed.value() ;
+      // set the speed to the move speed (which is actually just as fast as we can go)
+      axisvelocity->setValue() = m_settings->movespeed.value() ;
 
       // we always go down. so first move to zmin. can update this later.
       {
-	m_zaxis->moveTo(m_settings->zmin) ;
+	m_zaxis->moveTo(zmin) ;
 	QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
-	spy.wait( 10000 ) ;
+	spy.wait( 60000 ) ;
       }
+      m_focusmeasurements->clear() ;
       m_fastfocusmeasurements.clear() ;
+      axisvelocity->setValue() = m_settings->fastspeed.value() ;
       connect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
       {
-	m_zaxis->moveTo(m_settings->zmax) ;
+	m_zaxis->moveTo(zmax) ;
 	QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
-	spy.wait( 10000 ) ;
+	// factor 5 safety margin?
+	const double timeout = 5000*std::abs(zmax-zmin)/m_settings->fastspeed.value() ;
+	qDebug() << "timeout for fast search: " << timeout  ;
+	spy.wait( timeout ) ;
       }
       // find the maximum
       m_bestfocus = m_fastfocusmeasurements.front() ;
       for( const auto& m : m_fastfocusmeasurements )
 	if( m.I > m_bestfocus.I ) m_bestfocus = m;
       qDebug() << "Fast search done: " << m_bestfocus.z ;
-      // move to 50 micron below it. perform a slow search
+      // move to 50 micron below it. why do we have an asymmetric
+      // range. because we are so much biased?
+      const double z1 = std::max(zmin,m_bestfocus.z-0.05) ;
+      const double z2 = std::min(m_bestfocus.z+0.10,zmax) ;
       {
-	m_zaxis->moveTo(m_bestfocus.z-0.05) ;
+	axisvelocity->setValue() = m_settings->movespeed.value() ;
+	m_zaxis->moveTo(z1) ;
 	QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
 	spy.wait( 10000 ) ;
       }
       // perform a slow search
       m_focusmeasurements->clear() ;
       m_fastfocusmeasurements.clear() ;
-      axisvelocity->setValue() = m_settings->slowspeed.value() ;
       {
-	m_zaxis->moveTo(m_bestfocus.z+0.1) ;
+	// why do we have an asymmetric range. because we are so much biased?
+	axisvelocity->setValue() = m_settings->slowspeed.value() ;
+	m_zaxis->moveTo(z2) ;
 	QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
-	spy.wait( 10000 ) ;
+	// use factor 2 safety margin
+	const double timeout = 2000*std::abs(z2-z1)/m_settings->slowspeed.value() ;
+	qDebug() << "timeout for slow search: " << timeout  ;
+	spy.wait( timeout ) ;
       }
       disconnect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
       // for now just print the series
-      for_each( m_fastfocusmeasurements.begin(),
-		m_fastfocusmeasurements.end(),
-		[]( const FocusMeasurement& m ) { qDebug() << m.z << " " << m.I ; } ) ;
+      // for_each( m_fastfocusmeasurements.begin(),
+      // 		m_fastfocusmeasurements.end(),
+      // 		[]( const FocusMeasurement& m ) { qDebug() << m.z << " " << m.I ; } ) ;
       // why does every measurement appear two times?
       // perform a parabola fit two measurements close to the maximum?
       size_t imax=0 ;
@@ -653,21 +695,20 @@ namespace PAP
 					      m_fastfocusmeasurements.begin() + i2) ;
       double z0 = m_fastfocusmeasurements[imax].z ;
       bool success = estimatez0(selection,z0) ;
-      if(!success || z0<m_settings->zmin || z0 > m_settings->zmax)
+      qDebug() << "Three esimataes of z0: "
+	       << m_bestfocus.z	 << " " << m_fastfocusmeasurements[imax].z
+	       << z0 ;
+      if(!success || z0<zmin || z0 > zmax)
 	z0 = m_fastfocusmeasurements[imax].z ;
-      {
+      if(false) {
 	// take another curve coming from the top
 	m_fastfocusmeasurements.clear() ;
 	connect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
 	m_zaxis->moveTo(z0-0.05) ;
 	QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
 	spy.wait( 10000 ) ;
-	
-	
-	
 	disconnect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
       }
-      
       axisvelocity->setValue() = originalspeed ;
       // now we need to arrive from below
       {
@@ -676,7 +717,10 @@ namespace PAP
 	spy.wait( 10000 ) ;
       }
       m_zaxis->moveTo(z0) ;
+      QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
+      spy.wait( 10000 ) ;
       m_isFocussing = false ;
+      emit focussed() ;
     }
   }
   

@@ -48,6 +48,7 @@ namespace PAP
     void startFocusSequence() ;
     void startNearFocusSequence() ;
     void startFastFocusSequence() ;
+    void startFocusSequence(double zmin, double zmax) ;
     void startFastFocusSequenceSimple() ;
     void moveFocusTo( double z ) const ;
    
@@ -55,7 +56,8 @@ namespace PAP
     void focusMeasureUpdated() ;
     void focusMeasurement(PAP::FocusMeasurement result) ;
     void focussed() ;
-    
+    void focusfailed() ;
+    void focus() ;
   public slots:      
     void processFrame( const QVideoFrame& frame ) ;
     void storeMarkerFocus() ;
