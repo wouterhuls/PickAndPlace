@@ -5,7 +5,6 @@
 #include "AutoFocus.h"
 #include "AlignPages.h"
 #include "CameraImageProcessingDialog.h"
-#include "MonitoredValueLabel.h"
 #include "MeasurementReport.h"
 
 #include <iostream>
@@ -183,14 +182,6 @@ namespace PAP
     hlayout->addLayout( buttonlayout ) ;
     //m_cameraview->show() ;
 
-    // status bar with coordinate information
-    {
-      auto anotherhlayout = new QHBoxLayout{} ;
-      auto xlabel = new MonitoredValueLabel{ m_cameraview->cameraCentreInModuleFrame(),"Camera position"} ;
-      anotherhlayout->addWidget( xlabel ) ;
-      layout->addLayout( anotherhlayout ) ;
-    }
-    
     auto taskpages = new QTabWidget{this} ;
     layout->addWidget( taskpages ) ;
     //auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
