@@ -404,8 +404,8 @@ namespace PAP
     }
     // add a table with the results of the measurements
     int nrow = refcoordinates.size() ;
-    m_measurementtable = new QTableWidget{nrow,3,this} ;
-    m_measurementtable->setHorizontalHeaderLabels(QStringList{"Main X","Main Y","focus Z"}) ;
+    m_measurementtable = new QTableWidget{nrow,4,this} ;
+    m_measurementtable->setHorizontalHeaderLabels(QStringList{"Main X","Main Y","focus Z","residual"}) ;
     vlayout->addWidget(m_measurementtable) ;
     // connect( &(MotionSystemSvc::instance()->mainXAxis()), &MotionAxis::movementStopped,this, &AlignMainJigZPage::focus) ;
     // connect( &(MotionSystemSvc::instance()->mainYAxis()), &MotionAxis::movementStopped,this, &AlignMainJigZPage::focus) ;
@@ -476,7 +476,7 @@ namespace PAP
 	int N = m_measurements.size();
 	m_measurementtable->setRowCount( N ) ;
 	for(int row=0; row<N; ++row ) {
-	  for(int col=0; col<3; ++col)
+	  for(int col=0; col<4; ++col)
 	    if( !m_measurementtable->item( row,col) )
 	      m_measurementtable->setItem(row,col,new QTableWidgetItem{prototype} ) ;
 	  const auto& m = m_measurements[row] ;
@@ -520,6 +520,12 @@ namespace PAP
     }
     Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
     qDebug() << "Solution: " << delta(0) << delta(1) << delta(2) ;
+    // fill the column with residuals
+    int row(0) ;
+    for( const auto& m : m_measurements ) {
+      double residual = m.focus - (delta(0) + delta(1)*m.main.x + delta(2)*m.main.y) ; 
+      m_measurementtable->item(row++,3)->setText( QString::number( residual, 'g', 5 ) ) ;
+    }
     // sanity check
     if( std::abs(delta(1))<0.01 && std::abs(delta(2))<0.01 ) {
       // now we need to think waht we want the measurements to mean ...
