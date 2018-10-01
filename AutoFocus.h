@@ -50,7 +50,11 @@ namespace PAP
     void startFastFocusSequence() ;
     void startFocusSequence(double zmin, double zmax) ;
     void startFastFocusSequenceSimple() ;
-    void moveFocusTo( double z ) const ;
+    void moveFocusTo( double focus ) const ;
+    void moveFocusToModuleZ( double z ) const ;
+    double focusFromZ( double z ) const ;
+    double zFromFocus( double focus ) const ;
+    
    
   signals:
     void focusMeasureUpdated() ;

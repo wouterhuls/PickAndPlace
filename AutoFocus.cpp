@@ -173,9 +173,24 @@ namespace PAP
 
   AutoFocus::~AutoFocus() {}
 
-  void AutoFocus::moveFocusTo( double z ) const
+  void AutoFocus::moveFocusTo( double focus ) const
   {
-    m_zaxis->moveTo( z ) ;
+    m_zaxis->moveTo( focus ) ;
+  }
+
+  double AutoFocus::focusFromZ( double z ) const
+  {
+    return GeometrySvc::instance()->moduleZ( m_cameraView->currentViewDirection(), 0 ) - z ;
+  }
+
+  double AutoFocus::zFromFocus( double focus ) const
+  {
+    return GeometrySvc::instance()->moduleZ( m_cameraView->currentViewDirection(), focus ) ;
+  }
+  
+  void AutoFocus::moveFocusToModuleZ( double z ) const
+  {
+    moveFocusTo( focusFromZ( z ) ) ;
   }
 
   void AutoFocus::storeMarkerFocus()
