@@ -60,22 +60,18 @@ namespace PAP
     // class that does all of this.
     {
       m_moduleNameButton = new QPushButton{m_moduleName.value(),this} ;
-      //auto moduleNameButton = new ClickableLabel{this} ;
       QFont font = m_moduleNameButton->font() ;
       font.setBold(true) ;
       font.setPointSize(32) ;
       m_moduleNameButton->setFont(font) ;
       //moduleNameButton->setFlat(true) ;
       buttonlayout->addWidget( m_moduleNameButton ) ;
-      // make sure to update the label if the value changes
+      // update the label if the value changes
       connect(&m_moduleName,&MonitoredValueBase::valueChanged,[&]() {
 	  m_moduleNameButton->setText( m_moduleName.value() ) ;
 	}) ;
-      
       // pop up a dialog to change the name if the label is pressed
-      qDebug() << "Module name ptr: " << &m_moduleName << this ;
       connect(m_moduleNameButton,&QPushButton::clicked, [&]() {
-	  //connect(moduleNameButton,&QLabel::mousePressEvent,[&](QMouseEvent ) {
 	  QString v = this->m_moduleName.value() ;
 	  bool ok{false} ;
 	  QString d = QInputDialog::getText(this,v,v,QLineEdit::Normal,v, &ok) ;
