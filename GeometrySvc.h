@@ -40,12 +40,19 @@ namespace PAP
     
     QTransform fromCameraToGlobal() const ;
     QTransform fromModuleToGlobal( ViewDirection view ) const ;
+    QTransform fromModuleToCamera( ViewDirection view ) const {
+      return fromModuleToGlobal(view) * fromCameraToGlobal().inverted() ; 
+    }
 
     // update calibration
     void applyModuleDelta(ViewDirection dir, double dx, double dy, double dphi ) ;
-    void setModuleZ(ViewDirection dir, double z, double dzdx, double dzdy ) ;
-    double moduleZ( ViewDirection dir ) const ;
+    void applyModuleZCalibration(ViewDirection dir, double z, double dzdx, double dzdy ) ;
 
+    // access to the camera z position in the module frame
+    double moduleZ(ViewDirection dir ) const ;
+    double moduleZ(ViewDirection view, double focus) const ;
+
+    // access to the rotation axis of the stack
     Coordinates2D stackAxisInGlobal() const ;
     Coordinates2D stackAxisInGlobal( const MSStackCoordinates& coord ) const ;
     QTransform fromStackToGlobal() const ;
@@ -98,9 +105,6 @@ namespace PAP
     NamedDouble m_mainYB ;
     NamedDouble m_cameraPhi ;
     std::unique_ptr<ModulePosition> m_moduleposition[2] ;
-    //NamedDouble m_modulePhi[2] ;
-    //NamedDouble m_moduleX[2] ;
-    //NamedDouble m_moduleY[2] ;
 
     // parameters that translate stack parameters into global position of stack rotation axis
     NamedDouble m_stackX0 ;

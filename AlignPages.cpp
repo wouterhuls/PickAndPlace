@@ -501,6 +501,7 @@ namespace PAP
 	       << m.main.y
 	       << m.focus ;
     }
+    // this needs to go somewhere else!
     const double zsurface = 12.5 ;
     
     // for now really simple:
@@ -524,7 +525,7 @@ namespace PAP
       // now we need to think waht we want the measurements to mean ...
       // ... which xy position?
       // ... what plane, or view?
-      GeometrySvc::instance()->setModuleZ(m_viewdirection,delta(0)+zsurface,delta(1),delta(2)) ;
+      GeometrySvc::instance()->applyModuleZCalibration(m_viewdirection,delta(0)+zsurface,delta(1),delta(2)) ;
       m_status = Calibrated ;
       m_measurements.clear() ;
     } else {

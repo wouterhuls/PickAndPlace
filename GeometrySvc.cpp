@@ -90,8 +90,8 @@ namespace PAP
     const NamedDouble& x() const { return m_x ; }
     const NamedDouble& y() const { return m_y ; }
     const NamedDouble& z() const { return m_z ; }
-    double z(const Coordinates2D& globalpos) const {
-      return m_z + globalpos.x()*m_dzdx + globalpos.y()*m_dzdy ; }
+    double z(const MSMainCoordinates& main) const {
+      return m_z + main.x*m_dzdx + main.y*m_dzdy ; }
     void setZ( double z, double dzdx=0, double dzdy=0 ) {
       m_z = z ;
       m_dzdx = dzdx ;
@@ -222,14 +222,19 @@ namespace PAP
 	     << m_moduleposition[view]->phi() ;
   }
   
-  void GeometrySvc::setModuleZ(ViewDirection view, double z, double dzdx, double dzdy) {
+  void GeometrySvc::applyModuleZCalibration(ViewDirection view, double z, double dzdx, double dzdy) {
     m_moduleposition[view]->setZ(z,dzdx,dzdy) ;
   }
   
-  double GeometrySvc::moduleZ(ViewDirection view) const {
-    return m_moduleposition[view]->z() ;
+  double GeometrySvc::moduleZ(ViewDirection view, double focus) const {
+    MSMainCoordinates main = MotionSystemSvc::instance()->maincoordinates() ;
+    return m_moduleposition[view]->z(main) - focus ;
   }
   
+  double GeometrySvc::moduleZ(ViewDirection view) const {
+    return moduleZ(view,MotionSystemSvc::instance()->focusAxis().position().value() ) ;
+  }
+    
   QTransform GeometrySvc::fromCameraToGlobal() const
   {
     // this needs to take into account the angles of the camera
