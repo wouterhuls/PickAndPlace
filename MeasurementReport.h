@@ -65,11 +65,14 @@ namespace PAP
       const auto geosvc = GeometrySvc::instance() ;
       // we will first do just the tile measurements
       auto velopixmarkers = geosvc->velopixmarkers(viewdir) ;
-      double moduleZ = geosvc->moduleZ(viewdir) ;
+      const double microchannelsurface = 0.25 ;
+      const double gluelayerthickness  = 0.1 ;
+      const double ascithickness       = 0.2 ;
+      const double asicZ = microchannelsurface + gluelayerthickness + ascithickness ;
       std::transform(std::begin(velopixmarkers),std::end(velopixmarkers),
 		     std::back_inserter(m_measurements),
 		     [=](const FiducialDefinition& def) {
-		       return ReportCoordinate{def,moduleZ} ; } ) ;
+		       return ReportCoordinate{def,asicZ} ; } ) ;
       
       // make a table to view the measurements. we should do this with
       // the model/view thing, but I find that a bit too complicated.
@@ -89,6 +92,7 @@ namespace PAP
 	  updateTableRow( row++, m ) ;
 	}
 	connect(m_markertable,&QTableWidget::cellClicked,[&](int row, int /*column*/) { this->activateRow( row ) ; }) ;
+	connect(m_camerasvc->cameraview(),&CameraView::recording,this,&SideMeasurementReportPage::record) ;
       }
     }
     void updateTableRow( int row, const ReportCoordinate& coord ) {
@@ -110,10 +114,24 @@ namespace PAP
 	m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.m_x,m.m_y} ) ;
 	if( m.m_z != 0 ) {
 	  // move the camera to the current focus point, if any
-	  m_camerasvc->autofocus()->moveFocusTo( m.m_z ) ;
+	  //m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
 	  // call the autofocus!
-	  m_camerasvc->autofocus()->startNearFocusSequence() ;
+	  // m_camerasvc->autofocus()->startNearFocusSequence() ;
 	}	
+      }
+    }
+    void record(const CoordinateMeasurement& measurement)
+    {
+      if( m_activerow >=0 && m_activerow < int(m_measurements.size()) ) {
+	auto& reportcoordinate = m_measurements[m_activerow] ;
+	const auto viewdir = m_camerasvc->cameraview()->currentViewDirection() ;
+	const QTransform fromGlobalToModule = GeometrySvc::instance()->fromModuleToGlobal(viewdir).inverted() ;
+	const auto modulecoordinates = fromGlobalToModule.map( measurement.globalcoordinates ) ;
+	reportcoordinate.m_x = modulecoordinates.x() ;
+	reportcoordinate.m_y = modulecoordinates.y() ;
+	reportcoordinate.m_z = m_camerasvc->autofocus()->zFromFocus( measurement.mscoordinates.focus ) ;
+	reportcoordinate.m_status = ReportCoordinate::Ready ;
+	updateTableRow(m_activerow,reportcoordinate) ;
       }
     }
   } ;
