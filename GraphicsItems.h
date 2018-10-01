@@ -88,8 +88,8 @@ namespace PAP
   private:
     const double Lx = 111.37 ;
     const double Ly = 116.5 ;
-    const double Px = -Lx + 86.82  ;
-    const double Py = -46.425 ;
+    const double Px = -Lx + 89.82  ;
+    const double Py = -46.025 ;
     
   public:
     Substrate(QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItem(parent) {
@@ -116,6 +116,7 @@ namespace PAP
       QPen pen ;
       //      pen.setColor( QColor{65,80,244} ) ;
       pen.setWidthF(0.2);
+      pen.setStyle(Qt::DotLine) ;
       painter->setPen(pen) ;
       painter->drawPolygon( points, 9 ) ;
     }
