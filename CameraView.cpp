@@ -94,12 +94,6 @@ namespace PAP
     }
     m_scene->addItem( m_viewfinderborder ) ;
 
-    m_markertext = new QGraphicsSimpleTextItem{"hallo"} ;
-    m_markertext->setBrush( QBrush{QColor{255,69,0} } ) ;
-    m_markertext->setPos(1000,1000) ;
-    m_scene->addItem( m_markertext ) ;
- 
-		      
     // let's add a cross at (0,0) in the cameraview. here it would be
     // nice to have some size in 'absolute' coordinates. but for that
     // we need to know the pixel size, which I do not yet do.
@@ -153,14 +147,33 @@ namespace PAP
     m_detectorgeometry->addToGroup( beamline ) ;
     this->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
 
-    
+
+    // Add the coordinates of the pointer, somewhere
+    m_textbox = new QGraphicsItemGroup{} ;
+    m_markertext = new QGraphicsSimpleTextItem{"markername"} ;
+    m_markertext->setBrush( QBrush{QColor{255,69,0} } ) ;
+    m_positiontext = new QGraphicsSimpleTextItem{"position"} ;
+    m_positiontext->setBrush( QBrush{QColor{255,69,0} } ) ;
+    m_markertext->setPos(0,-15) ;
+    m_textbox->addToGroup( m_markertext ) ;
+    m_textbox->addToGroup( m_positiontext ) ;
+    m_textbox->setFlag(QGraphicsItem::ItemIgnoresTransformations,true) ;
+    m_scene->addItem( m_textbox ) ;
+
+    // Only do this after all items are created.
     updateGeometryView() ;
+
+    //m_markertext->setFlag(QGraphicsItem::ItemIgnoresTransformations,true) ;
+
     //m_detectorgeometry->setScale( 1/pixelSize() ) ;
     //m_detectorgeometry->setPos( x0, y0 ) ;
 
     // connect the signal for movements of the main stage
     connect(MotionSystemSvc::instance(),&MotionSystemSvc::mainStageMoved,
 	    this,&CameraView::updateGeometryView) ;
+    // connect the signal for movement also to updating the camera position
+    connect(&(MotionSystemSvc::instance()->focusAxis().position()),&MonitoredValueBase::valueChanged,
+	    this,&CameraView::updatePositionText) ;
 
     m_stackaxis = new StackAxisMarker() ;
     m_scene->addItem(m_stackaxis) ;
@@ -192,6 +205,7 @@ namespace PAP
     }
     
     setCamera(QCameraInfo::defaultCamera());
+    positionTextBox() ;
 
     show() ;
   }
@@ -306,6 +320,7 @@ namespace PAP
     //QTransform fromCameraToModule = geomsvc->fromCameraToGlobal() * fromModuleToGlobal.inverted() ;
     auto modulepoint = fromCameraToModule.map( QPointF{0,0} ) ;
     m_cameraCentreInModuleFrame.setValue( modulepoint ) ;
+    updatePositionText() ;
   }
 
   void CameraView::updateStackAxisView()
@@ -345,13 +360,30 @@ namespace PAP
   void CameraView::zoomReset()
   {
     fitInView( m_viewfinder,Qt::KeepAspectRatio ) ;
+    positionTextBox() ;
   }
 
   void CameraView::zoomOut()
   {
     fitInView( sceneRect(),Qt::KeepAspectRatio ) ;
+    positionTextBox() ;
   }
   
+  void CameraView::positionTextBox()
+  {
+    QPointF p = mapToScene(0.1*width(),0.9*height()) ;
+    m_textbox->setPos(p) ;
+  }
+
+  void CameraView::updatePositionText()
+  {
+    float x = m_cameraCentreInModuleFrame.value().x() ;
+    float y = m_cameraCentreInModuleFrame.value().y() ;
+    float z = GeometrySvc::instance()->moduleZ(currentViewDirection()) ;
+    char textje[256] ;
+    sprintf(textje,"camera : (%7.3f,%7.3f,%7.3f)", x,y,z) ;
+    m_positiontext->setText(textje) ;
+  }
   
   void CameraView::wheelEvent ( QWheelEvent * event )
   {
@@ -374,6 +406,7 @@ namespace PAP
   {
     qreal factor = 1.0 + qreal(m_numScheduledScalings) / 300.0;
     scale(factor, factor);
+    positionTextBox() ;
   }
 
   void CameraView::animFinished()

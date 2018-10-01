@@ -40,6 +40,7 @@ namespace PAP
     double pixelSizeY() const { return pixelSize() ; }
     
     MonitoredQPointF& cameraCentreInModuleFrame() { return m_cameraCentreInModuleFrame ; }
+    //    MonitoredDouble&  cameraZInModuleFrame() { return m_cameraCentreInModuleFrame ; }
     
     QVideoProbe* videoProbe() { return m_videoProbe ; }
 
@@ -102,7 +103,9 @@ namespace PAP
 
     void showNSideMarkers( int state ) { m_nsidemarkers->setVisible( state>0 ) ; }
     void showCSideMarkers( int state ) { m_csidemarkers->setVisible( state>0 ) ; }
-    
+  private:
+    void positionTextBox() ;
+    void updatePositionText() ;
   private:
     QCamera* m_camera ;
     QGraphicsScene* m_scene ; // a graphics scene that
@@ -143,7 +146,9 @@ namespace PAP
     int m_numScheduledScalings ;
 
     // text with name of closest marker
-    QGraphicsSimpleTextItem* m_markertext ;
+    QGraphicsItemGroup*      m_textbox{0} ;
+    QGraphicsSimpleTextItem* m_markertext{0} ;
+    QGraphicsSimpleTextItem* m_positiontext{0} ;
     
     // derived parameters for the camera centre in the module frame
     MonitoredQPointF m_cameraCentreInModuleFrame ;
