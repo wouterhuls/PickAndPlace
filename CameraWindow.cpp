@@ -5,7 +5,7 @@
 #include "AutoFocus.h"
 #include "AlignPages.h"
 #include "CameraImageProcessingDialog.h"
-#include "MeasurementReport.h"
+#include "MetrologyPages.h"
 
 #include <iostream>
 #include <sstream>
@@ -35,7 +35,7 @@ namespace PAP
     
     m_cameraview = new CameraView{this} ;
     m_autofocus = new AutoFocus{ m_cameraview, this } ;
-    m_measurementreport = new MeasurementReportPage{*this} ;
+    //m_measurementreport = new MetrologyReportPage{*this} ;
     
     // add a vertical layout. if we derive from 'mainwindow', then
     // layout must be set to the central widget.
@@ -100,12 +100,13 @@ namespace PAP
       connect( button, &QPushButton::clicked, [&](){ this->moveToMarker(); } ) ;
       buttonlayout->addWidget( button ) ;
     }
-    {
-      auto button = new QPushButton("MeasurementReport",this) ;
-      button->setToolTip("Pop-up meusurementreportwindow") ;
-      connect( button, &QPushButton::clicked, [&](){ m_measurementreport->show() ; } ) ;
-      buttonlayout->addWidget( button ) ;
-    }
+    
+    // {
+    //   auto button = new QPushButton("MeasurementReport",this) ;
+    //   button->setToolTip("Pop-up meusurementreportwindow") ;
+    //   connect( button, &QPushButton::clicked, [&](){ m_measurementreport->show() ; } ) ;
+    //   buttonlayout->addWidget( button ) ;
+    // }
     
     if( m_cameraview->camera() ) {
       QCameraImageProcessing *imageProcessing = m_cameraview->camera()->imageProcessing();
@@ -186,6 +187,9 @@ namespace PAP
     layout->addWidget( taskpages ) ;
     //auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
 
+    
+
+    
     {
       auto nsidetaskpages = new QTabWidget{ taskpages } ;
       taskpages->addTab(nsidetaskpages,"N-side") ;
@@ -194,6 +198,9 @@ namespace PAP
       nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NSI","NSI_VP20_Fid1","NSI_VP22_Fid2"},"Position NSI") ;
       nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NLO","NLO_VP10_Fid1","NLO_VP12_Fid2"},"Position NLO") ;
       nsidetaskpages->addTab(makeAlignMainJigZPage(ViewDirection::NSideView,*this),"Align jig Z") ;
+
+      nsidetaskpages->addTab(createTileMetrologyPage(*this,ViewDirection::NSideView),"Tile metrology") ;
+      nsidetaskpages->addTab(createSensorSurfaceMetrologyPage(*this,ViewDirection::NSideView),"Sensor surface metrology") ;
     }
 
     {
@@ -204,7 +211,11 @@ namespace PAP
       csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CLI","CLI_VP00_Fid1","CLI_VP02_Fid2"},"Position CLI") ;
       csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CSO","CSO_VP30_Fid1","CSO_VP32_Fid2"},"Position CSO") ;
       csidetaskpages->addTab(makeAlignMainJigZPage(ViewDirection::CSideView,*this),"Align jig Z") ;
+      csidetaskpages->addTab(createTileMetrologyPage(*this,ViewDirection::CSideView),"Tile metrology") ;
+      csidetaskpages->addTab(createSensorSurfaceMetrologyPage(*this,ViewDirection::CSideView),"Sensor surface metrology") ;
+
     }
+	
     connect( taskpages, &QTabWidget::tabBarClicked, this, &CameraWindow::toggleView ) ;
     
     QMetaObject::connectSlotsByName(this);

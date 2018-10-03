@@ -40,7 +40,8 @@ SOURCES += main.cpp \
     AlignPages.cpp \
     MotionSystemCalibration.cpp \
     StackCalibration.cpp \
-    CameraImageProcessingDialog.cpp 
+    CameraImageProcessingDialog.cpp \
+    MetrologyPages.cpp
 
 HEADERS  += \
     NominalMarkers.h \
@@ -70,7 +71,8 @@ HEADERS  += \
     MotionSystemCalibration.h \
     StackCalibration.h \
     MonitoredValueLabel.h \
-    MeasurementReport.h 
+    MetrologyReport.h \
+    MetrologyPages.h 
 
 FORMS    += SerialPortSettingsDialog.ui
 

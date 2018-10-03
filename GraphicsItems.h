@@ -164,7 +164,7 @@ class ReferenceMarker : public Marker
     const double height = 17.04 ;
   public:
   Tile( const std::vector<FiducialDefinition>& markerdefs,
-	  QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItemGroup(parent) {
+	QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItemGroup(parent) {
       //the position is the position of the first velopix marker
       setPos( markerdefs.front().x, markerdefs.front().y) ;
       setToolTip(QString("Tile ") + markerdefs.front().name.leftRef(3) ) ;

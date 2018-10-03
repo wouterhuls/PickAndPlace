@@ -27,7 +27,7 @@ namespace PAP
     ~CameraWindow() {}
     CameraView* cameraview() { return m_cameraview ; }
     AutoFocus* autofocus() { return m_autofocus ; }
-    MeasurementReportPage* measurementreport() { return m_measurementreport ; }
+    //MetrologyReport* measurementreport() { return m_measurementreport ; }
 
   public slots:
     void on_focusButton_clicked() ;
@@ -39,7 +39,7 @@ namespace PAP
   private:
     CameraView* m_cameraview{0} ;
     AutoFocus* m_autofocus{0} ;
-    MeasurementReportPage* m_measurementreport{0} ;
+    //MetrologyReportPage* m_metrologyreport{0} ;
     // some labels that tell where the cursor position is
     NamedValue<QString> m_moduleName ;
     QPushButton* m_moduleNameButton{0} ;
