@@ -14,6 +14,17 @@
 
 namespace PAP
 {
+  // this needs to get a proper place
+  namespace {
+    const double microchannelsurfaceZ = 0.25 ;
+    const double gluelayerthickness  = 0.1 ;
+    const double ascithickness       = 0.2 ;
+    const double sensorthickness       = 0.2 ;
+    const double bumpbondthickness     = 0.02 ; 
+    const double asicZ = microchannelsurfaceZ + gluelayerthickness + ascithickness ;
+    const double sensorZ = microchannelsurfaceZ + gluelayerthickness + ascithickness + sensorthickness;
+  }
+  
   class MetrologyReportPage ;
 
   // Measure the tilemarkers and sensor markers for one side
@@ -113,6 +124,8 @@ namespace PAP
     }
   }
 
+  //****************************************************************************//
+  
   class TileMetrologyPage : public MarkerMetrologyPage
   {
   public: 
@@ -124,11 +137,7 @@ namespace PAP
       // we will first do just the tile measurements. there are far
       // too many markers here. make a subselection.
       auto allvelopixmarkers = geosvc->velopixmarkers(viewdir) ;
-      const double microchannelsurface = 0.25 ;
-      const double gluelayerthickness  = 0.1 ;
-      const double ascithickness       = 0.2 ;
-      const double bumpbondthickness     = 0.02 ; 
-      const double asicZ = microchannelsurface + gluelayerthickness + ascithickness ;
+      
       for( const auto& def: allvelopixmarkers )
 	if( def.name.contains("2_Fid2") || def.name.contains("0_Fid1") )
 	  m_measurements.emplace_back( def, asicZ ) ;
@@ -156,6 +165,8 @@ namespace PAP
       }
     }
   }
+
+  //****************************************************************************//
   
   class SensorSurfaceMetrologyPage : public MarkerMetrologyPage
   {
@@ -171,11 +182,6 @@ namespace PAP
       const auto& camview = camerasvc.cameraview() ;
       collectReferenceMarkers( *(viewdir == ViewDirection::NSideView ? camview->nsidemarkers() : camview->csidemarkers()),
 			       markers) ;
-      const double microchannelsurface = 0.25 ;
-      const double gluelayerthickness  = 0.1 ;
-      const double ascithickness       = 0.2 ;
-      const double sensorthickness     = 0.22 ; // include bump bonds
-      const double sensorZ = microchannelsurface + gluelayerthickness + ascithickness + sensorthickness;
       for( const auto& m: markers )
 	if(m->toolTip().contains("Sensor"))
 	   m_measurements.emplace_back( m->toolTip(), m->pos().x(), m->pos().y(), sensorZ ) ;
@@ -189,6 +195,32 @@ namespace PAP
     return new SensorSurfaceMetrologyPage{camerasvc,viewdir} ;
   }
 
+  //****************************************************************************//
+
+  class SubstrateSurfaceMetrologyPage : public MarkerMetrologyPage
+  {
+  public:
+    SubstrateSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
+      : MarkerMetrologyPage(camerasvc)
+    {
+      const auto geosvc = GeometrySvc::instance() ;
+      // we will first do just the tile measurements. there are far
+      // too many markers here. make a subselection.
+      auto markers = geosvc->substratemarkers(viewdir) ;
+      for( const auto& def: markers )
+	m_measurements.emplace_back( def, microchannelsurfaceZ ) ;
+      createTable() ;
+    }
+  public:
+  } ;
+
+    QWidget* createSubstrateSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
+  {
+    return new SubstrateSurfaceMetrologyPage{camerasvc,viewdir} ;
+  }
+
+
+  
   
   // class MetrologyReportPage : public QDialog
   // {

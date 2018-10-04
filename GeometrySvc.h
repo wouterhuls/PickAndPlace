@@ -86,6 +86,8 @@ namespace PAP
     std::vector<FiducialDefinition> jigmarkers() const ;
     std::vector<FiducialDefinition> mcpointsNSide() const ;
     std::vector<FiducialDefinition> mcpointsCSide() const ;
+    std::vector<FiducialDefinition> substratemarkers( ViewDirection view ) const {
+      return view==NSideView ? mcpointsNSide() : mcpointsCSide() ; }
 
     const NamedDouble& stackX0() const { return m_stackX0 ; }
     const NamedDouble& stackXA() const { return m_stackXA ; }

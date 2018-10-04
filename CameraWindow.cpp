@@ -9,6 +9,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <array>
 #include <QPushButton>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -187,9 +188,35 @@ namespace PAP
     layout->addWidget( taskpages ) ;
     //auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
 
-    
-
-    
+    // struct TileInfo {
+    //   QString name;
+    //   QString chip1;
+    //   QString chip2 ;
+    //   TileInfo(const char* _name, const char* _chip1, const char* _chip2) :
+    // 	name{_name},chip1{_chip1},chip2{_chip2} {}
+    // } ;
+    using TileInfo = std::array<const char*,3> ;
+    std::array<std::array<TileInfo,2>,2> tileinfo ;
+    tileinfo[ViewDirection::NSideView][0] = {"NSI","NSI_VP20_Fid1","NSI_VP22_Fid2"} ;
+    tileinfo[ViewDirection::NSideView][1] = {"NLO","NLO_VP10_Fid1","NLO_VP12_Fid2"} ;
+    tileinfo[ViewDirection::CSideView][0] = {"CLI","CLI_VP00_Fid1","CLI_VP02_Fid2"} ;
+    tileinfo[ViewDirection::CSideView][1] = {"CSO","CSO_VP30_Fid1","CSO_VP32_Fid2"} ;
+    for( int iview=0; iview<2; ++iview ) {
+      ViewDirection view = ViewDirection(iview) ;
+      auto sidetaskpages = new QTabWidget{ taskpages } ;
+      taskpages->addTab(sidetaskpages,view==ViewDirection::NSideView ? "N-side" : "C-side") ;
+      auto mainjigalignwidget = new AlignMainJigPage{view,m_cameraview} ;
+      sidetaskpages->addTab(mainjigalignwidget,"Align jig XY") ;
+      for(int tile=0; tile<2; ++tile) 
+	sidetaskpages->addTab(new AlignTilePage{m_cameraview,
+	      tileinfo[view][tile][0],tileinfo[view][tile][1],tileinfo[view][tile][2]},
+	  QString{"Position "} +  tileinfo[view][tile][0]) ;
+      sidetaskpages->addTab(makeAlignMainJigZPage(view,*this),"Align jig Z") ;
+      sidetaskpages->addTab(createTileMetrologyPage(*this,view),"Tile metrology") ;
+      sidetaskpages->addTab(createSensorSurfaceMetrologyPage(*this,view),"Sensor surface metrology") ;
+      sidetaskpages->addTab(createSubstrateSurfaceMetrologyPage(*this,view),"Substrate surface metrology") ;
+    }
+    /*
     {
       auto nsidetaskpages = new QTabWidget{ taskpages } ;
       taskpages->addTab(nsidetaskpages,"N-side") ;
@@ -215,7 +242,7 @@ namespace PAP
       csidetaskpages->addTab(createSensorSurfaceMetrologyPage(*this,ViewDirection::CSideView),"Sensor surface metrology") ;
 
     }
-	
+    */
     connect( taskpages, &QTabWidget::tabBarClicked, this, &CameraWindow::toggleView ) ;
     
     QMetaObject::connectSlotsByName(this);
