@@ -5,12 +5,14 @@
 #include <QTableWidget>
 #include <QLabel>
 #include <QVBoxLayout>
+#include <QPushButton>
 #include "CameraWindow.h"
 #include "CameraView.h"
 #include "AutoFocus.h"
 #include "MetrologyReport.h"
 #include "GraphicsItems.h"
 #include <iostream>
+#include <Eigen/Dense>
 
 namespace PAP
 {
@@ -44,6 +46,7 @@ namespace PAP
     void updateTableRow( int row, const ReportCoordinate& coord ) ;
     void activateRow( int row ) ;
     void record(const CoordinateMeasurement& measurement) ;
+    void fitPlane() ;
   } ;
   
   MarkerMetrologyPage::MarkerMetrologyPage(CameraWindow& camerasvc)
@@ -57,11 +60,16 @@ namespace PAP
     tmptext1->setText("Page to measure the coordinates of the tile/sensor markers for one side of the module.") ;
     tmptext1->setWordWrap(true);
     layout->addWidget( tmptext1 ) ;
-    m_markertable = new QTableWidget{1,4,this} ;
-    m_markertable->setHorizontalHeaderLabels(QStringList{"Marker","X","Y","Z"}) ;
+    m_markertable = new QTableWidget{1,5,this} ;
+    m_markertable->setHorizontalHeaderLabels(QStringList{"Marker","X","Y","Z","residual Z"}) ;
     layout->addWidget(m_markertable) ;
     connect(m_markertable,&QTableWidget::cellClicked,[&](int row, int /*column*/) { this->activateRow( row ) ; }) ;
     connect(m_camerasvc->cameraview(),&CameraView::recording,this,&MarkerMetrologyPage::record) ;
+    {
+      auto button = new QPushButton{"Fit plane", this} ;
+      layout->addWidget(button) ;
+      connect(button,&QPushButton::clicked,this,[=]{ this->fitPlane() ; }) ;
+    }
   }
   
   void MarkerMetrologyPage::createTable()
@@ -74,7 +82,7 @@ namespace PAP
       prototype.setFlags( Qt::ItemIsSelectable ) ;
       int row{0} ;
       for( const auto& m : m_measurements ) {
-	for(int icol=0; icol<4; ++icol )  
+	for(int icol=0; icol<m_markertable->columnCount(); ++icol )  
 	  m_markertable->setItem(row,icol,new QTableWidgetItem{prototype} ) ;
 	m_markertable->item(row,0)->setText( m.m_name ) ;
 	updateTableRow( row++, m ) ;
@@ -93,14 +101,15 @@ namespace PAP
     if( row != m_activerow ) {
       if( m_activerow>=0 ) {
 	m_markertable->item(m_activerow,0)->
-	  setBackground( QBrush{ QColor{m_measurements[m_activerow].m_status == ReportCoordinate::Ready ? Qt::green : Qt::gray} } ) ;
+	  setBackground( QBrush{ QColor{m_measurements[m_activerow].m_status == ReportCoordinate::Status::Ready ? Qt::green : Qt::gray} } ) ;
       }
       m_activerow = row ;
       m_markertable->item(row,0)->setBackground( QBrush{ QColor{Qt::yellow} } ) ;
       // now move to the marker position as currently set in the measurement
       auto& m = m_measurements[row] ;
       m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.m_x,m.m_y} ) ;
-      if( m.m_z != 0 ) {
+      if( m.m_status == ReportCoordinate::Status::Ready ) {
+	m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
 	// move the camera to the current focus point, if any
 	//m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
 	// call the autofocus!
@@ -123,6 +132,36 @@ namespace PAP
       updateTableRow(m_activerow,reportcoordinate) ;
     }
   }
+
+  void MarkerMetrologyPage::fitPlane()
+  {
+    Eigen::Vector3d halfdchi2dpar   = Eigen::Vector3d::Zero() ;
+    Eigen::Matrix3d halfd2chi2dpar2 = Eigen::Matrix3d::Zero() ;
+    size_t numvalid{0} ;
+    for( const auto& m : m_measurements )
+      if( m.m_status == ReportCoordinate::Status::Ready ) {
+	++numvalid ;
+	Eigen::Vector3d deriv ;
+	deriv(0) = 1 ;
+	deriv(1) = m.m_x ;
+	deriv(2) = m.m_y ;
+	halfdchi2dpar += m.m_z * deriv ;
+	for(int irow=0; irow<3; ++irow)
+	  for(int icol=0; icol<3; ++icol)
+	    halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
+      }
+    if(numvalid>2) {
+      Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
+      qDebug() << "Solution: " << delta(0) << delta(1) << delta(2) ;
+      // fill the column with residuals
+      int row(0) ;
+      for( const auto& m : m_measurements ) {
+	double residual = m.m_z - (delta(0) + delta(1)*m.m_x + delta(2)*m.m_y) ; 
+	m_markertable->item(row++,4)->setText( QString::number( residual, 'g', 5 ) ) ;
+      }
+    }
+  }
+  
 
   //****************************************************************************//
   
