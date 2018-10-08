@@ -168,6 +168,10 @@ class ReferenceMarker : public Marker
       //the position is the position of the first velopix marker
       setPos( markerdefs.front().x, markerdefs.front().y) ;
       setToolTip(QString("Tile ") + markerdefs.front().name.leftRef(3) ) ;
+      qDebug() << "Tile average position: "
+	       << toolTip()
+	       << 0.5*( markerdefs.back().x + markerdefs.front().x )
+	       << 0.5*( markerdefs.back().y + markerdefs.front().y ) ;
       double dx = markerdefs.back().x - markerdefs.front().x ;
       double dy = markerdefs.back().y - markerdefs.front().y ;
       double angle = std::atan2( dy, dx ) ;
