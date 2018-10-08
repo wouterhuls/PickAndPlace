@@ -26,7 +26,7 @@ namespace PAP
     NamedValue<double> zmin{"AutoFocus.ZMin",23.0} ;  // Minimal z for focus search
     NamedValue<double> zmax{"AutoFocus.ZMax",24.5} ;  // Maximal z for focus search
     NamedValue<double> movespeed{"AutoFocus.MoveVelocity",0.4} ;
-    NamedValue<double> fastspeed{"AutoFocus.FastSearchVelocity",0.2} ;
+    NamedValue<double> fastspeed{"AutoFocus.FastSearchVelocity",0.1} ;
     NamedValue<double> slowspeed{"AutoFocus.SlowSearchVelocity",0.02} ;
 
     AutoFocusSettingsWidget( QWidget *parent )
@@ -39,7 +39,7 @@ namespace PAP
       this->setLayout(layout) ;
       
       layout->addWidget( new NamedValueInputWidget<double>{zmin,18.0,25.0,2} ) ;
-      layout->addWidget( new NamedValueInputWidget<double>{zmax,18.0,25.0,2} ) ;
+      layout->addWidget( new NamedValueInputWidget<double>{zmax,18.0,26.0,2} ) ;
       layout->addWidget( new NamedValueInputWidget<double>{slowspeed,0,0.4,2} ) ;
       layout->addWidget( new NamedValueInputWidget<double>{fastspeed,0,0.4,2} ) ;
       layout->addWidget( new NamedValueInputWidget<double>{movespeed,0,0.4,2} ) ;
@@ -493,14 +493,15 @@ namespace PAP
     }
 
     std::vector<FocusMeasurement> selectnearfocusmeasurements( const std::vector<FocusMeasurement>& measurements,
-							       unsigned char N )
+							       unsigned char N,
+							       size_t& imax)
     {
       if( measurements.size() < N ) return measurements ;
       
       // selects the measurements with the best focus and N
       // measurements left and right. assumes the measurements are
       // ordered.
-      size_t imax=0 ;
+      imax=0 ;
       for(size_t i = 0; i<measurements.size(); ++i)
 	if( measurements[imax].I < measurements[i].I) imax=i ;
       auto i1 = std::max(size_t{0},imax-N) ;
@@ -542,7 +543,8 @@ namespace PAP
 
   void AutoFocus::analyseSlowFocus( FocusMeasurement result )
   {
-    qDebug() << "AutoFocus::analyseSlowFocus: " << m_fastfocusmeasurements.size() << result.z << result.I;
+    if( (m_fastfocusmeasurements.size()%10) == 0 )
+      qDebug() << "AutoFocus::analyseSlowFocus: " << m_fastfocusmeasurements.size() << result.z << result.I;
     if( m_fastfocusmeasurements.empty() ||
 	std::abs(result.z - m_fastfocusmeasurements.back().z) >0.0001 )
       m_fastfocusmeasurements.push_back( result ) ;
@@ -600,9 +602,10 @@ namespace PAP
 		  []( const FocusMeasurement& m ) { qDebug() << m.z << " " << m.I ; } ) ;
 	// why does every measurement appear two times?
 	// perform a parabola fit two measurements close to the maximum?
+	size_t imax{0} ;
 	std::vector<FocusMeasurement> selection =
-	  selectnearfocusmeasurements(m_fastfocusmeasurements,2) ;
-	double z0 = selection[selection.size()/2 + selection.size()%2].z ;
+	  selectnearfocusmeasurements(m_fastfocusmeasurements,2,imax) ;
+	double z0 = m_fastfocusmeasurements[imax].z;
 	bool success = estimatez0(selection,z0) ;
 	qDebug() << "near focus success/z0: " << success << " " << z0 ;
 	//if(!success) z0 = m_fastfocusmeasurements[imax].z ;
@@ -615,8 +618,8 @@ namespace PAP
 	  QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
 	  spy.wait( 10000 ) ;
 	  std::vector<FocusMeasurement> selection =
-	    selectnearfocusmeasurements(m_fastfocusmeasurements,2) ;
-	  double z0tmp = selection[selection.size()/2 + selection.size()%2].z ;
+	    selectnearfocusmeasurements(m_fastfocusmeasurements,2,imax) ;
+	  double z0tmp = m_fastfocusmeasurements[imax].z;
 	  bool success = estimatez0(selection,z0tmp) ;
 	  qDebug() << "up/down measures of z0: "
 		   << z0 << " " << z0tmp << " " << z0 - z0tmp ;
