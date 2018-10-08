@@ -39,6 +39,7 @@ namespace PAP
   protected:
     std::vector<ReportCoordinate> m_measurements ;
     void createTable() ;
+    virtual void definemarkers() = 0 ;
   public:
     MarkerMetrologyPage(CameraWindow& camerasvc) ;
     void updateTableRow( int row, const ReportCoordinate& coord ) ;
@@ -62,6 +63,7 @@ namespace PAP
     layout->addWidget(m_markertable) ;
     connect(m_markertable,&QTableWidget::cellClicked,[&](int row, int /*column*/) { this->activateRow( row ) ; }) ;
     connect(m_camerasvc->cameraview(),&CameraView::recording,this,&MarkerMetrologyPage::record) ;
+    
   }
   
   void MarkerMetrologyPage::createTable()
@@ -132,7 +134,10 @@ namespace PAP
     TileMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
       : MarkerMetrologyPage(camerasvc)
     {
-      // get the geometry service to retrieve predefined positions for all measured points
+      definemarkers() ;
+    }
+    void definemarkers() final {
+      m_measurements.clear() ;
       const auto geosvc = GeometrySvc::instance() ;
       // we will first do just the tile measurements. there are far
       // too many markers here. make a subselection.
@@ -174,6 +179,11 @@ namespace PAP
     SensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
       : MarkerMetrologyPage(camerasvc)
     {
+      definemarkers() ;
+    }
+    void definemarkers() final
+    {
+      m_measurements.clear() ;
       // now I need to think, because I created these 'reference'
       // position only inside the displayed geometry. there is no
       // concept of a tile anywhere else. perhaps we can extract them
@@ -187,9 +197,8 @@ namespace PAP
 	   m_measurements.emplace_back( m->toolTip(), m->pos().x(), m->pos().y(), sensorZ ) ;
       createTable() ;
     }
-  public:
   } ;
-
+ 
     QWidget* createSensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
   {
     return new SensorSurfaceMetrologyPage{camerasvc,viewdir} ;
@@ -203,6 +212,11 @@ namespace PAP
     SubstrateSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
       : MarkerMetrologyPage(camerasvc)
     {
+      definemarkers() ;
+    }
+    void definemarkers() final
+    {
+      m_measurements.clear() ;
       const auto geosvc = GeometrySvc::instance() ;
       // we will first do just the tile measurements. there are far
       // too many markers here. make a subselection.
@@ -211,7 +225,6 @@ namespace PAP
 	m_measurements.emplace_back( def, microchannelsurfaceZ ) ;
       createTable() ;
     }
-  public:
   } ;
 
     QWidget* createSubstrateSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
