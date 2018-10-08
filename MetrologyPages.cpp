@@ -38,20 +38,23 @@ namespace PAP
     QTableWidget* m_markertable{0} ;
     int m_activerow{-1} ;
     CameraWindow* m_camerasvc{0} ;
+    ViewDirection m_viewdir{ViewDirection::NumViews} ;
   protected:
     std::vector<ReportCoordinate> m_measurements ;
     void createTable() ;
     virtual void definemarkers() = 0 ;
+    CameraWindow* camerasvc() { return m_camerasvc ; } ;
   public:
-    MarkerMetrologyPage(CameraWindow& camerasvc) ;
+    MarkerMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) ;
     void updateTableRow( int row, const ReportCoordinate& coord ) ;
     void activateRow( int row ) ;
     void record(const CoordinateMeasurement& measurement) ;
     void fitPlane() ;
+    ViewDirection viewdir() const { return m_viewdir ; }
   } ;
   
-  MarkerMetrologyPage::MarkerMetrologyPage(CameraWindow& camerasvc)
-    : QWidget{&camerasvc}, m_camerasvc{&camerasvc}
+  MarkerMetrologyPage::MarkerMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
+    : QWidget{&camerasvc}, m_camerasvc{&camerasvc}, m_viewdir{viewdir}
   {
     //this->resize(500,300);
     auto layout =  new QVBoxLayout{} ;
@@ -175,7 +178,7 @@ namespace PAP
   {
   public: 
     TileMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
-      : MarkerMetrologyPage(camerasvc)
+      : MarkerMetrologyPage{camerasvc, viewdir}
     {
       definemarkers() ;
     }
@@ -184,7 +187,7 @@ namespace PAP
       const auto geosvc = GeometrySvc::instance() ;
       // we will first do just the tile measurements. there are far
       // too many markers here. make a subselection.
-      auto allvelopixmarkers = geosvc->velopixmarkers(viewdir) ;
+      auto allvelopixmarkers = geosvc->velopixmarkers(viewdir()) ;
       
       for( const auto& def: allvelopixmarkers )
 	if( def.name.contains("2_Fid2") || def.name.contains("0_Fid1") )
@@ -220,7 +223,7 @@ namespace PAP
   {
   public:
     SensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
-      : MarkerMetrologyPage(camerasvc)
+      : MarkerMetrologyPage{camerasvc,viewdir}
     {
       definemarkers() ;
     }
@@ -232,8 +235,8 @@ namespace PAP
       // concept of a tile anywhere else. perhaps we can extract them
       // from the full list, then filter on view by marker name?
       std::vector<const PAP::ReferenceMarker*> markers ;
-      const auto& camview = camerasvc.cameraview() ;
-      collectReferenceMarkers( *(viewdir == ViewDirection::NSideView ? camview->nsidemarkers() : camview->csidemarkers()),
+      const auto& camview = camerasvc()->cameraview() ;
+      collectReferenceMarkers( *(viewdir() == ViewDirection::NSideView ? camview->nsidemarkers() : camview->csidemarkers()),
 			       markers) ;
       for( const auto& m: markers )
 	if(m->toolTip().contains("Sensor"))
@@ -253,7 +256,7 @@ namespace PAP
   {
   public:
     SubstrateSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
-      : MarkerMetrologyPage(camerasvc)
+      : MarkerMetrologyPage{camerasvc,viewdir}
     {
       definemarkers() ;
     }
@@ -263,7 +266,7 @@ namespace PAP
       const auto geosvc = GeometrySvc::instance() ;
       // we will first do just the tile measurements. there are far
       // too many markers here. make a subselection.
-      auto markers = geosvc->substratemarkers(viewdir) ;
+      auto markers = geosvc->substratemarkers(viewdir()) ;
       for( const auto& def: markers )
 	m_measurements.emplace_back( def, microchannelsurfaceZ ) ;
       createTable() ;
