@@ -71,7 +71,7 @@ int main(int argc, char *argv[])
   // controls we only need on demand.
   
   PAP::CameraWindow camerawindow ;
-  camerawindow.move(700,0) ;
+  camerawindow.move(900,0) ;
   camerawindow.show() ;
   camerawindow.setWindowIcon( QIcon(":/images/VeloUpgradeLogoSmall.png") ) ;
   
