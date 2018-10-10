@@ -11,6 +11,7 @@ namespace PAP
   QWidget* createTileMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) ;
   QWidget* createSensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) ;
   QWidget* createSubstrateSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) ;
+  QWidget* createGenericSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) ;
 }
 
 #endif

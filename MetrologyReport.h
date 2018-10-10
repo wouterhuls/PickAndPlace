@@ -23,20 +23,21 @@ namespace PAP
   class ReportCoordinate
   {
   public:
-    enum Status { Uninitialized, Ready, Failed } ;
+    enum Status { Uninitialized, Initialized, Ready, Failed } ;
   public:
-    QString m_name ;
+    QString m_name{"Unknown"} ;
     // These coordinates in the GLOBAL LHCb frame? That's most logical
     // but perhaps not the most convenient?
-    double m_x ;
-    double m_y ;
-    double m_z ;
-    Status m_status ;
+    double m_x{0} ;
+    double m_y{0} ;
+    double m_z{0} ;
+    Status m_status{Uninitialized} ;
   public:
   ReportCoordinate( const FiducialDefinition& def, double z )
-      : m_name{def.name}, m_x{def.x}, m_y{def.y}, m_z{z}, m_status{Uninitialized} {}
+    : m_name{def.name}, m_x{def.x}, m_y{def.y}, m_z{z}, m_status{Initialized} {}
   ReportCoordinate( const QString& name, double x, double y, double z )
-      : m_name{name}, m_x{x}, m_y{y}, m_z{z}, m_status{Uninitialized} {}
+    : m_name{name}, m_x{x}, m_y{y}, m_z{z}, m_status{Initialized} {}
+    ReportCoordinate() = default ;
   } ;
 
   /*

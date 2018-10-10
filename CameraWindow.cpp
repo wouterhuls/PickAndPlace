@@ -31,7 +31,7 @@ namespace PAP
       m_moduleName{"ModuleName","NRD000"},
       m_stillImageTriggered{false}
   {
-    resize(900,500);
+    resize(700,500);
     setWindowTitle("Velo Pick&Place") ;
     
     m_cameraview = new CameraView{this} ;
@@ -56,6 +56,12 @@ namespace PAP
     
     buttonlayout->setObjectName(QStringLiteral("CamWindow::hlayout"));
 
+    auto stopbutton = new QPushButton{QIcon(":/images/emergencystop.png"),"",this} ;
+    stopbutton->setObjectName(QStringLiteral("stopButton"));
+    stopbutton->setToolTip("Abort all motions") ;
+    stopbutton->setIconSize(QSize(100,100)) ;
+    buttonlayout->addWidget( stopbutton ) ;
+ 
     // start with a label for the name. perhaps we should make a new
     // class that does all of this.
     {
@@ -78,12 +84,43 @@ namespace PAP
 	  if(ok) this->m_moduleName.setValue(d) ;
 	}) ;
     }
+    // buttons to switch view
+    {
+      auto togglehlayout = new QHBoxLayout{} ;
+      buttonlayout->addLayout( togglehlayout ) ;
+      auto nsidebutton = new QPushButton{"N-side",this} ;
+      auto csidebutton = new QPushButton{"C-side",this} ;
+      nsidebutton->setCheckable(true) ;
+      csidebutton->setCheckable(true) ;
+      togglehlayout->setSpacing(0) ;
+      togglehlayout->addWidget(nsidebutton) ;
+      nsidebutton->setChecked(true) ;
+      connect( csidebutton,  &QAbstractButton::clicked, [=]() {
+	  csidebutton->setChecked(true ) ;
+	  nsidebutton->setChecked(false) ;
+	  toggleView( ViewDirection::CSideView ) ;
+	  qDebug() << "C:" << csidebutton->isChecked() << nsidebutton->isChecked() ;
+	} ) ;
+      connect( nsidebutton,  &QAbstractButton::clicked, [=]() {
+	  csidebutton->setChecked(false ) ;
+	  nsidebutton->setChecked(true) ;
+	  toggleView( ViewDirection::NSideView ) ;
+	  //csidebutton->setChecked(!nsidebutton->isChecked()) ;
+	  qDebug() << "N: " << nsidebutton->isChecked() << csidebutton->isChecked() ;
+	} ) ;
+      if( m_cameraview->currentViewDirection()==PAP::CSideView ) {
+	csidebutton->setChecked(true ) ;
+      } else {
+	nsidebutton->setChecked(true ) ;
+      }
+      
+      /*connect( nsidebutton,  &QAbstractButton::pressed, [=]() {
+	csidebutton->setChecked(!nsidebutton->isChecked()) ; } ) ;*/
+      
+      //connect( viewtogglebutton, &QAbstractButton::toggled, this, &CameraWindow::toggleView ) ;
+      togglehlayout->addWidget(csidebutton) ;
+    }
     
-    auto stopbutton = new QPushButton{QIcon(":/images/emergencystop.png"),"",this} ;
-    stopbutton->setObjectName(QStringLiteral("stopButton"));
-    stopbutton->setToolTip("Abort all motions") ;
-    stopbutton->setIconSize(QSize(100,100)) ;
-    buttonlayout->addWidget( stopbutton ) ;
     
     auto focusbutton = new QPushButton("Auto-Focus",this) ;
     focusbutton->setToolTip("Start autofocus sequence") ;
@@ -134,11 +171,11 @@ namespace PAP
     connect( zoomoutbutton, &QPushButton::clicked,  m_cameraview, &CameraView::zoomOut ) ;
     buttonlayout->addWidget( zoomoutbutton ) ;
 
-    auto viewtogglebutton = new QPushButton{"Toggle view",this} ;
-    viewtogglebutton->setToolTip("Toggle between C and N side view") ;
-    viewtogglebutton->setCheckable(true) ;
-    connect( viewtogglebutton, &QAbstractButton::toggled, this, &CameraWindow::toggleView ) ;
-    buttonlayout->addWidget(viewtogglebutton) ;
+    // auto viewtogglebutton = new QPushButton{"Toggle view",this} ;
+    // viewtogglebutton->setToolTip("Toggle between C and N side view") ;
+    // viewtogglebutton->setCheckable(true) ;
+    // connect( viewtogglebutton, &QAbstractButton::toggled, this, &CameraWindow::toggleView ) ;
+    // buttonlayout->addWidget(viewtogglebutton) ;
 
     m_showNSideTiles = new QCheckBox{"N-side markers",this} ;
     connect( m_showNSideTiles, &QCheckBox::stateChanged,m_cameraview,&CameraView::showNSideMarkers ) ;
@@ -155,7 +192,7 @@ namespace PAP
       m_showNSideTiles->setCheckState( Qt::Checked ) ;
       m_showCSideTiles->setCheckState( Qt::Unchecked ) ;
     }
-
+    
     auto cameraresetbutton = new QPushButton{"Reset camera",this} ;
     cameraresetbutton->setToolTip("Reset the camera if the view gets stuck.") ;
     connect(cameraresetbutton , &QAbstractButton::clicked, [&]() { m_cameraview->resetCamera(); } ) ;
@@ -201,21 +238,47 @@ namespace PAP
     tileinfo[ViewDirection::NSideView][1] = {"NLO","NLO_VP10_Fid1","NLO_VP12_Fid2"} ;
     tileinfo[ViewDirection::CSideView][0] = {"CLI","CLI_VP00_Fid1","CLI_VP02_Fid2"} ;
     tileinfo[ViewDirection::CSideView][1] = {"CSO","CSO_VP30_Fid1","CSO_VP32_Fid2"} ;
+    QTabWidget* apages[2] ;
+    QTabWidget* mpages[2] ;
+    QTabWidget* ppages[2] ;
+    
+        
     for( int iview=0; iview<2; ++iview ) {
       ViewDirection view = ViewDirection(iview) ;
-      auto sidetaskpages = new QTabWidget{ taskpages } ;
-      taskpages->addTab(sidetaskpages,view==ViewDirection::NSideView ? "N-side" : "C-side") ;
-      auto mainjigalignwidget = new AlignMainJigPage{view,m_cameraview} ;
-      sidetaskpages->addTab(mainjigalignwidget,"Align jig XY") ;
+      
+      //auto sidetaskpages = new QTabWidget{ taskpages } ;
+      //taskpages->addTab(sidetaskpages,view==ViewDirection::NSideView ? "N-side" : "C-side") ;
+      
+      apages[view] = new QTabWidget{} ;
+      apages[view]->addTab( new AlignMainJigPage{view,m_cameraview},"Align jig XY") ;
+      apages[view]->addTab( makeAlignMainJigZPage(view,*this),"Align jig Z") ;
+           
+      ppages[view] = new QTabWidget{} ;
       for(int tile=0; tile<2; ++tile) 
-	sidetaskpages->addTab(new AlignTilePage{m_cameraview,
+	ppages[view]->addTab(new AlignTilePage{m_cameraview,
 	      tileinfo[view][tile][0],tileinfo[view][tile][1],tileinfo[view][tile][2]},
 	  QString{"Position "} +  tileinfo[view][tile][0]) ;
-      sidetaskpages->addTab(makeAlignMainJigZPage(view,*this),"Align jig Z") ;
-      sidetaskpages->addTab(createTileMetrologyPage(*this,view),"Tile metrology") ;
-      sidetaskpages->addTab(createSensorSurfaceMetrologyPage(*this,view),"Sensor surface metrology") ;
-      sidetaskpages->addTab(createSubstrateSurfaceMetrologyPage(*this,view),"Substrate surface metrology") ;
+      
+      mpages[view] = new QTabWidget{} ;
+      mpages[view]->addTab(createTileMetrologyPage(*this,view),"Tile metrology") ;
+      mpages[view]->addTab(createSensorSurfaceMetrologyPage(*this,view),"Sensor surface metrology") ;
+      mpages[view]->addTab(createSubstrateSurfaceMetrologyPage(*this,view),"Substrate surface metrology") ;
+      mpages[view]->addTab(createGenericSurfaceMetrologyPage(*this,view),"Generic surface metrology") ;
     }
+
+    connect(this, &CameraWindow::viewToggled, this, [=](int view)
+	    {
+	      taskpages->removeTab(2) ;
+	      taskpages->removeTab(1) ;
+	      taskpages->removeTab(0) ;
+	      taskpages->addTab(apages[view],"Jig alignment") ;
+	      taskpages->addTab(ppages[view],"Tile positioning") ;
+	      taskpages->addTab(mpages[view],"Metrology") ;
+	    } ) ;
+    // need to bootstrap this
+    viewToggled(m_cameraview->currentViewDirection()) ;
+
+    
     /*
     {
       auto nsidetaskpages = new QTabWidget{ taskpages } ;
@@ -243,7 +306,7 @@ namespace PAP
 
     }
     */
-    connect( taskpages, &QTabWidget::tabBarClicked, this, &CameraWindow::toggleView ) ;
+    //connect( taskpages, &QTabWidget::tabBarClicked, this, &CameraWindow::toggleView ) ;
     
     QMetaObject::connectSlotsByName(this);
   }
@@ -266,15 +329,18 @@ namespace PAP
 
   void CameraWindow::toggleView( int view )
   {
-    if( view == int(PAP::NSideView) ) {
-      m_cameraview->setViewDirection( PAP::NSideView ) ;
-      m_showNSideTiles->setCheckState( Qt::Checked ) ;
-      m_showCSideTiles->setCheckState( Qt::Unchecked ) ;
-    } else {
-      m_cameraview->setViewDirection( PAP::CSideView ) ;
-      m_showNSideTiles->setCheckState( Qt::Unchecked ) ;
-      m_showCSideTiles->setCheckState( Qt::Checked ) ;
-    } 
+    if(m_cameraview->currentViewDirection() != view ) {
+      if( view == int(PAP::NSideView) ) {
+	m_cameraview->setViewDirection( PAP::NSideView ) ;
+	m_showNSideTiles->setCheckState( Qt::Checked ) ;
+	m_showCSideTiles->setCheckState( Qt::Unchecked ) ;
+      } else {
+	m_cameraview->setViewDirection( PAP::CSideView ) ;
+	m_showNSideTiles->setCheckState( Qt::Unchecked ) ;
+	m_showCSideTiles->setCheckState( Qt::Checked ) ;
+      }
+      emit viewToggled(view) ;
+    }
   }
   
   void CameraWindow::moveToMarker()
