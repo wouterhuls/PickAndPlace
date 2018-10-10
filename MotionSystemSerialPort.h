@@ -83,12 +83,13 @@ namespace PAP
     void handleOutput(const PAP::MSResult& result) ; // to be called by worker to provide results of read commands
 
   private:
-    MotionSystemSvc* m_parent ;
+    MotionSystemSvc* m_parent{0} ;
     std::deque<MSCommand> m_commandqueue ;
     QThread m_workerthread ;
     MSCommand m_lastcommand ;
     std::vector<MSCommand> m_idlecommands ;
-    unsigned short m_currentidlecommandindex ;
+    unsigned short m_currentidlecommandindex{0} ;
+    unsigned short m_eventindex{0} ;
   } ;
 
 }

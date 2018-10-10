@@ -81,6 +81,8 @@ namespace PAP
   MSWorker::~MSWorker() {}
 
   void MSWorker::doWork( const MSCommand& command ) {
+    if( !command.isreadcommand)
+      qDebug() << "MSWorker::doWork: " << command.cmd.c_str() ;
     if( m_serialport.isOpen() ) {
       write( command.controller, command.cmd.c_str() ) ;
       if( command.isreadcommand ) {
@@ -110,6 +112,7 @@ namespace PAP
   {
     if( m_serialport.isOpen() ) {
       if( m_currentcontrollerid != motioncontrollerid ) {
+	//qDebug() << "MSWorker::write: " << motioncontrollerid << command ;
 	char controlleridcommand[256] ;
 	sprintf(controlleridcommand,"++addr %d",motioncontrollerid) ;
 	write(controlleridcommand) ;
@@ -192,8 +195,9 @@ namespace PAP
     connect( worker, &MSWorker::resultReady, this, &MotionSystemSerialPort::handleOutput) ;
     
     // start the thread
+    m_workerthread.setObjectName("MotionSystemSerialPort") ;
     m_workerthread.start() ;
-    m_workerthread.setPriority(QThread::LowPriority) ;
+    //m_workerthread.setPriority(QThread::LowPriority) ;
     
     // add commands to start controllers in local mode
     // FIXME: move this to parent
@@ -224,7 +228,7 @@ namespace PAP
       auto it = std::upper_bound( m_commandqueue.begin(),
 				  m_commandqueue.end(), mscmd ) ;
       m_commandqueue.insert(it,mscmd) ;
-      qDebug() << "Inserting write command: " << cmd ;
+      qDebug() << "Inserting write command: " << cmd << m_workerthread.isRunning() << m_commandqueue.size() ;
     }
     // should we now emit a signal to the worker? perhaps better not?
     // I don't have a clue ... perhaps my design is still wrong.
@@ -232,8 +236,9 @@ namespace PAP
   
   void MotionSystemSerialPort::next()
   {
+    //qDebug() << "MotionSystemSerialPort::next()" << ++m_eventindex ;
     // if the queu is empty, then request just status and errors
-    // FIXME: make sure it orders these such that we don't need to change controller id more than once. 
+    // FIXME: make sure it orders these such that we don't need to change controller id more than once.
     if( m_commandqueue.empty() ) {
       m_commandqueue.push_back( m_idlecommands[ m_currentidlecommandindex ] ) ;
       m_currentidlecommandindex = (m_currentidlecommandindex+1)%m_idlecommands.size() ;
@@ -246,6 +251,7 @@ namespace PAP
     }
     m_lastcommand = m_commandqueue.front() ;
     m_commandqueue.pop_front() ;
+    //qDebug() << "MotionSystemSerialPort::next()" << m_lastcommand.cmd.c_str() ;
     emit operate( m_lastcommand ) ;
   }
 
