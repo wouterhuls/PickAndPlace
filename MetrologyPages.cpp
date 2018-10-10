@@ -6,13 +6,21 @@
 #include <QLabel>
 #include <QVBoxLayout>
 #include <QPushButton>
+#include <QPlainTextEdit>
+#include <QFileDialog>
 #include "CameraWindow.h"
 #include "CameraView.h"
 #include "AutoFocus.h"
 #include "MetrologyReport.h"
 #include "GraphicsItems.h"
+#include "TextEditStream.h"
 #include <iostream>
 #include <Eigen/Dense>
+
+namespace Eigen {
+  using Vector6d = Eigen::Matrix<double,6,1> ;
+  using Matrix6d = Eigen::Matrix<double,6,6> ;
+}
 
 namespace PAP
 {
@@ -33,12 +41,14 @@ namespace PAP
 
   class MarkerMetrologyPage : public QWidget
   {
-  private:
+  protected:
     //SideMetrologyReport* m_report ;
     QTableWidget* m_markertable{0} ;
     int m_activerow{-1} ;
     CameraWindow* m_camerasvc{0} ;
     ViewDirection m_viewdir{ViewDirection::NumViews} ;
+    QHBoxLayout* m_buttonlayout{0} ;
+    QPlainTextEdit* m_textbox{0} ;
   protected:
     std::vector<ReportCoordinate> m_measurements ;
     void createTable() ;
@@ -49,8 +59,8 @@ namespace PAP
     void updateTableRow( int row, const ReportCoordinate& coord ) ;
     void activateRow( int row ) ;
     void record(const CoordinateMeasurement& measurement) ;
-    void fitPlane() ;
     ViewDirection viewdir() const { return m_viewdir ; }
+    void exportToFile() const ;
   } ;
   
   MarkerMetrologyPage::MarkerMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
@@ -60,24 +70,36 @@ namespace PAP
     auto layout =  new QVBoxLayout{} ;
     this->setLayout(layout) ;
     
-    auto tmptext1 = new QLabel{this} ;
-    tmptext1->setText("Page to measure the coordinates of the tile/sensor markers for one side of the module.") ;
-    tmptext1->setWordWrap(true);
-    layout->addWidget( tmptext1 ) ;
-    m_markertable = new QTableWidget{1,5,this} ;
+    //auto tmptext1 = new QLabel{this} ;
+    //tmptext1->setText("Page to measure the coordinates of the tile/sensor markers for one side of the module.") ;
+    //tmptext1->setWordWrap(true);
+    //layout->addWidget( tmptext1 ) ;
+
+    auto hlayout = new QHBoxLayout{} ;
+    layout->addLayout(hlayout) ;
+    m_markertable = new QTableWidget{1,4,this} ;
+    m_markertable->resize(500,150) ;
+    //m_markertable->setSizePolicy(QSizePolicy::MinimumExpanding,QSizePolicy::MinimumExpanding) ;
     m_markertable->setHorizontalHeaderLabels(QStringList{"Marker","X","Y","Z","residual Z"}) ;
-    layout->addWidget(m_markertable) ;
+    hlayout->addWidget(m_markertable) ;
     connect(m_markertable,&QTableWidget::cellClicked,[&](int row, int /*column*/) { this->activateRow( row ) ; }) ;
     connect(m_camerasvc->cameraview(),&CameraView::recording,this,&MarkerMetrologyPage::record) ;
-    {
-      auto button = new QPushButton{"Fit plane", this} ;
-      layout->addWidget(button) ;
-      connect(button,&QPushButton::clicked,this,[=]{ this->fitPlane() ; }) ;
-    }
+
+    m_textbox = new QPlainTextEdit{this} ;
+    hlayout->addWidget( m_textbox ) ;
+    m_textbox->resize(300,150) ;
+    
+    m_buttonlayout = new QHBoxLayout{} ;
+    layout->addLayout(m_buttonlayout) ;
     {
       auto button = new QPushButton{"Reset",this} ;
-      layout->addWidget(button) ;
+      m_buttonlayout->addWidget(button) ;
       connect(button,&QPushButton::clicked,this,[=]{ this->definemarkers() ; }) ;
+    }
+    {
+      auto button = new QPushButton{"Export",this} ;
+      m_buttonlayout->addWidget(button) ;
+      connect(button,&QPushButton::clicked,this,[=]{ this->exportToFile() ; }) ;
     }
   }
   
@@ -113,23 +135,28 @@ namespace PAP
 	  setBackground( QBrush{ QColor{m_measurements[m_activerow].m_status == ReportCoordinate::Status::Ready ? Qt::green : Qt::gray} } ) ;
       }
       m_activerow = row ;
-      m_markertable->item(row,0)->setBackground( QBrush{ QColor{Qt::yellow} } ) ;
-      // now move to the marker position as currently set in the measurement
       auto& m = m_measurements[row] ;
-      m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.m_x,m.m_y} ) ;
-      if( m.m_status == ReportCoordinate::Status::Ready ) {
-	m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
-	// move the camera to the current focus point, if any
-	//m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
-	// call the autofocus!
-	// m_camerasvc->autofocus()->startNearFocusSequence() ;
-      }	
+      m_markertable->item(row,0)->setBackground( QBrush{ QColor{m.m_status ==  ReportCoordinate::Status::Ready ? Qt::blue : Qt::yellow} } ) ;
+      // now move to the marker position as currently set in the measurement
+      if( int(m.m_status) >= int(ReportCoordinate::Status::Initialized) ) {
+	m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.m_x,m.m_y} ) ;
+	if( m.m_status == ReportCoordinate::Status::Ready ) {
+	  m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
+	  // move the camera to the current focus point, if any
+	  //m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
+	  // call the autofocus!
+	  // m_camerasvc->autofocus()->startNearFocusSequence() ;
+	}	
+      }
     }
   }
   
   void MarkerMetrologyPage::record(const CoordinateMeasurement& measurement)
   {
-    if( m_activerow >=0 && m_activerow < int(m_measurements.size()) ) {
+    if( m_activerow >= 0 ) {
+      // initialize enough measurements, if possible
+      m_measurements.resize( m_activerow+1 ) ;
+      // now store the measureent
       auto& reportcoordinate = m_measurements[m_activerow] ;
       const auto viewdir = m_camerasvc->cameraview()->currentViewDirection() ;
       const QTransform fromGlobalToModule = GeometrySvc::instance()->fromModuleToGlobal(viewdir).inverted() ;
@@ -138,40 +165,151 @@ namespace PAP
       reportcoordinate.m_y = modulecoordinates.y() ;
       reportcoordinate.m_z = m_camerasvc->autofocus()->zFromFocus( measurement.mscoordinates.focus ) ;
       reportcoordinate.m_status = ReportCoordinate::Ready ;
+      // finally update the table
       updateTableRow(m_activerow,reportcoordinate) ;
     }
   }
 
-  void MarkerMetrologyPage::fitPlane()
+  void MarkerMetrologyPage::exportToFile() const
   {
-    Eigen::Vector3d halfdchi2dpar   = Eigen::Vector3d::Zero() ;
-    Eigen::Matrix3d halfd2chi2dpar2 = Eigen::Matrix3d::Zero() ;
+    // pop up a dialog to get a file name
+    auto filename = QFileDialog::getSaveFileName(nullptr, tr("Save data"),
+						 QString("/home/velouser/Documents/PickAndPlaceData/") +
+						 m_camerasvc->moduleName() + "/untitled.txt",
+						 tr("Text files (*.txt)"));
+    QFile f( filename );
+    QTextStream data( &f );
+    // first the header
+    {
+      QStringList strList;
+      for( int c = 0; c < m_markertable->columnCount(); ++c ) {
+	strList <<  "\" " +
+	  m_markertable->horizontalHeaderItem(c)->data(Qt::DisplayRole).toString() +
+	  "\" ";
+      }
+      data << strList.join(";") << "\n";
+    }
+    // now the data
+    for(int irow=0; irow<= m_markertable->rowCount() && irow<int(m_measurements.size()); ++irow ) {
+      QStringList strList;
+      if( m_measurements[irow].m_status == ReportCoordinate::Ready ) 
+	for( int icol=0; icol < m_markertable->columnCount(); ++icol ) 
+	  strList << m_markertable->item(irow,icol)->text() ;
+      data << strList.join(";") << "\n";
+    }
+    f.close() ;
+  }
+  
+  struct PlaneFitResult
+  {
+    enum Parameters{Z0,dZdX,dZdY,d2ZdX2,d2ZdXY,d2ZdY2} ;
+    Eigen::Vector6d parameters{Eigen::Vector6d::Zero()} ;
+    Eigen::Matrix6d covariance{Eigen::Matrix6d::Zero()} ;
+    double x0{0} ;
+    double y0{0} ;
+  } ;
+  
+  class SurfaceMetrologyPage : public MarkerMetrologyPage
+  {
+  public:
+    enum FitModel { Plane, CurvedPlane} ;
+    SurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
+      : MarkerMetrologyPage{camerasvc,viewdir}
+    {
+      {
+	auto button = new QPushButton{"Fit plane", this} ;
+	m_buttonlayout->addWidget(button) ;
+	connect(button,&QPushButton::clicked,this,[=]{ this->fitPlane(FitModel::Plane) ; }) ;
+      }
+      {
+	auto button = new QPushButton{"Fit curved plane", this} ;
+	m_buttonlayout->addWidget(button) ;
+	connect(button,&QPushButton::clicked,this,[=]{ this->fitPlane(FitModel::CurvedPlane) ; }) ;
+      }
+    }
+    PlaneFitResult fitPlane(FitModel mode = FitModel::Plane, double originx=0, double originy=0) ;
+  private:
+    // fit result. is there a better place to keep this? do we need to keep it at all?
+    
+  } ;  
+
+  PlaneFitResult SurfaceMetrologyPage::fitPlane(FitModel mode, double originx, double originy)
+  {
+    Eigen::Vector6d halfdchi2dpar   = Eigen::Vector6d::Zero() ;
+    Eigen::Matrix6d halfd2chi2dpar2 = Eigen::Matrix6d::Zero() ;
     size_t numvalid{0} ;
     for( const auto& m : m_measurements )
       if( m.m_status == ReportCoordinate::Status::Ready ) {
 	++numvalid ;
-	Eigen::Vector3d deriv ;
+	Eigen::Vector6d deriv ;
+	double dx = m.m_x-originx ;
+	double dy = m.m_y-originy ;
 	deriv(0) = 1 ;
-	deriv(1) = m.m_x ;
-	deriv(2) = m.m_y ;
+	deriv(1) = dx ;
+	deriv(2) = dy ;
+	deriv(3) = dx*dx ;
+	deriv(4) = dx*dy ;
+	deriv(5) = dy*dy ;
 	halfdchi2dpar += m.m_z * deriv ;
-	for(int irow=0; irow<3; ++irow)
-	  for(int icol=0; icol<3; ++icol)
+	for(int irow=0; irow<6; ++irow)
+	  for(int icol=0; icol<6; ++icol)
 	    halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
       }
-    if(numvalid>2) {
-      Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
-      qDebug() << "Solution: " << delta(0) << delta(1) << delta(2) ;
-      // fill the column with residuals
-      int row(0) ;
-      for( const auto& m : m_measurements ) {
-	double residual = m.m_z - (delta(0) + delta(1)*m.m_x + delta(2)*m.m_y) ; 
-	m_markertable->item(row++,4)->setText( QString::number( residual, 'g', 5 ) ) ;
+    // compute solution. switch between different polynomial orders here.
+    Eigen::Vector6d delta = Eigen::Vector6d::Zero() ;
+    std::stringstream os ;
+    int ndof{0} ;
+    switch(mode) {
+    case CurvedPlane:
+      if(numvalid>5) {
+	delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
+	ndof = numvalid - 6 ;
+      } else {
+	os << "Not enough measurements to fit curved plane: " << numvalid << '\n' ;
+      }
+      break;
+    default:
+      if(numvalid>2) {
+	delta.block<3,1>(0,0) = halfd2chi2dpar2.block<3,3>(0,0).ldlt().solve( halfdchi2dpar.block<3,1>(0,0) ) ;
+	ndof = numvalid - 3 ;
+      } else {
+	os << "Not enough measurements to fit plane: " << numvalid << '\n' ;
       }
     }
+    
+    // fill the column with residuals
+    m_markertable->setColumnCount(5) ;
+    m_markertable->setHorizontalHeaderItem(4,new QTableWidgetItem{"residual Z"}) ;
+    int row(0) ;
+    double sumr2{0} ;
+    for( const auto& m : m_measurements ) {
+      double dx = m.m_x-originx ;
+      double dy = m.m_y-originy ;
+      double residual = m.m_z - (delta(0) + delta(1)*dx + delta(2)*dy + delta(3)*dx*dx + delta(4)*dx*dy+ delta(5)*dy*dy ) ;
+      if( !m_markertable->item(row,4) )
+	m_markertable->setItem(row,4,new QTableWidgetItem{}) ;
+      m_markertable->item(row,4)->setText( QString::number( residual, 'g', 5 ) ) ;
+      ++row ;
+      if(  m.m_status == ReportCoordinate::Status::Ready ) {
+	sumr2 += residual ;
+      }
+    }
+    const double sigmaz2 = 0.005*0.005 ;
+    if(ndof>0) {
+      os << "Fit result: " ;
+      for(int i=0; i<6; ++i) os << delta(i) << " " ;
+      os << '\n' ;
+      os << "chi2/dof: " << sumr2/sigmaz2 << " / " << ndof << std::endl ;
+    }
+    m_textbox->appendPlainText( os.str().c_str() ) ;
+    PlaneFitResult rc ;
+    rc.x0 = originx ;
+    rc.y0 = originy ;
+    rc.parameters = delta ;
+       
+    return rc ;
   }
   
-
   //****************************************************************************//
   
   class TileMetrologyPage : public MarkerMetrologyPage
@@ -203,6 +341,8 @@ namespace PAP
     return new TileMetrologyPage{camerasvc,viewdir} ;
   }
 
+  //****************************************************************************//
+  
   namespace {
     void collectReferenceMarkers(const QGraphicsItem& item,
 				 std::vector<const PAP::ReferenceMarker*>& markers)
@@ -217,13 +357,11 @@ namespace PAP
     }
   }
 
-  //****************************************************************************//
-  
-  class SensorSurfaceMetrologyPage : public MarkerMetrologyPage
+  class SensorSurfaceMetrologyPage : public SurfaceMetrologyPage
   {
   public:
     SensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
-      : MarkerMetrologyPage{camerasvc,viewdir}
+      : SurfaceMetrologyPage{camerasvc,viewdir}
     {
       definemarkers() ;
     }
@@ -245,18 +383,18 @@ namespace PAP
     }
   } ;
  
-    QWidget* createSensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
+  QWidget* createSensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
   {
     return new SensorSurfaceMetrologyPage{camerasvc,viewdir} ;
   }
 
   //****************************************************************************//
 
-  class SubstrateSurfaceMetrologyPage : public MarkerMetrologyPage
+  class SubstrateSurfaceMetrologyPage : public SurfaceMetrologyPage
   {
   public:
     SubstrateSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
-      : MarkerMetrologyPage{camerasvc,viewdir}
+      : SurfaceMetrologyPage{camerasvc,viewdir}
     {
       definemarkers() ;
     }
@@ -273,12 +411,52 @@ namespace PAP
     }
   } ;
 
-    QWidget* createSubstrateSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
+  QWidget* createSubstrateSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
   {
     return new SubstrateSurfaceMetrologyPage{camerasvc,viewdir} ;
   }
 
+  //****************************************************************************//
+  
+  class GenericSurfaceMetrologyPage : public SurfaceMetrologyPage
+  {
+  public:
+    GenericSurfaceMetrologyPage( CameraWindow& camerasvc, ViewDirection viewdir)
+      : SurfaceMetrologyPage{camerasvc,viewdir}
+    {
+      definemarkers() ;
+    }
+    void definemarkers() final
+    {
+      m_measurements.clear() ;
+      m_measurements.resize(16) ;
+      createTable() ;
+    }
+  } ;
 
+  QWidget* createGenericSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
+  {
+    return new GenericSurfaceMetrologyPage{camerasvc,viewdir} ;
+  }
+  
+  /*
+    I have the pages that do most of the actual work. Now we need
+    todecide what is the best way to store the data, and keep track
+    of the fact that all measurements need to be done before the
+    actual report is exported.
+    
+    What is the minimum that we want in the report:
+    - x, y coordinates of tile/sensor markers in LHCb frame
+    - estimates of distance between sensor surface and substrate surface
+
+    Other relevant information would be:
+    - curvature of substrate ?
+    - curvature of sensors?
+
+
+  */
+
+    
   
   
   // class MetrologyReportPage : public QDialog

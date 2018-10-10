@@ -29,6 +29,9 @@ namespace PAP
     AutoFocus* autofocus() { return m_autofocus ; }
     //MetrologyReport* measurementreport() { return m_measurementreport ; }
 
+    QString moduleName() const { return m_moduleName.value(); }
+  signals:
+    void viewToggled( int view ) ;
   public slots:
     void on_focusButton_clicked() ;
     //void on_quitButton_clicked();

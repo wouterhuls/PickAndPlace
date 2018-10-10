@@ -5,6 +5,7 @@
 #include "CameraView.h"
 #include "CameraWindow.h"
 #include "AutoFocus.h"
+#include "TextEditStream.h"
 
 #include <cmath>
 #include "Eigen/Dense"
@@ -12,7 +13,6 @@
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QLabel>
-#include <QPlainTextEdit>
 #include <QTableWidget>
 #include <QSignalSpy>
 
@@ -20,22 +20,7 @@
 
 namespace PAP
 {
-  // wrapper class that allows to stream to a qtextedit using stringstream
-  class TextEditStream
-  {
-  private:
-    QPlainTextEdit* m_textbox ;
-  public:
-    TextEditStream( QPlainTextEdit& textbox) : m_textbox(&textbox) {}
-    template<typename T>
-    TextEditStream& operator<<( const T& text) {
-      std::stringstream os ;
-      os << text ;
-      m_textbox->appendPlainText( os.str().c_str() ) ;
-      return *this ;
-    }
-  };
-  
+ 
   // helper class for page for alignment of the main jig
   MarkerRecorderWidget::MarkerRecorderWidget(const char* markername,
 					     const PAP::CameraView* camview,
