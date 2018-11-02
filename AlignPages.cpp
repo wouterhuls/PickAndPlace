@@ -336,6 +336,7 @@ namespace PAP
     std::vector<MSCoordinates> m_measurements ;
     std::vector<QMetaObject::Connection> m_conns ;
     QTableWidget* m_measurementtable{0} ;
+    QPlainTextEdit* m_textbox{0} ;
   public:
     AlignMainJigZPage(ViewDirection view, CameraWindow& camerasvc) ;
   private slots:
@@ -355,8 +356,8 @@ namespace PAP
     // ready, running, done or something like that.
     auto vlayout = new QVBoxLayout{} ;
     setLayout(vlayout) ;
-    auto hlayout = new QHBoxLayout{} ;
-    vlayout->addLayout(hlayout) ;
+    auto buttonlayout = new QHBoxLayout{} ;
+    vlayout->addLayout(buttonlayout) ;
     auto startbutton = new QPushButton{"Start",this} ;
     connect(startbutton,&QPushButton::clicked,[&]() {
 	//
@@ -367,7 +368,7 @@ namespace PAP
 	// start the movement
 	move() ;
       });
-    hlayout->addWidget(startbutton) ;
+    buttonlayout->addWidget(startbutton) ;
     auto stopbutton = new QPushButton{"Abort",this} ;
     connect(stopbutton,&QPushButton::clicked,[&]() {
 	// connect the signals
@@ -375,7 +376,7 @@ namespace PAP
 	// start the movement
 	m_status = Inactive ;
       });
-    hlayout->addWidget(stopbutton) ;
+    buttonlayout->addWidget(stopbutton) ;
     {
       // temporary
       auto button = new QPushButton{"Focus",this} ;
@@ -385,13 +386,19 @@ namespace PAP
 	  m_status = Inactive ;
 	  //m_camerasvc->autofocus()->startNearFocusSequence() ;
 	});
-      hlayout->addWidget(button) ;
+      buttonlayout->addWidget(button) ;
     }
     // add a table with the results of the measurements
+    auto hlayout = new QHBoxLayout{} ;
+    vlayout->addLayout(hlayout) ;
     int nrow = refcoordinates.size() ;
     m_measurementtable = new QTableWidget{nrow,4,this} ;
     m_measurementtable->setHorizontalHeaderLabels(QStringList{"Main X","Main Y","focus Z","residual"}) ;
-    vlayout->addWidget(m_measurementtable) ;
+    hlayout->addWidget(m_measurementtable) ;
+
+    m_textbox = new QPlainTextEdit{this} ;
+    hlayout->addWidget( m_textbox ) ;
+    m_textbox->resize(300,150) ;
     // connect( &(MotionSystemSvc::instance()->mainXAxis()), &MotionAxis::movementStopped,this, &AlignMainJigZPage::focus) ;
     // connect( &(MotionSystemSvc::instance()->mainYAxis()), &MotionAxis::movementStopped,this, &AlignMainJigZPage::focus) ;
 
@@ -448,7 +455,7 @@ namespace PAP
   }
   
   void AlignMainJigZPage::measure() {
-    if( m_status == Active ) {
+    if( m_status == Status::Active ) {
       m_measurements.push_back(MotionSystemSvc::instance()->coordinates()) ;
       qDebug() << "Z-axis seen in 'measure': "
 	       << m_measurements.back().focus
@@ -480,12 +487,12 @@ namespace PAP
   }
 
   void AlignMainJigZPage::calibrate() {
-    qDebug() << "Measurements: " ;
-    for( const auto& m : m_measurements ) {
-      qDebug() << m.main.x
-	       << m.main.y
-	       << m.focus ;
-    }
+    
+    std::stringstream os ;
+    os << "Measurements (main.x, main.y, focus):" << std::endl ;
+    for( const auto& m : m_measurements ) 
+      os << m.main.x << "," << m.main.y << "," << m.focus << std::endl ;
+    
     // this needs to go somewhere else!
     const double zsurface = 12.5 ;
     
@@ -504,7 +511,7 @@ namespace PAP
 	  halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
     }
     Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
-    qDebug() << "Solution: " << delta(0) << delta(1) << delta(2) ;
+    os << "Solution: " << delta(0) << ", " << delta(1) << ", " << delta(2) << std::endl ;
     // fill the column with residuals
     int row(0) ;
     for( const auto& m : m_measurements ) {
@@ -520,8 +527,10 @@ namespace PAP
       m_status = Calibrated ;
       m_measurements.clear() ;
     } else {
-      qDebug() << "Calibration failed!" ;
+      os << "Calibration failed!" << std::endl ;
     }
+    qDebug() << os.str().c_str() ;
+    m_textbox->appendPlainText( os.str().c_str() ) ;
   }
   
   QWidget* makeAlignMainJigZPage(ViewDirection view, CameraWindow& camerasvc) {
