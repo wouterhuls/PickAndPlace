@@ -643,10 +643,16 @@ namespace PAP
     const PAP::Marker* m = closestMarker() ;
     return m ? m->name() : QString{} ;
   }
-  
-  void CameraView::record( QPointF localpoint ) const
+
+  QPointF CameraView::globalCoordinates( QPointF localpoint ) const
   {
-    // for now, just print the information
+    QTransform T = fromCameraToPixel().inverted() * GeometrySvc::instance()->fromCameraToGlobal() ;
+    //GeometrySvc::instance()->fromCameraToGlobal().inverted() * fromCameraToPixel() ;
+    return T.map( localpoint ) ;
+  }
+  
+  CoordinateMeasurement CameraView::coordinateMeasurement( QPointF localpoint ) const
+  {
     qInfo() << "Taking a measurement!" ;
     qInfo() << "Local coordinates: " << localpoint.x() << " " << localpoint.y() ;
     auto mscoord= MotionSystemSvc::instance()->coordinates() ;
@@ -658,15 +664,15 @@ namespace PAP
 	    << mscoord.stack.phi << ")" ;
     CoordinateMeasurement measurement ;
     measurement.mscoordinates = mscoord ;
-    // besides this, we also want to global coordinates. First map the transform:
-    QTransform T = fromCameraToPixel().inverted() * GeometrySvc::instance()->fromCameraToGlobal() ;
-    //GeometrySvc::instance()->fromCameraToGlobal().inverted() * fromCameraToPixel() ;
-    auto globalpoint = T.map( localpoint ) ;
-    measurement.globalcoordinates = globalpoint ;
-
+    measurement.globalcoordinates = globalCoordinates( localpoint ) ;
     // Let's also add the name of the marker
     measurement.markername = closestMarkerName() ;
-    emit recording( measurement ) ;
+    return measurement ;
+  }
+  
+  void CameraView::record( QPointF localpoint ) const
+  {
+    emit recording(coordinateMeasurement(localpoint)) ;
   }
   
 }

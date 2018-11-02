@@ -7,6 +7,7 @@
 #include <QGraphicsItemGroup>
 #include "NamedValue.h"
 #include "Coordinates.h"
+#include "CoordinateMeasurement.h"
 
 class QGraphicsScene ;
 class QGraphicsView ;
@@ -40,12 +41,13 @@ namespace PAP
     double pixelSizeY() const { return pixelSize() ; }
     
     MonitoredQPointF& cameraCentreInModuleFrame() { return m_cameraCentreInModuleFrame ; }
+    const MonitoredQPointF& cameraCentreInModuleFrame() const { return m_cameraCentreInModuleFrame ; }
     //    MonitoredDouble&  cameraZInModuleFrame() { return m_cameraCentreInModuleFrame ; }
     
     QVideoProbe* videoProbe() { return m_videoProbe ; }
 
     QGraphicsItemGroup* nsidemarkers() { return m_nsidemarkers; }
-    QGraphicsItemGroup* csidemarkers() { return m_nsidemarkers; }
+    QGraphicsItemGroup* csidemarkers() { return m_csidemarkers; }
 
     void updateGeometryView() ;
     void updateStackAxisView() ;
@@ -70,7 +72,10 @@ namespace PAP
     ViewDirection currentViewDirection() const { return m_currentViewDirection ; }
 
     const QPointF& localOrigin() const { return m_localOrigin ; }
-
+    QPointF globalCoordinates( QPointF localpoint ) const ;
+    CoordinateMeasurement coordinateMeasurement( QPointF localpoint ) const ;
+    CoordinateMeasurement coordinateMeasurement() const { return coordinateMeasurement(localOrigin());  }
+    
     QCamera* camera() { return m_camera ; }
 
     const PAP::Marker* closestMarker( const QPointF& localpoint ) const ;
