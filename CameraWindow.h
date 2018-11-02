@@ -39,6 +39,7 @@ namespace PAP
     void toggleView(int view) ;
     void processFrame( const QVideoFrame& frame ) ;
     void moveToMarker() ;
+    void moveToPositionInModuleFrame() ;
   private:
     CameraView* m_cameraview{0} ;
     AutoFocus* m_autofocus{0} ;

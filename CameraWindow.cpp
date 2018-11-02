@@ -23,6 +23,7 @@
 #include <QVideoFrame>
 #include <QFileDialog>
 #include <QInputDialog>
+#include <QTableWidget>
 
 namespace PAP
 {
@@ -134,8 +135,15 @@ namespace PAP
 
     {
       auto button = new QPushButton("Move to marker",this) ;
-      button->setToolTip("Move to camera to one of the default markers") ;
+      button->setToolTip("Move camera to one of the default markers") ;
       connect( button, &QPushButton::clicked, [&](){ this->moveToMarker(); } ) ;
+      buttonlayout->addWidget( button ) ;
+    }
+    
+    {
+      auto button = new QPushButton("Move to position",this) ;
+      button->setToolTip("Move camera given position in module frame") ;
+      connect( button, &QPushButton::clicked, [&](){ this->moveToPositionInModuleFrame(); } ) ;
       buttonlayout->addWidget( button ) ;
     }
     
@@ -384,4 +392,44 @@ namespace PAP
       }
     }
   }
+
+  /*
+  void CameraWindow::createActions()
+  {
+    
+    QMenu *fileMenu = menuBar()->addMenu(tr("&Config"));
+    QToolBar *fileToolBar = addToolBar(tr("Config"));
+  } ;
+  */
+
+  void CameraWindow::moveToPositionInModuleFrame()
+  {
+    // pop up a dialog with a table where we can fill in an x and a y value in the module frame
+    QDialog dialog(this) ;
+    QTableWidget table{1,2,this} ;
+    table.setHorizontalHeaderLabels(QStringList{"X","Y"}) ;
+    // set to the current module position
+    auto point = m_cameraview->cameraCentreInModuleFrame().value() ;
+    table.setItem(0,0,new QTableWidgetItem{QVariant{point.x()}.toString()} ) ;
+    table.setItem(0,1,new QTableWidgetItem{QVariant{point.y()}.toString()} ) ;
+    table.resize(80,20) ;
+    QVBoxLayout layout ;
+    layout.addWidget(&table) ;
+    dialog.setLayout( &layout ) ;
+    QHBoxLayout hlayout ;
+    layout.addLayout(&hlayout) ;
+    QPushButton cancelbutton("Cancel",&dialog) ;
+    hlayout.addWidget(&cancelbutton) ;
+    connect(&cancelbutton, &QPushButton::clicked, &dialog, &QDialog::reject);
+    QPushButton acceptbutton("Move",&dialog) ;
+    hlayout.addWidget(&acceptbutton) ;
+    connect(&acceptbutton, &QPushButton::clicked, &dialog, &QDialog::accept);
+    dialog.adjustSize() ;
+    if ( dialog.exec() == QDialog::Accepted ) {
+      double x = QVariant{table.item(0,0)->text()}.toDouble() ;
+      double y = QVariant{table.item(0,1)->text()}.toDouble() ;
+      m_cameraview->moveCameraToPointInModule(QPointF{x,y}) ;
+    }
+  }
+  
 }
