@@ -48,12 +48,13 @@ namespace PAP
     void startFocusSequence() ;
     void startNearFocusSequence() ;
     void startFastFocusSequence() ;
-    void startFocusSequence(double zmin, double zmax) ;
+    void startFocusSequence(double focusmin, double focusmax) ;
     void startFastFocusSequenceSimple() ;
     void moveFocusTo( double focus ) const ;
     void moveFocusToModuleZ( double z ) const ;
     double focusFromZ( double z ) const ;
     double zFromFocus( double focus ) const ;
+    double currentFocus() const ;
     
    
   signals:
