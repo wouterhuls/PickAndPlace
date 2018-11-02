@@ -2,9 +2,22 @@
 #include <QDebug>
 #include <QFile>
 #include <QTextStream>
+#include <QTimer>
 
 namespace PAP
 {
+  PropertySvc::PropertySvc() : Singleton<PropertySvc>{}
+  {
+    // Save the properties every 60 seconds to a backup file.
+    QTimer *timer = new QTimer{this};
+    QObject::connect(timer, &QTimer::timeout, this, [=](){ this->write("config_saved.txt") ; } ) ;
+    timer->start(60000);
+  }
+  
+  PropertySvc::~PropertySvc()
+  {
+    write("config_last.txt") ;
+  }
   
   void PropertySvc::add( Property& var)
   {

@@ -15,7 +15,7 @@ namespace PAP
 
   using Property=NamedValueBase ;
   
-  class PropertySvc : public Singleton<PropertySvc>
+  class PropertySvc : public Singleton<PropertySvc>, public QObject
   {
   public:
     void add( Property& var ) ;
@@ -23,7 +23,8 @@ namespace PAP
     void read( const char* filename ) ;
     void write( const char* filename ) ;
     Property* find( const char* name ) ;
-    virtual ~PropertySvc() { write("config_last.txt") ; }
+    ~PropertySvc() ;
+    PropertySvc() ;
   private:
     std::vector< Property* > m_props ;
   } ;
