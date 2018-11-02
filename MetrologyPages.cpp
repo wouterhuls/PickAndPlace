@@ -1,5 +1,6 @@
 #include "MetrologyPages.h"
 #include "GeometrySvc.h"
+#include "MotionSystemSvc.h"
 #include <QStandardItemModel>
 #include <QTableView>
 #include <QTableWidget>
@@ -61,6 +62,8 @@ namespace PAP
     void record(const CoordinateMeasurement& measurement) ;
     ViewDirection viewdir() const { return m_viewdir ; }
     void exportToFile() const ;
+    void focus() const ;
+    void move() const ;
   } ;
   
   MarkerMetrologyPage::MarkerMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
@@ -92,6 +95,11 @@ namespace PAP
     m_buttonlayout = new QHBoxLayout{} ;
     layout->addLayout(m_buttonlayout) ;
     {
+      auto button = new QPushButton{"Focus",this} ;
+      m_buttonlayout->addWidget(button) ;
+      connect(button,&QPushButton::clicked,this,[=]{ this->focus() ; }) ;
+    }   
+    {
       auto button = new QPushButton{"Reset",this} ;
       m_buttonlayout->addWidget(button) ;
       connect(button,&QPushButton::clicked,this,[=]{ this->definemarkers() ; }) ;
@@ -101,6 +109,15 @@ namespace PAP
       m_buttonlayout->addWidget(button) ;
       connect(button,&QPushButton::clicked,this,[=]{ this->exportToFile() ; }) ;
     }
+  }
+  
+  void MarkerMetrologyPage::focus() const
+  {
+    if( !MotionSystemSvc::instance()->mainXAxis().isMoving() &&
+	!MotionSystemSvc::instance()->mainYAxis().isMoving() ) {
+      const double currentfocus = m_camerasvc->autofocus()->currentFocus() ;
+      m_camerasvc->autofocus()->startFocusSequence(currentfocus-0.3,currentfocus+0.3) ;
+    } ;
   }
   
   void MarkerMetrologyPage::createTable()
@@ -125,12 +142,14 @@ namespace PAP
     m_markertable->item(row,1)->setText( QString::number( coord.m_x, 'g', 5 ) ) ;
     m_markertable->item(row,2)->setText( QString::number( coord.m_y, 'g', 5 ) ) ;
     m_markertable->item(row,3)->setText( QString::number( coord.m_z, 'g', 5 ) ) ;
+    const auto color = m_measurements[m_activerow].m_status == ReportCoordinate::Status::Ready ? Qt::green : Qt::gray ;
+    m_markertable->item(row,0)->setBackground( QBrush{ QColor{color} } ) ;
   }
   
   void MarkerMetrologyPage::activateRow( int row ) {
     // uncolor the current row
     if( row != m_activerow ) {
-      if( m_activerow>=0 ) {
+      if( m_activerow>=0 && m_activerow<int(m_measurements.size()) ) {
 	m_markertable->item(m_activerow,0)->
 	  setBackground( QBrush{ QColor{m_measurements[m_activerow].m_status == ReportCoordinate::Status::Ready ? Qt::green : Qt::gray} } ) ;
       }
@@ -151,12 +170,21 @@ namespace PAP
     }
   }
   
+  void MarkerMetrologyPage::move() const
+  {
+    if( m_activerow < int(m_measurements.size()) ) {
+      const auto& m = m_measurements[m_activerow] ;
+      m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.m_x,m.m_y} ) ;
+    }
+  }
+  
   void MarkerMetrologyPage::record(const CoordinateMeasurement& measurement)
   {
     if( m_activerow >= 0 ) {
-      // initialize enough measurements, if possible
-      m_measurements.resize( m_activerow+1 ) ;
-      // now store the measureent
+      // initialize enough measurements, if possible needed
+      if( m_activerow >= int(m_measurements.size()) )
+	m_measurements.resize( m_activerow+1 ) ;
+      // now store the measurement
       auto& reportcoordinate = m_measurements[m_activerow] ;
       const auto viewdir = m_camerasvc->cameraview()->currentViewDirection() ;
       const QTransform fromGlobalToModule = GeometrySvc::instance()->fromModuleToGlobal(viewdir).inverted() ;
@@ -167,6 +195,11 @@ namespace PAP
       reportcoordinate.m_status = ReportCoordinate::Ready ;
       // finally update the table
       updateTableRow(m_activerow,reportcoordinate) ;
+      // Let's also export it to the text stream, such that we can easily copy paste it.
+      std::stringstream os ;
+      os << reportcoordinate.m_name.toStdString() << ": " << reportcoordinate.m_x << ", " << reportcoordinate.m_y << ", "
+	 << reportcoordinate.m_z  ;
+      m_textbox->appendPlainText( os.str().c_str() ) ;
     }
   }
 
@@ -217,6 +250,26 @@ namespace PAP
       : MarkerMetrologyPage{camerasvc,viewdir}
     {
       {
+	auto startbutton = new QPushButton{"Auto",this} ;
+	connect(startbutton,&QPushButton::clicked,[&]() {
+	    //m_activerow = 0 ;
+	    this->connectsignals() ;
+	    // if active row outside range, reset. otherwise start from where we are.
+	    if(m_activerow<0 || m_activerow>=int(m_measurements.size()))
+	      m_activerow = 0 ;
+	    move() ;
+	  });
+	m_buttonlayout->addWidget(startbutton) ;
+      }
+      {
+	auto stopbutton = new QPushButton{"Abort",this} ;
+	connect(stopbutton,&QPushButton::clicked,[&]() {
+	    // connect the signals
+	    this->disconnectsignals() ;
+	  });
+	m_buttonlayout->addWidget(stopbutton) ;
+      }
+      {
 	auto button = new QPushButton{"Fit plane", this} ;
 	m_buttonlayout->addWidget(button) ;
 	connect(button,&QPushButton::clicked,this,[=]{ this->fitPlane(FitModel::Plane) ; }) ;
@@ -228,16 +281,55 @@ namespace PAP
       }
     }
     PlaneFitResult fitPlane(FitModel mode = FitModel::Plane, double originx=0, double originy=0) ;
+    void disconnectsignals() ;
+    void connectsignals() ;
+    void measure() ;
   private:
     // fit result. is there a better place to keep this? do we need to keep it at all?
-    
-  } ;  
+    std::vector<QMetaObject::Connection> m_conns ;
+  } ;
+  
+  void SurfaceMetrologyPage::disconnectsignals()
+  {
+    for( auto& c : m_conns ) QObject::disconnect(c) ;
+    m_conns.clear() ;
+  }
 
+  void SurfaceMetrologyPage::measure()
+  {
+    // force a recording, but we do not want to go via the signals,
+    // because then I cannot control the flow:-(
+    //   m_camerasvc->cameraview()->record( camview->localOrigin() ) ;
+    auto measurement = m_camerasvc->cameraview()->coordinateMeasurement() ;
+    record( measurement ) ;
+    ++m_activerow ;
+    if( m_activerow<int(m_measurements.size())) move() ;
+    else {
+      disconnectsignals();
+      this->fitPlane(FitModel::Plane) ;
+    }
+  }
+    
+  void SurfaceMetrologyPage::connectsignals()
+  {
+    Qt::ConnectionType type = Qt::QueuedConnection;
+    m_conns.emplace_back( connect( &(MotionSystemSvc::instance()->mainXAxis()), &MotionAxis::movementStopped, this, [=]() { this->focus() ; },
+				   type) ) ;
+    m_conns.emplace_back( connect( &(MotionSystemSvc::instance()->mainYAxis()), &MotionAxis::movementStopped, this, [=]() { this->focus() ; },
+				   type ) ) ;
+    m_conns.emplace_back( connect( m_camerasvc->autofocus(), &AutoFocus::focussed, this, [=]() { this->measure() ; },type ) ) ;
+    m_conns.emplace_back( connect( m_camerasvc->autofocus(), &AutoFocus::focusfailed, this, [=]() { this->disconnectsignals() ; },type ) ) ;
+  }
+  
   PlaneFitResult SurfaceMetrologyPage::fitPlane(FitModel mode, double originx, double originy)
   {
     Eigen::Vector6d halfdchi2dpar   = Eigen::Vector6d::Zero() ;
     Eigen::Matrix6d halfd2chi2dpar2 = Eigen::Matrix6d::Zero() ;
     size_t numvalid{0} ;
+    double sumX{0} ;
+    double sumY{0} ;
+    double sumZ{0} ;
+    
     for( const auto& m : m_measurements )
       if( m.m_status == ReportCoordinate::Status::Ready ) {
 	++numvalid ;
@@ -254,6 +346,9 @@ namespace PAP
 	for(int irow=0; irow<6; ++irow)
 	  for(int icol=0; icol<6; ++icol)
 	    halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
+	sumX += m.m_x ;
+	sumY += m.m_y ;
+	sumZ += m.m_z ;
       }
     // compute solution. switch between different polynomial orders here.
     Eigen::Vector6d delta = Eigen::Vector6d::Zero() ;
@@ -291,11 +386,16 @@ namespace PAP
       m_markertable->item(row,4)->setText( QString::number( residual, 'g', 5 ) ) ;
       ++row ;
       if(  m.m_status == ReportCoordinate::Status::Ready ) {
-	sumr2 += residual ;
+	sumr2 += residual*residual ;
       }
     }
     const double sigmaz2 = 0.005*0.005 ;
     if(ndof>0) {
+      const double cogx = sumX/numvalid ;
+      const double cogy = sumY/numvalid ;
+      os << "Centre-of-gravity: ("
+	 << cogx << "," << cogy << "," <<  sumZ/numvalid << ")"
+	 << "-->" << (delta(0) + delta(1)*cogx + delta(2)*cogy + delta(3)*cogx*cogx + delta(4)*cogx*cogy+ delta(5)*cogy*cogy) << std::endl ;
       os << "Fit result: " ;
       for(int i=0; i<6; ++i) os << delta(i) << " " ;
       os << '\n' ;
