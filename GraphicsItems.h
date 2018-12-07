@@ -164,7 +164,8 @@ class ReferenceMarker : public Marker
     const double height = 17.04 ;
   public:
   Tile( const std::vector<FiducialDefinition>& markerdefs,
-	QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItemGroup(parent) {
+	QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItemGroup(parent)
+    {
       //the position is the position of the first velopix marker
       setPos( markerdefs.front().x, markerdefs.front().y) ;
       setToolTip(QString("Tile ") + markerdefs.front().name.leftRef(3) ) ;
@@ -177,21 +178,46 @@ class ReferenceMarker : public Marker
       double angle = std::atan2( dy, dx ) ;
       setRotation( angle * 180.0 / M_PI ) ;
       // add a few markers for the sensor flatness measurements
-      const double X0 = -(width-markerdist)/2 + 0.5 ;
+      const double X0 = -(width-markerdist)/2 + 0.6 ;
       const double Y0 = +2.5 ;
       bool nside = markerdefs.front().name.contains("N") ;
+      QPointF orderedcorners[4] ;
       for(int j=0; j<4; ++j) {
 	int i = nside ? j : ( 2*(j/2) + (1 - j%2 ) ) ;
-	const double x = X0 + ((i+i/2)%2) * (width-1.0) ;
+	const double x = X0 + ((i+i/2)%2) * (width-1.2) ;
 	const double y = Y0 + (i/2) * (height-3.2) ;
-	QString refname = "Sensor" ;
-	refname += markerdefs.front().name.leftRef(3) ;
-	refname += QString::number( j+1 ) ;
-	FiducialDefinition def{refname,x,y} ;
-	(static_cast<QGraphicsItemGroup*>(parent))->addToGroup( new ReferenceMarker{ def, this } ) ;
+	orderedcorners[j] = QPointF(x,y) ;
       }
-    } ;
-
+      // for(int j=0; j<4; ++j) {
+      // 	QString refname = "Sensor" ;
+      // 	refname += markerdefs.front().name.leftRef(3) ;
+      // 	refname += QString::number( j+1 ) ;
+      // 	FiducialDefinition def{refname,orderedcorners[j].x(),orderedcorners[j].y()} ;
+      // 	(static_cast<QGraphicsItemGroup*>(parent))->addToGroup( new ReferenceMarker{ def, this } ) ;
+      // }
+            
+      // I want more: let's go for 12, 4 lines of 4 in a snake pattern
+      //std::vector< QPointF > points ;
+      const int nX = 7 ;
+      const int nY = 4 ;
+      const float dY = orderedcorners[2].y() - orderedcorners[0].y() ;
+      const float dX = orderedcorners[2].x() - orderedcorners[0].x() ;
+      for(int iy=0; iy<nY; ++iy) {
+	float y = orderedcorners[0].y() + (dY*iy)/(nY-1) ;
+	for(int ix=0;ix<nX; ++ix) {
+	  int jx = (iy%2) ? nX-1-ix : ix ;
+	  float x = orderedcorners[0].x() + (dX*jx)/(nX-1) ;
+	  QString refname = "Sensor" ;
+	  refname += markerdefs.front().name.leftRef(3) ;
+	  refname += QString::number( jx+1 ) ;
+	  refname += "_" ;
+	  refname += QString::number( iy+1 ) ;
+	  FiducialDefinition def{refname,x,y} ;
+	  (static_cast<QGraphicsItemGroup*>(parent))->addToGroup( new ReferenceMarker{ def, this } ) ;
+	}
+      }
+    }
+  
     // we'll draw just a 
     virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem* /*option*/,
 		       QWidget* /*widget*/)

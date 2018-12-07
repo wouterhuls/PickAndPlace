@@ -104,7 +104,9 @@ namespace PAP
 	double Ly = m1->markerposition().y() - m2->markerposition().y() ;
 	double Lx_m = m1->measurement().globalcoordinates.x() - m2->measurement().globalcoordinates.x() ;
 	double Ly_m = m1->measurement().globalcoordinates.y() - m2->measurement().globalcoordinates.y() ;
-	text << "Distance in X: " << Lx << " " << Lx_m << " " << Lx-Lx_m << std::endl
+	text << "Marker 1: " << m1->measurement().globalcoordinates.x() << "," << m1->measurement().globalcoordinates.y()  << std::endl
+	     << "Marker 2: " << m2->measurement().globalcoordinates.x() << "," << m2->measurement().globalcoordinates.y() << std::endl
+	     << "Distance in X: " << Lx << " " << Lx_m << " " << Lx-Lx_m << std::endl
 	     << "Distance in Y: " << Ly << " " << Ly_m << " " << Ly-Ly_m << std::endl
 	     << "2D distance  : " << std::sqrt(Lx*Lx+Ly*Ly) - std::sqrt(Lx_m*Lx_m+Ly_m*Ly_m) << std::endl ;
       }
