@@ -334,7 +334,8 @@ namespace PAP
     ViewDirection m_viewdirection ;
     CameraWindow* m_camerasvc{0} ;
     Status m_status{Inactive} ;
-    const std::vector<MSMainCoordinates> refcoordinates{ {-100,-10},{-100,120},{80,120},{80,-10} } ;
+    //const std::vector<MSMainCoordinates> refcoordinates{ {-100,-10},{-100,120},{80,120},{80,-10} } ;
+    const std::vector<FiducialDefinition> m_refcoordinates ;
     std::vector<MSCoordinates> m_measurements ;
     std::vector<QMetaObject::Connection> m_conns ;
     QTableWidget* m_measurementtable{0} ;
@@ -352,7 +353,8 @@ namespace PAP
 
 
   AlignMainJigZPage::AlignMainJigZPage(ViewDirection view,CameraWindow& camerasvc)
-    : QWidget{&camerasvc},m_viewdirection{view},m_camerasvc(&camerasvc)
+    : QWidget{&camerasvc},m_viewdirection{view},m_camerasvc(&camerasvc),
+      m_refcoordinates{view==ViewDirection::NSide ? PAP::Markers::jigSurfaceNSide() : PAP::Markers::jigSurfaceCSide()}
   {
     // just two buttons: start and stop + a label to tell that it is
     // ready, running, done or something like that.
@@ -393,9 +395,9 @@ namespace PAP
     // add a table with the results of the measurements
     auto hlayout = new QHBoxLayout{} ;
     vlayout->addLayout(hlayout) ;
-    int nrow = refcoordinates.size() ;
-    m_measurementtable = new QTableWidget{nrow,4,this} ;
-    m_measurementtable->setHorizontalHeaderLabels(QStringList{"Main X","Main Y","focus Z","residual"}) ;
+    int nrow = m_refcoordinates.size() ;
+    m_measurementtable = new QTableWidget{nrow,5,this} ;
+    m_measurementtable->setHorizontalHeaderLabels(QStringList{"Main X","Main Y","Nominal Z","Focus Z","Residual"}) ;
     hlayout->addWidget(m_measurementtable) ;
 
     m_textbox = new QPlainTextEdit{this} ;
@@ -435,8 +437,10 @@ namespace PAP
   void AlignMainJigZPage::move() {
     // move to next reference z position
     auto n = m_measurements.size() ;
-    if( n<refcoordinates.size() ) {
-      auto mscoordinates = refcoordinates[n] ;
+    if( n<m_refcoordinates.size() ) {
+      // need to translate from module coordinates to MS coordinates
+      const auto& ref = m_refcoordinates[n] ;
+      auto mscoordinates = GeometrySvc::instance()->toMSMain( QPointF{ref.x(),ref.y()} ) ;
       MotionSystemSvc::instance()->mainXAxis().moveTo(mscoordinates.x) ;
       MotionSystemSvc::instance()->mainYAxis().moveTo(mscoordinates.y) ;
     }
@@ -458,7 +462,7 @@ namespace PAP
   
   void AlignMainJigZPage::measure() {
     if( m_status == Status::Active ) {
-      m_measurements.push_back(MotionSystemSvc::instance()->coordinates()) ;
+      m_measurements.emplace_back(MotionSystemSvc::instance()->coordinates()) ;
       qDebug() << "Z-axis seen in 'measure': "
 	       << m_measurements.back().focus
 	       << MotionSystemSvc::instance()->focusAxis().position().value() ;
@@ -476,10 +480,10 @@ namespace PAP
 	  const auto& m = m_measurements[row] ;
 	  m_measurementtable->item(row,0)->setText( QString::number( m.main.x, 'g', 5 ) ) ;
 	  m_measurementtable->item(row,1)->setText( QString::number( m.main.y, 'g', 5 ) ) ;
-	  m_measurementtable->item(row,2)->setText( QString::number( m.focus, 'g', 5 ) ) ;
+	  m_measurementtable->item(row,3)->setText( QString::number( m.focus, 'g', 5 ) ) ;
 	}
       }
-      if( m_measurements.size()==refcoordinates.size() ) {
+      if( m_measurements.size()==m_refcoordinates.size() ) {
 	disconnectsignals() ;
 	calibrate() ;
       } else {
@@ -495,18 +499,18 @@ namespace PAP
     for( const auto& m : m_measurements ) 
       os << m.main.x << "," << m.main.y << "," << m.focus << std::endl ;
     
-    // this needs to go somewhere else!
-    const double zsurface = 12.5 ;
-    
     // for now really simple:
     //   z = z0 + aX * x + aY * y
     Eigen::Vector3d halfdchi2dpar   = Eigen::Vector3d::Zero() ;
     Eigen::Matrix3d halfd2chi2dpar2 = Eigen::Matrix3d::Zero() ;
-    for( const auto& m : m_measurements ) {
+    for(unsigned int i=0; i<m_measurements.size(); ++i) {
+      const auto& m   = m_measurements[i] ;
+      const auto& ref =  m_refcoordinates[i] ;
       Eigen::Vector3d deriv ;
       deriv(0) = 1 ;
       deriv(1) = m.main.x ;
       deriv(2) = m.main.y ;
+      double residual = ref.z + m.focus ; // take into account the factor -1 for focus
       halfdchi2dpar += m.focus * deriv ;
       for(int irow=0; irow<3; ++irow)
 	for(int icol=0; icol<3; ++icol)
@@ -515,17 +519,18 @@ namespace PAP
     Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
     os << "Solution: " << delta(0) << ", " << delta(1) << ", " << delta(2) << std::endl ;
     // fill the column with residuals
-    int row(0) ;
-    for( const auto& m : m_measurements ) {
-      double residual = m.focus - (delta(0) + delta(1)*m.main.x + delta(2)*m.main.y) ; 
-      m_measurementtable->item(row++,3)->setText( QString::number( residual, 'g', 5 ) ) ;
+    for(unsigned int i=0; i<m_measurements.size(); ++i) {
+      const auto& m   = m_measurements[i] ;
+      const auto& ref =  m_refcoordinates[i] ;
+      double residual =  ref.z + m.focus - (delta(0) + delta(1)*m.main.x + delta(2)*m.main.y) ; 
+      m_measurementtable->item(i+1,3)->setText( QString::number( residual, 'g', 5 ) ) ;
     }
     // sanity check
     if( std::abs(delta(1))<0.01 && std::abs(delta(2))<0.01 ) {
       // now we need to think waht we want the measurements to mean ...
       // ... which xy position?
       // ... what plane, or view?
-      GeometrySvc::instance()->applyModuleZCalibration(m_viewdirection,delta(0)+zsurface,delta(1),delta(2)) ;
+      GeometrySvc::instance()->applyModuleZCalibration(m_viewdirection,delta(0),delta(1),delta(2)) ;
       m_status = Calibrated ;
       m_measurements.clear() ;
     } else {

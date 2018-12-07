@@ -82,6 +82,16 @@ namespace PAP
 	      {"NSI_Sensor_Fid2",-0.294,-7.700}
 	  } ;
       }
+
+    // Martijn's measurements 10/01/2018:
+    //  X Value_Marker 1 (ViScan 1x)    142.306
+    //  Y Value_Marker 1 (ViScan 1x)    165.154
+    //  X Value_Marker 2 (ViScan 1x)    37.117
+    //  Y Value_Marker 2 (ViScan 1x)    325.040
+    // X and Y are swapped wrt LHCb frame. Measurements are These are
+    // wrt to the pen on the foot. This pen is at y=97 x=275 in the
+    // LHCb frame.
+    // See my root macro "markermeasurements.cxx"
     
     std::vector<FiducialDefinition> jigNCSide()
       {
@@ -93,12 +103,37 @@ namespace PAP
 	    //{"MainJigMarker2",+146.3,+62.5}
 	    // {"MainJigMarker1", -50.0,-60.0}, // NOMINAL
 	    // {"MainJigMarker2",+110.0,+45.0}  // NOMINAL
-	    {"MainJigMarker1", -50.040,-59.883}, // Measured 10/01/2018
-	    {"MainJigMarker2",+109.846,+45.306}  //  Measured 10/01/2018
+	    //{"MainJigMarker1", -50.040,-59.883}, // Measured 10/01/2018
+	    //{"MainJigMarker2",+109.846,+45.306}  //  Measured 10/01/2018
+	    //{"MainJigMarker1NSide",-50.0128, -59.8926}, // Measured November 2018
+	    //{"MainJigMarker2NSide",109.857, 45.2993},
+	    //{"MainJigMarker1CSide",-50.0215,-59.9006},
+	    //{"MainJigMarker2CSide",109.852, 45.2918}
+	    {"MainJigMarker1",-50.017, -59.897}, // Averaged over N and C side
+	    {"MainJigMarker2",109.854, 45.296}   // idem 
 	  } ;
 	
       }
 
+    // Measured by Martijn in November 2018, then translated into the
+    // module frame. For one of these two sets, I need to change the
+    // sign of the y-coordinate. Note that the Z-coordinate is always
+    // positive. That's something we may want to change at some point.
+    std::vector<FiducialDefinition> jigSurfaceCSide()
+    {
+      {"JigSurfaceCSidePoint1"	 57.2	-49.6,	12.371},
+      {"JigSurfaceCSidePoint2",	 56.2,	109.7,	12.439},
+      {"JigSurfaceCSidePoint3",	-54.7,	110.6,	12.444},
+      {"JigSurfaceCSidePoint4",	-49.3,	-49.9,	12.325}
+    } ;
+    std::vector<FiducialDefinition> jigSurfaceNSide()
+    {
+      {"JigSurfaceNSidePoint1",	 57.2,	-49.6,	12.698},
+      {"JigSurfaceNSidePoint2",	 56.2,	109.7,	12.624},
+      {"JigSurfaceNSidePoint3",	-54.7,	110.6,	12.594},
+      {"JigSurfaceNSidePoint4",	-49.3,	-49.9,	12.690}
+    } ;
+    
     // Measured on NRD006
     std::vector<FiducialDefinition> microchannelNSide()
       {
@@ -140,15 +175,7 @@ namespace PAP
 	} ;
       }
 
-    // Martijn's measurements 10/01/2018:
-    //  X Value_Marker 1 (ViScan 1x)    142.306
-    //  Y Value_Marker 1 (ViScan 1x)    165.154
-    //  X Value_Marker 2 (ViScan 1x)    37.117
-    //  Y Value_Marker 2 (ViScan 1x)    325.040
-    // X and Y are swapped wrt LHCb frame. Measurements are These are
-    // wrt to the pen on the foot. This pen is at y=97 x=275 in the
-    // LHCb frame.
-    
+
     
   }
 }

@@ -49,8 +49,8 @@ namespace PAP
 
   struct FiducialDefinition
   {
-    FiducialDefinition( const QString& _name, double _x, double _y)
-    : name(_name),x(_x),y(_y) {}
+  FiducialDefinition( const QString& _name, double _x, double _y, double _z=0)
+    : name{_name},x{_x},y{_y},z{_z} {}
     QString name ;
     double x ;
     double y ;
