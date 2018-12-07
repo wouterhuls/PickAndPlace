@@ -13,7 +13,7 @@ namespace PAP
 
   namespace Markers {
 
-    std::vector<FiducialDefinition> velopixCLI()
+    inline std::vector<FiducialDefinition> velopixCLI()
       {
 	return std::vector<FiducialDefinition>
 	  {
@@ -26,7 +26,7 @@ namespace PAP
 	  } ;
       }
 
-    std::vector<FiducialDefinition> velopixCSO()
+    inline std::vector<FiducialDefinition> velopixCSO()
       {
 	return std::vector<FiducialDefinition>
 	  {
@@ -39,7 +39,7 @@ namespace PAP
 	  } ;
       }
 
-    std::vector<FiducialDefinition> velopixNSI()
+    inline std::vector<FiducialDefinition> velopixNSI()
       {
 	return std::vector<FiducialDefinition>
 	  {
@@ -52,7 +52,7 @@ namespace PAP
 	  } ;
       }
 
-    std::vector<FiducialDefinition> velopixNLO()
+    inline std::vector<FiducialDefinition> velopixNLO()
       {
 	return std::vector<FiducialDefinition>
 	  {
@@ -65,7 +65,7 @@ namespace PAP
 	  } ;
       }
 
-    std::vector<FiducialDefinition> velopixCLISensor()
+    inline std::vector<FiducialDefinition> velopixCLISensor()
       {
 	return std::vector<FiducialDefinition>
 	  {
@@ -74,7 +74,7 @@ namespace PAP
 	  } ;
       }
     
-    std::vector<FiducialDefinition> velopixNSISensor()
+    inline std::vector<FiducialDefinition> velopixNSISensor()
       {
 	return std::vector<FiducialDefinition>
 	  {
@@ -93,7 +93,7 @@ namespace PAP
     // LHCb frame.
     // See my root macro "markermeasurements.cxx"
     
-    std::vector<FiducialDefinition> jigNCSide()
+    inline std::vector<FiducialDefinition> jigNCSide()
       {
 	return std::vector<FiducialDefinition>
 	  {
@@ -119,23 +119,26 @@ namespace PAP
     // module frame. For one of these two sets, I need to change the
     // sign of the y-coordinate. Note that the Z-coordinate is always
     // positive. That's something we may want to change at some point.
-    std::vector<FiducialDefinition> jigSurfaceCSide()
+    inline std::vector<FiducialDefinition> jigSurfaceCSide()
     {
-      {"JigSurfaceCSidePoint1"	 57.2	-49.6,	12.371},
-      {"JigSurfaceCSidePoint2",	 56.2,	109.7,	12.439},
-      {"JigSurfaceCSidePoint3",	-54.7,	110.6,	12.444},
-      {"JigSurfaceCSidePoint4",	-49.3,	-49.9,	12.325}
+      return std::vector<FiducialDefinition>{
+	{"JigSurfaceCSidePoint1", -49.6, +57.2, 12.371},
+	{"JigSurfaceCSidePoint2", 109.7, +56.2, 12.439},
+	{"JigSurfaceCSidePoint3", 110.6, -54.7, 12.444},
+	{"JigSurfaceCSidePoint4", -49.9, -49.3, 12.325}} ;
     } ;
-    std::vector<FiducialDefinition> jigSurfaceNSide()
+    
+    inline std::vector<FiducialDefinition> jigSurfaceNSide()
     {
-      {"JigSurfaceNSidePoint1",	 57.2,	-49.6,	12.698},
-      {"JigSurfaceNSidePoint2",	 56.2,	109.7,	12.624},
-      {"JigSurfaceNSidePoint3",	-54.7,	110.6,	12.594},
-      {"JigSurfaceNSidePoint4",	-49.3,	-49.9,	12.690}
+      return std::vector<FiducialDefinition>{
+	{"JigSurfaceNSidePoint1",	-49.6,	 57.2,	12.698},
+	{"JigSurfaceNSidePoint2",	109.7,	 56.2,	12.624},
+	{"JigSurfaceNSidePoint3",	110.6,	-54.7,	12.594},
+	{"JigSurfaceNSidePoint4",	-49.9,	-49.3,	12.690}};
     } ;
     
     // Measured on NRD006
-    std::vector<FiducialDefinition> microchannelNSide()
+    inline std::vector<FiducialDefinition> microchannelNSide()
       {
 	return std::vector<FiducialDefinition> {
 	  {"MC_NLO_Fid1",28.17,22.39},
@@ -155,7 +158,7 @@ namespace PAP
       }
     
     // Measured on NRD006
-    std::vector<FiducialDefinition> microchannelCSide()
+    inline std::vector<FiducialDefinition> microchannelCSide()
       {
 	return std::vector<FiducialDefinition> {
 	  {"MC_C04_CLI_Fid1",-11.39, 41.78},
