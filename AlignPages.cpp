@@ -336,7 +336,7 @@ namespace PAP
     CameraWindow* m_camerasvc{0} ;
     Status m_status{Inactive} ;
     //const std::vector<MSMainCoordinates> refcoordinates{ {-100,-10},{-100,120},{80,120},{80,-10} } ;
-    std::vector<FiducialDefinition> m_refcoordinates ;
+    const std::vector<FiducialDefinition> m_refcoordinates ;
     std::vector<MSCoordinates> m_measurements ;
     std::vector<QMetaObject::Connection> m_conns ;
     QTableWidget* m_measurementtable{0} ;
@@ -517,7 +517,6 @@ namespace PAP
     for(unsigned int i=0; i<m_measurements.size(); ++i) {
       const auto& m   = m_measurements[i] ;
       const auto& ref =  m_refcoordinates[i] ;
-      //ref.z = 12.5 ;
       Eigen::Vector3d deriv ;
       deriv(0) = 1 ;
       deriv(1) = m.main.x ;

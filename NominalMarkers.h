@@ -122,19 +122,30 @@ namespace PAP
     inline std::vector<FiducialDefinition> jigSurfaceCSide()
     {
       return std::vector<FiducialDefinition>{
-	{"JigSurfaceCSidePoint1", -49.6, +57.2, 12.371},
-	{"JigSurfaceCSidePoint2", 109.7, +56.2, 12.439},
-	{"JigSurfaceCSidePoint3", 110.6, -54.7, 12.444},
-	{"JigSurfaceCSidePoint4", -49.9, -49.3, 12.325}} ;
+	//{"JigSurfaceCSidePoint1", -49.6, +57.2, 12.371},
+	//{"JigSurfaceCSidePoint2", 109.7, +56.2, 12.439},
+	//{"JigSurfaceCSidePoint3", 110.6, -54.7, 12.444},
+	//{"JigSurfaceCSidePoint4", -49.9, -49.3, 12.325}
+	// Corrected by adaptive fitting a plane through all 8 (nside+cside) measurements
+	{"JigSurfaceCSidePoint1", -49.6, +57.2, 12.3645},
+	{"JigSurfaceCSidePoint2", 109.7, +56.2, 12.4391},
+	{"JigSurfaceCSidePoint3", 110.6, -54.7, 12.4492},
+	{"JigSurfaceCSidePoint4", -49.9, -49.3, 12.3737}
+      } ;
     } ;
     
     inline std::vector<FiducialDefinition> jigSurfaceNSide()
     {
       return std::vector<FiducialDefinition>{
-	{"JigSurfaceNSidePoint1",	-49.6,	 57.2,	12.698},
-	{"JigSurfaceNSidePoint2",	109.7,	 56.2,	12.624},
-	{"JigSurfaceNSidePoint3",	110.6,	-54.7,	12.594},
-	{"JigSurfaceNSidePoint4",	-49.9,	-49.3,	12.690}};
+	//{"JigSurfaceNSidePoint1",	-49.6,	 57.2,	12.698},
+	//{"JigSurfaceNSidePoint2",	109.7,	 56.2,	12.624},
+	//{"JigSurfaceNSidePoint3",	110.6,	-54.7,	12.594},
+	//{"JigSurfaceNSidePoint4",	-49.9,	-49.3,	12.690}
+	// Corrected by adaptive fitting a plane through all 8 (nside+cside) measurements
+	{"JigSurfaceNSidePoint1",	-49.6,	 57.2,	12.6955},
+	{"JigSurfaceNSidePoint2",	109.7,	 56.2,	12.6209},
+	{"JigSurfaceNSidePoint3",	110.6,	-54.7,	12.6108},
+	{"JigSurfaceNSidePoint4",	-49.9,	-49.3,	12.6863}};
     } ;
     
     // Measured on NRD006
