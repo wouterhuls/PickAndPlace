@@ -18,6 +18,10 @@
 #include <iostream>
 #include <Eigen/Dense>
 
+// Let's implement the list of measurements as a qabstracttablemodel
+// http://doc.qt.io/qt-5/qabstracttablemodel.html#details
+// https://stackoverflow.com/questions/11906324/binding-model-to-qt-tableview
+
 namespace Eigen {
   using Vector6d = Eigen::Matrix<double,6,1> ;
   using Matrix6d = Eigen::Matrix<double,6,6> ;
@@ -55,6 +59,7 @@ namespace PAP
     void createTable() ;
     virtual void definemarkers() = 0 ;
     CameraWindow* camerasvc() { return m_camerasvc ; } ;
+    virtual QString pageName() const { return QString{"unknown"} ; }
   public:
     MarkerMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) ;
     void updateTableRow( int row, const ReportCoordinate& coord ) ;
@@ -62,6 +67,7 @@ namespace PAP
     void record(const CoordinateMeasurement& measurement) ;
     ViewDirection viewdir() const { return m_viewdir ; }
     void exportToFile() const ;
+    void importFromFile() ;
     void focus() const ;
     void move() const ;
   } ;
@@ -208,11 +214,11 @@ namespace PAP
     // pop up a dialog to get a file name
     auto filename = QFileDialog::getSaveFileName(nullptr, tr("Save data"),
 						 QString("/home/velouser/Documents/PickAndPlaceData/") +
-						 m_camerasvc->moduleName() + "/untitled.txt",
-						 tr("Text files (*.txt)"));
+						 m_camerasvc->moduleName() + "/" + pageName() + "untitled.csv",
+						 tr("Csv files (*.csv)"));
     QFile f( filename );
     QTextStream data( &f );
-    // first the header
+    // first the header. those we get from the table.
     {
       QStringList strList;
       for( int c = 0; c < m_markertable->columnCount(); ++c ) {
@@ -222,7 +228,7 @@ namespace PAP
       }
       data << strList.join(";") << "\n";
     }
-    // now the data
+    // now the data. why would we take it from the table? only to add the residuals?
     for(int irow=0; irow<= m_markertable->rowCount() && irow<int(m_measurements.size()); ++irow ) {
       QStringList strList;
       if( m_measurements[irow].m_status == ReportCoordinate::Ready ) 
@@ -232,6 +238,45 @@ namespace PAP
     }
     f.close() ;
   }
+
+  void MarkerMetrologyPage::importFromFile()
+  {
+    
+    // pop up a dialog to get a file name
+    auto filename = QFileDialog::getOpenFileName(nullptr, tr("Save data"),
+						 QString("/home/velouser/Documents/PickAndPlaceData/") +
+						 m_camerasvc->moduleName() + "/untitled.csv",
+						 tr("CSV files (*.csv)"));
+    m_measurements.clear();
+    QFile f( filename );
+    if( f.open(QIODevice::ReadOnly) ) {
+      int row = -1;
+      while (!f.atEnd()){
+	QString line = f.readLine();
+	QStringList columns = line.split(",") ;
+	m_markertable->setColumnCount( columns.size() ) ;
+	if( row==-1 ) {
+	  // let's assume these are the headers
+	  for( int col = 0; col < m_markertable->columnCount(); ++col ) 
+	    m_markertable->horizontalHeaderItem(col)->setData(0, columns[col] );
+	} else {
+	  m_markertable->setRowCount( row+1 ) ;
+	  for( int col = 0; col < m_markertable->columnCount(); ++col ) {
+	    QTableWidgetItem *entry = m_markertable->item(row,col) ;
+	    if( !entry ) {
+	      entry = new QTableWidgetItem(columns.at(col));
+	      m_markertable->setItem(row,col,entry);
+	    } else {
+	      entry->setData(0, columns.at(col) );
+	    }
+	  }
+	  m_measurements.emplace_back( columns.at(0), columns.at(1).toDouble(), columns.at(2).toDouble(), columns.at(3).toDouble() );
+	}
+	++row;
+      }
+    }
+    f.close();
+  } ;
   
   struct PlaneFitResult
   {
