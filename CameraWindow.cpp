@@ -283,9 +283,11 @@ namespace PAP
       
       mpages[view] = new QTabWidget{} ;
       mpages[view]->addTab(createTileMetrologyPage(*this,view),"Tile metrology") ;
-      mpages[view]->addTab(createSensorSurfaceMetrologyPage(*this,view),"Sensor surface metrology") ;
+      for(int tile=0; tile<2; ++tile) 
+	mpages[view]->addTab(createSensorSurfaceMetrologyPage(*this,view,tileinfo[view][tile][0]),
+			     QString(tileinfo[view][tile][0])+QString(" surface metrology") ) ;
       mpages[view]->addTab(createSubstrateSurfaceMetrologyPage(*this,view),"Substrate surface metrology") ;
-      mpages[view]->addTab(createGenericSurfaceMetrologyPage(*this,view),"Generic surface metrology") ;
+      //mpages[view]->addTab(createGenericSurfaceMetrologyPage(*this,view),"Generic surface metrology") ;
     }
 
     connect(this, &CameraWindow::viewToggled, this, [=](int view)
@@ -301,33 +303,7 @@ namespace PAP
     viewToggled(m_cameraview->currentViewDirection()) ;
 
     
-    /*
-    {
-      auto nsidetaskpages = new QTabWidget{ taskpages } ;
-      taskpages->addTab(nsidetaskpages,"N-side") ;
-      auto mainjigalignwidget = new AlignMainJigPage{ViewDirection::NSideView,m_cameraview} ;
-      nsidetaskpages->addTab(mainjigalignwidget,"Align jig XY") ;
-      nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NSI","NSI_VP20_Fid1","NSI_VP22_Fid2"},"Position NSI") ;
-      nsidetaskpages->addTab(new AlignTilePage{m_cameraview,"NLO","NLO_VP10_Fid1","NLO_VP12_Fid2"},"Position NLO") ;
-      nsidetaskpages->addTab(makeAlignMainJigZPage(ViewDirection::NSideView,*this),"Align jig Z") ;
-
-      nsidetaskpages->addTab(createTileMetrologyPage(*this,ViewDirection::NSideView),"Tile metrology") ;
-      nsidetaskpages->addTab(createSensorSurfaceMetrologyPage(*this,ViewDirection::NSideView),"Sensor surface metrology") ;
-    }
-
-    {
-      auto csidetaskpages = new QTabWidget{ taskpages } ;
-      taskpages->addTab(csidetaskpages,"C-side") ;
-      auto mainjigalignwidget = new AlignMainJigPage{ViewDirection::CSideView,m_cameraview} ;
-      csidetaskpages->addTab(mainjigalignwidget,"Align jig XY") ;
-      csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CLI","CLI_VP00_Fid1","CLI_VP02_Fid2"},"Position CLI") ;
-      csidetaskpages->addTab(new AlignTilePage{m_cameraview,"CSO","CSO_VP30_Fid1","CSO_VP32_Fid2"},"Position CSO") ;
-      csidetaskpages->addTab(makeAlignMainJigZPage(ViewDirection::CSideView,*this),"Align jig Z") ;
-      csidetaskpages->addTab(createTileMetrologyPage(*this,ViewDirection::CSideView),"Tile metrology") ;
-      csidetaskpages->addTab(createSensorSurfaceMetrologyPage(*this,ViewDirection::CSideView),"Sensor surface metrology") ;
-
-    }
-    */
+   
     //connect( taskpages, &QTabWidget::tabBarClicked, this, &CameraWindow::toggleView ) ;
     
     QMetaObject::connectSlotsByName(this);
