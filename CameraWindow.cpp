@@ -24,6 +24,7 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QTableWidget>
+#include "MotionSystemWidget.h"
 
 namespace PAP
 {
@@ -37,6 +38,16 @@ namespace PAP
     
     m_cameraview = new CameraView{this} ;
     m_autofocus = new AutoFocus{ m_cameraview, this } ;
+
+    // create dialog for the motion system interface
+    m_motionsystemdialog = new QDialog{ this } ;
+    m_motionsystemdialog->resize(600,500) ;
+    m_motionsystemdialog->move(50,0) ;
+    m_motionsystemdialog->setWindowIcon( QIcon(":/images/VeloUpgradeLogoSmall.png") ) ;
+    m_motionsystemdialog->setWindowTitle("Motion System Window") ;
+    new PAP::MotionSystemWidget(m_motionsystemdialog);
+    m_motionsystemdialog->show() ;
+    
     //m_measurementreport = new MetrologyReportPage{*this} ;
     
     // add a vertical layout. if we derive from 'mainwindow', then
@@ -122,6 +133,9 @@ namespace PAP
       togglehlayout->addWidget(csidebutton) ;
     }
     
+    auto msbutton = new QPushButton("Motion System",this) ;
+    connect( msbutton, &QPushButton::clicked, [=](){ m_motionsystemdialog->show() ; }) ;
+    buttonlayout->addWidget( msbutton ) ;
     
     auto focusbutton = new QPushButton("Auto-Focus",this) ;
     focusbutton->setToolTip("Start autofocus sequence") ;

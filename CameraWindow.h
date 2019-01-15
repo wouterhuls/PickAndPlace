@@ -43,6 +43,7 @@ namespace PAP
   private:
     CameraView* m_cameraview{0} ;
     AutoFocus* m_autofocus{0} ;
+    QDialog*   m_motionsystemdialog{0} ;
     //MetrologyReportPage* m_metrologyreport{0} ;
     // some labels that tell where the cursor position is
     NamedValue<QString> m_moduleName ;

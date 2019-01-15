@@ -54,17 +54,17 @@ int main(int argc, char *argv[])
   
   
   // let's create a mainwindow, with vertical layout, for all axis widgets
-  QMainWindow mainwindow;
-  mainwindow.resize(600,500) ;
-  mainwindow.move(50,0) ;
-  mainwindow.setWindowIcon( QIcon(":/images/VeloUpgradeLogoSmall.png") ) ;
-  mainwindow.setWindowTitle("Motion System Window") ;
+  // QMainWindow mainwindow;
+  // mainwindow.resize(600,500) ;
+  // mainwindow.move(50,0) ;
+  // mainwindow.setWindowIcon( QIcon(":/images/VeloUpgradeLogoSmall.png") ) ;
+  // mainwindow.setWindowTitle("Motion System Window") ;
     
-  // auto centralWidget =
-  new PAP::MotionSystemWidget(&mainwindow);
+  // // auto centralWidget =
+  // new PAP::MotionSystemWidget(&mainwindow);
   
-  //mainwindow.setLayout( layout ) ;
-  mainwindow.show() ;
+  // //mainwindow.setLayout( layout ) ;
+  // mainwindow.show() ;
   
   // For now we put the camera window in a separate main window. In
   // the end, we'll always want the camera window, but the MS
