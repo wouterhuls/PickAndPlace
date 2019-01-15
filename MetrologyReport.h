@@ -33,10 +33,10 @@ namespace PAP
     double m_z{0} ;
     Status m_status{Uninitialized} ;
   public:
-  ReportCoordinate( const FiducialDefinition& def, double z )
+    ReportCoordinate( const FiducialDefinition& def, double z )
     : m_name{def.name}, m_x{def.x}, m_y{def.y}, m_z{z}, m_status{Initialized} {}
-  ReportCoordinate( const QString& name, double x, double y, double z )
-    : m_name{name}, m_x{x}, m_y{y}, m_z{z}, m_status{Initialized} {}
+    ReportCoordinate( const QString& name, double x, double y, double z, Status s = Initialized )
+    : m_name{name}, m_x{x}, m_y{y}, m_z{z}, m_status{s} {}
     ReportCoordinate() = default ;
   } ;
 
