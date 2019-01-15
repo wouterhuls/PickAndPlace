@@ -56,7 +56,7 @@ namespace PAP
     QPlainTextEdit* m_textbox{0} ;
   protected:
     std::vector<ReportCoordinate> m_measurements ;
-    void createTable() ;
+    void fillTable() ;
     virtual void definemarkers() = 0 ;
     CameraWindow* camerasvc() { return m_camerasvc ; } ;
     virtual QString pageName() const { return QString{"unknown"} ; }
@@ -115,6 +115,11 @@ namespace PAP
       m_buttonlayout->addWidget(button) ;
       connect(button,&QPushButton::clicked,this,[=]{ this->exportToFile() ; }) ;
     }
+    {
+      auto button = new QPushButton{"Import",this} ;
+      m_buttonlayout->addWidget(button) ;
+      connect(button,&QPushButton::clicked,this,[=]{ this->importFromFile() ; }) ;
+    }
   }
   
   void MarkerMetrologyPage::focus() const
@@ -126,13 +131,13 @@ namespace PAP
     } ;
   }
   
-  void MarkerMetrologyPage::createTable()
+  void MarkerMetrologyPage::fillTable()
   {
     int N = int(m_measurements.size()) ;
     if(N>0) {
       m_markertable->setRowCount(N) ;
       QTableWidgetItem prototype ;
-      prototype.setBackground( QBrush{ QColor{Qt::gray} } ) ;
+      prototype.setBackground( QBrush{ QColor{Qt::white} } ) ;
       prototype.setFlags( Qt::ItemIsSelectable ) ;
       int row{0} ;
       for( const auto& m : m_measurements ) {
@@ -148,7 +153,7 @@ namespace PAP
     m_markertable->item(row,1)->setText( QString::number( coord.m_x, 'g', 5 ) ) ;
     m_markertable->item(row,2)->setText( QString::number( coord.m_y, 'g', 5 ) ) ;
     m_markertable->item(row,3)->setText( QString::number( coord.m_z, 'g', 5 ) ) ;
-    const auto color = m_measurements[m_activerow].m_status == ReportCoordinate::Status::Ready ? Qt::green : Qt::gray ;
+    const auto color = m_measurements[row].m_status == ReportCoordinate::Status::Ready ? Qt::green : Qt::gray ;
     m_markertable->item(row,0)->setBackground( QBrush{ QColor{color} } ) ;
   }
   
@@ -166,6 +171,7 @@ namespace PAP
       if( int(m.m_status) >= int(ReportCoordinate::Status::Initialized) ) {
 	m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.m_x,m.m_y} ) ;
 	if( m.m_status == ReportCoordinate::Status::Ready ) {
+	  qDebug() << "Moving camera to z: " << m.m_z ;
 	  m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
 	  // move the camera to the current focus point, if any
 	  //m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
@@ -214,9 +220,10 @@ namespace PAP
     // pop up a dialog to get a file name
     auto filename = QFileDialog::getSaveFileName(nullptr, tr("Save data"),
 						 QString("/home/velouser/Documents/PickAndPlaceData/") +
-						 m_camerasvc->moduleName() + "/" + pageName() + "untitled.csv",
+						 m_camerasvc->moduleName() + "/" + pageName() + ".csv",
 						 tr("Csv files (*.csv)"));
     QFile f( filename );
+    f.open(QIODevice::WriteOnly) ;
     QTextStream data( &f );
     // first the header. those we get from the table.
     {
@@ -230,11 +237,12 @@ namespace PAP
     }
     // now the data. why would we take it from the table? only to add the residuals?
     for(int irow=0; irow<= m_markertable->rowCount() && irow<int(m_measurements.size()); ++irow ) {
-      QStringList strList;
-      if( m_measurements[irow].m_status == ReportCoordinate::Ready ) 
+      if( m_measurements[irow].m_status == ReportCoordinate::Ready ) {
+	QStringList strList;
 	for( int icol=0; icol < m_markertable->columnCount(); ++icol ) 
 	  strList << m_markertable->item(irow,icol)->text() ;
-      data << strList.join(";") << "\n";
+	data << strList.join(";") << "\n";
+      }
     }
     f.close() ;
   }
@@ -253,13 +261,18 @@ namespace PAP
       int row = -1;
       while (!f.atEnd()){
 	QString line = f.readLine();
-	QStringList columns = line.split(",") ;
-	m_markertable->setColumnCount( columns.size() ) ;
+	QStringList columns = line.split(";") ;
+	columns = columns.replaceInStrings(" ","") ;
+	columns = columns.replaceInStrings("\"","") ;
+	columns = columns.replaceInStrings("\n","") ;
+	qDebug() << "read columns: " << row << columns.size() << columns ;
 	if( row==-1 ) {
+	  m_markertable->setColumnCount( columns.size() ) ;
 	  // let's assume these are the headers
-	  for( int col = 0; col < m_markertable->columnCount(); ++col ) 
-	    m_markertable->horizontalHeaderItem(col)->setData(0, columns[col] );
-	} else {
+	  m_markertable->setHorizontalHeaderLabels(columns) ;
+	  ++row ;
+	} else if( columns.size()==m_markertable->columnCount()) {
+	  /*
 	  m_markertable->setRowCount( row+1 ) ;
 	  for( int col = 0; col < m_markertable->columnCount(); ++col ) {
 	    QTableWidgetItem *entry = m_markertable->item(row,col) ;
@@ -267,15 +280,21 @@ namespace PAP
 	      entry = new QTableWidgetItem(columns.at(col));
 	      m_markertable->setItem(row,col,entry);
 	    } else {
+	      qDebug() << "hoi" ;
 	      entry->setData(0, columns.at(col) );
 	    }
-	  }
-	  m_measurements.emplace_back( columns.at(0), columns.at(1).toDouble(), columns.at(2).toDouble(), columns.at(3).toDouble() );
+	    }*/
+	  ++row;
+	  m_measurements.emplace_back( columns.at(0),
+				       columns.at(1).toDouble(),columns.at(2).toDouble(),
+				       columns.at(3).toDouble(),ReportCoordinate::Ready);
+	} else {
+	  qDebug() << "Skipped line" << line ;
 	}
-	++row;
       }
     }
     f.close();
+    fillTable() ;
   } ;
   
   struct PlaneFitResult
@@ -477,8 +496,9 @@ namespace PAP
 	  m_measurements.emplace_back( def, asicZ ) ;
 	else if( def.name.contains("Sensor") )
 	  m_measurements.emplace_back( def, - (asicZ +bumpbondthickness) ) ;
-      createTable() ;
+      fillTable() ;
     }
+    
   } ;
     
   QWidget* createTileMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
@@ -524,7 +544,10 @@ namespace PAP
       for( const auto& m: markers )
 	if(m->toolTip().contains("Sensor"))
 	   m_measurements.emplace_back( m->toolTip(), m->pos().x(), m->pos().y(), sensorZ ) ;
-      createTable() ;
+      fillTable() ;
+    }
+    QString pageName() const override {
+      return QString{viewdir() == NSideView ? "NSide" : "CSide"} + "SensorSurface" ;
     }
   } ;
  
@@ -552,7 +575,10 @@ namespace PAP
       auto markers = geosvc->substratemarkers(viewdir()) ;
       for( const auto& def: markers )
 	m_measurements.emplace_back( def, microchannelsurfaceZ ) ;
-      createTable() ;
+      fillTable() ;
+    }
+    QString pageName() const override {
+      return QString{viewdir() == NSideView ? "NSide" : "CSide"} + "SubstrateSurface" ;
     }
   } ;
 
@@ -575,7 +601,7 @@ namespace PAP
     {
       m_measurements.clear() ;
       m_measurements.resize(16) ;
-      createTable() ;
+      fillTable() ;
     }
   } ;
 
