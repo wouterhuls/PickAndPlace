@@ -524,9 +524,11 @@ namespace PAP
 
   class SensorSurfaceMetrologyPage : public SurfaceMetrologyPage
   {
+  private:
+    QString m_tilename ;
   public:
-    SensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
-      : SurfaceMetrologyPage{camerasvc,viewdir}
+    SensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir, const char* tilename)
+      : SurfaceMetrologyPage{camerasvc,viewdir},m_tilename{tilename}
     {
       definemarkers() ;
     }
@@ -542,18 +544,18 @@ namespace PAP
       collectReferenceMarkers( *(viewdir() == ViewDirection::NSideView ? camview->nsidemarkers() : camview->csidemarkers()),
 			       markers) ;
       for( const auto& m: markers )
-	if(m->toolTip().contains("Sensor"))
+	if(m->toolTip().contains("Sensor") && m->toolTip().contains(m_tilename))
 	   m_measurements.emplace_back( m->toolTip(), m->pos().x(), m->pos().y(), sensorZ ) ;
       fillTable() ;
     }
     QString pageName() const override {
-      return QString{viewdir() == NSideView ? "NSide" : "CSide"} + "SensorSurface" ;
+      return m_tilename + "SensorSurface" ;
     }
   } ;
  
-  QWidget* createSensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
+  QWidget* createSensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir, const char* tilename)
   {
-    return new SensorSurfaceMetrologyPage{camerasvc,viewdir} ;
+    return new SensorSurfaceMetrologyPage{camerasvc,viewdir,tilename} ;
   }
 
   //****************************************************************************//
