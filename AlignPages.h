@@ -17,7 +17,7 @@ namespace PAP
     Q_OBJECT
   public:
     enum Status { Uninitialized=0, Active, Recorded, Calibrated} ;
-    MarkerRecorderWidget(const char* markername,
+    MarkerRecorderWidget(const QString& markername,
 			 const PAP::CameraView* camview,
 			 QWidget* parent=0) ;
     const CoordinateMeasurement& measurement() const { return m_measurement ; }
@@ -64,9 +64,7 @@ namespace PAP
   {
      Q_OBJECT
   public:
-    AlignTilePage(PAP::CameraView* camview,
-		  const char* tilename,
-		  const char* marker1, const char* marker2) ;
+     AlignTilePage(PAP::CameraView* camview,const TileInfo& tileinfo) ;
   private:
     MarkerRecorderWidget* m_marker1recorder ;
     MarkerRecorderWidget* m_marker2recorder ;

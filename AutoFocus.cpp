@@ -200,6 +200,7 @@ namespace PAP
   
   void AutoFocus::moveFocusToModuleZ( double z ) const
   {
+    qDebug() << "AutoFocus::moveFocusToModuleZ: " << z << focusFromZ( z ) << zFromFocus(focusFromZ( z )) ;
     moveFocusTo( focusFromZ( z ) ) ;
   }
 

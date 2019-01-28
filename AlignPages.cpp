@@ -23,7 +23,7 @@ namespace PAP
 {
  
   // helper class for page for alignment of the main jig
-  MarkerRecorderWidget::MarkerRecorderWidget(const char* markername,
+  MarkerRecorderWidget::MarkerRecorderWidget(const QString& markername,
 					     const PAP::CameraView* camview,
 					     QWidget* parent)
     : QWidget(parent), m_cameraview(camview), m_status(Uninitialized)
@@ -231,10 +231,8 @@ namespace PAP
   }
 
   // helper class for page for alignment of the tiles
-  AlignTilePage::AlignTilePage(PAP::CameraView* camview,
-			       const char* tilename,
-			       const char* marker1, const char* marker2)
-    : m_cameraview(camview), m_tilename(tilename)
+  AlignTilePage::AlignTilePage(PAP::CameraView* camview, const TileInfo& tileinfo)
+    : m_cameraview(camview), m_tilename(tileinfo.name)
   {
     auto hlayout = new QHBoxLayout{} ;
     this->setLayout(hlayout) ;
@@ -246,9 +244,9 @@ namespace PAP
 	    [=](){ GeometrySvc::instance()->positionStackForTile(m_tilename) ; } ) ;
     vlayout->addWidget( positionstackbutton ) ;
 
-    m_marker1recorder = new MarkerRecorderWidget{ marker1, camview } ;
+    m_marker1recorder = new MarkerRecorderWidget{ tileinfo.marker1, camview } ;
     vlayout->addWidget( m_marker1recorder ) ;
-    m_marker2recorder = new MarkerRecorderWidget{ marker2, camview } ;
+    m_marker2recorder = new MarkerRecorderWidget{ tileinfo.marker2, camview } ;
     vlayout->addWidget( m_marker2recorder ) ;
     
     auto calibrationbutton = new QPushButton{"Calibrate", this} ;

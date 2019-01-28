@@ -148,44 +148,42 @@ namespace PAP
 	{"JigSurfaceNSidePoint4",	-49.9,	-49.3,	12.6863}};
     } ;
     
-    // Measured on NRD006
+    // Measured on NRD007
     inline std::vector<FiducialDefinition> microchannelNSide()
       {
 	return std::vector<FiducialDefinition> {
-	  {"MC_NLO_Fid1",28.17,22.39},
-	  {"MC_N19",     28.20,21.95},
-	  {"MC_N16_Fid2",-2.47,52.81},
-	  {"MC_N16",     -2.33,52.48},
-	  {"MC_N17_NLO_Fid3",-15.38,39.86},
-	  {"MC_N18_NLO_Fid4", 14.67,10.01},
-	  {"MC_N21_NSI_Fid1",11.78,-18.93},
-	  {"MC_N20_NSI_Fid2",41.93,11.85},
+	  {"MC_N19_NLO_Fid1",28.284, 22.061},
+	  {"MC_N16_NLO_Fid2",-2.237, 52.600},
+	  {"MC_N17_NLO_Fid3",-15.202, 39.696},
+	  {"MC_N18_NLO_Fid4", 14.741, 9.732},
+	  {"MC_N21_NSI_Fid1",11.474, -19.055},
+	  {"MC_N20_NSI_Fid2",42.007, 11.470},
 	  {"MC_NSI_Fid3",10.1,5.34},
-	  {"MC_N14",56.32,68.46},
-	  {"MC_N15",12.81,68.30},
-	  {"MC_N12",38.80,-44.11},
-	  {"MC_N13",80.19,-44.02}
+	  {"MC_N14",56.615, 68.018},
+	  {"MC_N15",13.104, 68.032},
+	  {"MC_N12",38.665, -44.478},
+	  {"MC_N13",80.084, -44.489}
 	} ;
       }
     
-    // Measured on NRD006
+    // Measured on NRD007
     inline std::vector<FiducialDefinition> microchannelCSide()
       {
 	return std::vector<FiducialDefinition> {
-	  {"MC_C04_CLI_Fid1",-11.39, 41.78},
-	  {"MC_C07_CLI_Fid2", 19.14, 11.25},
-	  {"MC_C06_CLI_Fid3", 13.27,  2.34},
-	  {"MC_C05_CLI_Fid4",-19.94, 35.55},
-	  {"MC_C09_CSO_Fid1", 51.81,  1.49},
-	  {"MC_C11_CSO_Fid2", 21.29,-29.05},
-	  {"MC_C10_CSO_Fid3",  8.86,-15.43},
-	  {"MC_C08_CSO_Fid4", 41.11, 14.00},
-	  {"MC_C00", 38.62,-44.58},
-	  {"MC_C01", 80.03,-44.58},
-	  {"MC_C_B1",  88.12,-14.13},
-	  {"MC_C_B2",  79.93,-14.13},
-	  {"MC_C_B3",  79.92,+13.96},
-	  {"MC_C_B4",  88.12,+13.97}
+	  {"MC_C04_CLI_Fid1",-11.304, 41.907},
+	  {"MC_C07_CLI_Fid2", 19.222, 11.371},
+	  {"MC_C06_CLI_Fid3", 13.350,  2.466},
+	  {"MC_C05_CLI_Fid4",-19.851, 35.682},
+	  {"MC_C09_CSO_Fid1", 51.885,  1.592},
+	  {"MC_C11_CSO_Fid2", 21.348,-28.934},
+	  {"MC_C10_CSO_Fid3",  8.926, -15.310},
+	  {"MC_C08_CSO_Fid4", 41.191, 14.114},
+	  {"MC_C00",  38.666, -44.476},
+	  {"MC_C01",  80.086, -44.487},
+	  {"MC_C_B1", 88.192, -14.040},
+	  {"MC_C_B2", 79.991, -14.036},
+	  {"MC_C_B3", 80.050, 14.012},
+	  {"MC_C_B4", 88.198, 14.059}
 	} ;
       }
 

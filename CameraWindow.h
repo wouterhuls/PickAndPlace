@@ -17,7 +17,8 @@ namespace PAP
   class CameraView ;
   class AutoFocus ;
   class MeasurementReportPage ;
-  
+
+  // Definition of CameraWindow class
   class CameraWindow : public QMainWindow
   {
     Q_OBJECT

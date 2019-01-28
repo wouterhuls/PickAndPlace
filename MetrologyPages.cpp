@@ -70,6 +70,7 @@ namespace PAP
     void importFromFile() ;
     void focus() const ;
     void move() const ;
+    const std::vector<ReportCoordinate>& measurements() const { return  m_measurements ; }
   } ;
   
   MarkerMetrologyPage::MarkerMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
@@ -304,6 +305,15 @@ namespace PAP
     Eigen::Matrix6d covariance{Eigen::Matrix6d::Zero()} ;
     double x0{0} ;
     double y0{0} ;
+    double z(double x, double y) const {
+      const double dx{x-x0},dy{y-y0} ;
+      return parameters[Z0]
+	+ dx * parameters[dZdX]
+	+ dy * parameters[dZdY]
+	+ dx*dx * parameters[d2ZdX2]
+	+ dy*dy * parameters[d2ZdY2]
+	+ dx*dy * parameters[d2ZdXY] ;
+    }
   } ;
   
   class SurfaceMetrologyPage : public MarkerMetrologyPage
@@ -527,7 +537,7 @@ namespace PAP
   private:
     QString m_tilename ;
   public:
-    SensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir, const char* tilename)
+    SensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir, const QString& tilename)
       : SurfaceMetrologyPage{camerasvc,viewdir},m_tilename{tilename}
     {
       definemarkers() ;
@@ -611,6 +621,79 @@ namespace PAP
   {
     return new GenericSurfaceMetrologyPage{camerasvc,viewdir} ;
   }
+  
+  //****************************************************************************//
+  class SideReportPage : public QWidget
+  {
+  private:
+    TileMetrologyPage* m_tilemarkerpage{0} ;
+    SensorSurfaceMetrologyPage* m_sensorsurfacepage[2] ;
+    SubstrateSurfaceMetrologyPage* m_substratesurfacepage{0} ;
+  public:
+    SideReportPage( QWidget* parent,
+		    TileMetrologyPage* tp,
+		    SensorSurfaceMetrologyPage* sensp1,
+		    SensorSurfaceMetrologyPage* sensp2,
+		    SubstrateSurfaceMetrologyPage* subp)
+      : QWidget{parent},
+	m_tilemarkerpage{tp},
+	m_sensorsurfacepage{sensp1,sensp2},
+	m_substratesurfacepage{subp}
+    {
+      auto layout =  new QVBoxLayout{} ;
+      this->setLayout(layout) ;
+      auto button = new QPushButton{"FitThickness",this} ;
+      layout->addWidget(button) ;
+      connect(button,&QPushButton::clicked,this,[=]{ this->fitThickness() ; }) ;
+    }
+    
+    void fitThickness() {
+      // first fit the substrate
+      PlaneFitResult substratefit = m_substratesurfacepage->fitPlane(SurfaceMetrologyPage::FitModel::CurvedPlane) ;
+      // now fit the tiles
+      for(int itile=0; itile<2; ++itile) {
+	PlaneFitResult sensorfit = m_sensorsurfacepage[itile]->fitPlane(SurfaceMetrologyPage::FitModel::CurvedPlane) ;
+	// so now I have tow planes. but where do I compare them? and
+	// do I actually know in which reference frame we are?
+	for( const auto& m : m_sensorsurfacepage[itile]->measurements() ) {
+	  const auto zsensor = sensorfit.z( m.x(),m.y()) ;
+	  const auto zsubstrate = substratefit.z( m.x(),m.y()) ;
+	  qDebug() << m.name() << zsensor - zsubstrate ;
+	}
+      }
+    } ;
+  } ;
+  
+  //****************************************************************************//
+  class SideMetrologyPage : public QTabWidget
+  {
+  public:
+    SideMetrologyPage( CameraWindow& camerasvc, ViewDirection view)
+    {
+      TileMetrologyPage* tilemarkerpage = new TileMetrologyPage{camerasvc,view} ;
+      this->addTab(tilemarkerpage,"Tile metrology") ;
+      
+      SensorSurfaceMetrologyPage* sensorsurfacepage[2] ;
+      for(int tile=0; tile<2; ++tile) {
+	const auto name = getTileInfo(view,TileType(tile)).name ;
+	sensorsurfacepage[tile] =
+	  new SensorSurfaceMetrologyPage{camerasvc,view,name} ;
+	this->addTab( sensorsurfacepage[tile],name + " surface metrology") ;
+      }
+      SubstrateSurfaceMetrologyPage* 
+	substratesurfacepage = new SubstrateSurfaceMetrologyPage{camerasvc,view} ;
+      this->addTab(substratesurfacepage,"Substrate surface metrology") ;
+      
+      this->addTab(new SideReportPage{this,tilemarkerpage,
+	    sensorsurfacepage[0],sensorsurfacepage[1],substratesurfacepage},"Report") ;
+      
+    }
+  } ;
+  
+  QTabWidget* createSideMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) {
+    return new SideMetrologyPage{camerasvc,viewdir} ;
+  }
+  
   
   /*
     I have the pages that do most of the actual work. Now we need

@@ -246,25 +246,11 @@ namespace PAP
     auto taskpages = new QTabWidget{this} ;
     layout->addWidget( taskpages ) ;
     //auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
-
-    // struct TileInfo {
-    //   QString name;
-    //   QString chip1;
-    //   QString chip2 ;
-    //   TileInfo(const char* _name, const char* _chip1, const char* _chip2) :
-    // 	name{_name},chip1{_chip1},chip2{_chip2} {}
-    // } ;
-    using TileInfo = std::array<const char*,3> ;
-    std::array<std::array<TileInfo,2>,2> tileinfo ;
-    tileinfo[ViewDirection::NSideView][0] = {"NSI","NSI_VP20_Fid1","NSI_VP22_Fid2"} ;
-    tileinfo[ViewDirection::NSideView][1] = {"NLO","NLO_VP10_Fid1","NLO_VP12_Fid2"} ;
-    tileinfo[ViewDirection::CSideView][0] = {"CLI","CLI_VP00_Fid1","CLI_VP02_Fid2"} ;
-    tileinfo[ViewDirection::CSideView][1] = {"CSO","CSO_VP30_Fid1","CSO_VP32_Fid2"} ;
+    
     QTabWidget* apages[2] ;
     QTabWidget* mpages[2] ;
     QTabWidget* ppages[2] ;
-    
-        
+
     for( int iview=0; iview<2; ++iview ) {
       ViewDirection view = ViewDirection(iview) ;
       
@@ -276,18 +262,13 @@ namespace PAP
       apages[view]->addTab( makeAlignMainJigZPage(view,*this),"Align jig Z") ;
            
       ppages[view] = new QTabWidget{} ;
-      for(int tile=0; tile<2; ++tile) 
-	ppages[view]->addTab(new AlignTilePage{m_cameraview,
-	      tileinfo[view][tile][0],tileinfo[view][tile][1],tileinfo[view][tile][2]},
-	  QString{"Position "} +  tileinfo[view][tile][0]) ;
+      for(int tile=0; tile<2; ++tile) {
+	const auto ti = getTileInfo(view,TileType(tile)) ;
+	ppages[view]->addTab(new AlignTilePage{m_cameraview,ti},
+			     QString{"Position "} + ti.name) ;
+      }
       
-      mpages[view] = new QTabWidget{} ;
-      mpages[view]->addTab(createTileMetrologyPage(*this,view),"Tile metrology") ;
-      for(int tile=0; tile<2; ++tile) 
-	mpages[view]->addTab(createSensorSurfaceMetrologyPage(*this,view,tileinfo[view][tile][0]),
-			     QString(tileinfo[view][tile][0])+QString(" surface metrology") ) ;
-      mpages[view]->addTab(createSubstrateSurfaceMetrologyPage(*this,view),"Substrate surface metrology") ;
-      //mpages[view]->addTab(createGenericSurfaceMetrologyPage(*this,view),"Generic surface metrology") ;
+      mpages[view] = createSideMetrologyPage(*this,view) ;
     }
 
     connect(this, &CameraWindow::viewToggled, this, [=](int view)
@@ -421,5 +402,16 @@ namespace PAP
       m_cameraview->moveCameraToPointInModule(QPointF{x,y}) ;
     }
   }
-  
+
+  // this belongs somewhere else, but I'm lazy
+  TileInfo getTileInfo( ViewDirection view, TileType tile )
+  {
+    // I CANNOT STAND INEFFICIENCY. SHIT.
+    const std::array<std::array<TileInfo,2>,2> tileinfos =
+      { std::array<TileInfo,2>{TileInfo{"NSI","NSI_VP20_Fid1","NSI_VP22_Fid2"},
+	 TileInfo{"NLO","NLO_VP10_Fid1","NLO_VP12_Fid2"}},
+	std::array<TileInfo,2>{TileInfo{"CLI","CLI_VP00_Fid1","CLI_VP02_Fid2"},
+	 TileInfo{"CSO","CSO_VP30_Fid1","CSO_VP32_Fid2"}} } ;
+    return tileinfos[view][tile] ;
+  } ;
 }

@@ -7,6 +7,7 @@
 namespace PAP
 {
   enum ViewDirection { NSideView = 0 , CSideView=1, NumViews=2 } ;
+  enum TileType { ShortSide=0, LongSide=1, NumTiles=2} ;
   
   class Coordinates2D : public QPointF
   {
@@ -56,6 +57,16 @@ namespace PAP
     double y ;
     double z ;
   } ;
+
+  struct TileInfo
+  {
+  TileInfo( const char* n, const char* m1, const char* m2)
+  : name{n},marker1{m1},marker2{m2}{}
+    QString name ;
+    QString marker1 ;
+    QString marker2 ;
+  } ;
+  TileInfo getTileInfo( ViewDirection view, TileType tile ) ;
 }
 
 #endif

@@ -38,6 +38,11 @@ namespace PAP
     ReportCoordinate( const QString& name, double x, double y, double z, Status s = Initialized )
     : m_name{name}, m_x{x}, m_y{y}, m_z{z}, m_status{s} {}
     ReportCoordinate() = default ;
+    const QString& name() const { return m_name ; }
+    double x() const { return m_x ;}
+    double y() const { return m_y ;}
+    double z() const { return m_z ;}
+    Status status() const { return m_status ; }
   } ;
 
   /*
