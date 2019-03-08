@@ -9,6 +9,7 @@
 #include <QPushButton>
 #include <QPlainTextEdit>
 #include <QFileDialog>
+#include <QMessageBox>
 #include "CameraWindow.h"
 #include "CameraView.h"
 #include "AutoFocus.h"
@@ -68,6 +69,15 @@ namespace PAP
     ViewDirection viewdir() const { return m_viewdir ; }
     void exportToFile() const ;
     void importFromFile() ;
+    void importFromFile(const QString& filename) ;
+    void reset() {
+      m_textbox->setPlainText("") ;
+      definemarkers();
+    }
+    QString defaultFileName() const {
+      return QString("/home/velouser/Documents/PickAndPlaceData/") +
+	m_camerasvc->moduleName() + "/" + pageName() + ".csv" ;
+    }
     void focus() const ;
     void move() const ;
     const std::vector<ReportCoordinate>& measurements() const { return  m_measurements ; }
@@ -109,7 +119,7 @@ namespace PAP
     {
       auto button = new QPushButton{"Reset",this} ;
       m_buttonlayout->addWidget(button) ;
-      connect(button,&QPushButton::clicked,this,[=]{ this->definemarkers() ; }) ;
+      connect(button,&QPushButton::clicked,this,[=]{ this->reset() ; }) ;
     }
     {
       auto button = new QPushButton{"Export",this} ;
@@ -220,8 +230,7 @@ namespace PAP
   {
     // pop up a dialog to get a file name
     auto filename = QFileDialog::getSaveFileName(nullptr, tr("Save data"),
-						 QString("/home/velouser/Documents/PickAndPlaceData/") +
-						 m_camerasvc->moduleName() + "/" + pageName() + ".csv",
+						 defaultFileName(),
 						 tr("Csv files (*.csv)"));
     QFile f( filename );
     f.open(QIODevice::WriteOnly) ;
@@ -246,6 +255,7 @@ namespace PAP
       }
     }
     f.close() ;
+    f.setPermissions( QFileDevice::ReadOther|QFileDevice::ReadGroup|QFileDevice::ReadOwner ) ;
   }
 
   void MarkerMetrologyPage::importFromFile()
@@ -253,9 +263,14 @@ namespace PAP
     
     // pop up a dialog to get a file name
     auto filename = QFileDialog::getOpenFileName(nullptr, tr("Save data"),
-						 QString("/home/velouser/Documents/PickAndPlaceData/") +
-						 m_camerasvc->moduleName() + "/untitled.csv",
+						 defaultFileName(),
 						 tr("CSV files (*.csv)"));
+    
+    importFromFile( filename ) ;
+  }
+    
+  void MarkerMetrologyPage::importFromFile(const QString& filename)
+  {
     m_measurements.clear();
     QFile f( filename );
     if( f.open(QIODevice::ReadOnly) ) {
@@ -508,7 +523,10 @@ namespace PAP
 	  m_measurements.emplace_back( def, - (asicZ +bumpbondthickness) ) ;
       fillTable() ;
     }
-    
+    QString pageName() const override
+    {
+      return (viewdir()==ViewDirection::NSideView) ? "NSideTilePositions" : "CSideTilePositions" ;
+    }
   } ;
     
   QWidget* createTileMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
@@ -642,9 +660,21 @@ namespace PAP
     {
       auto layout =  new QVBoxLayout{} ;
       this->setLayout(layout) ;
-      auto button = new QPushButton{"FitThickness",this} ;
-      layout->addWidget(button) ;
-      connect(button,&QPushButton::clicked,this,[=]{ this->fitThickness() ; }) ;
+      {
+	auto button = new QPushButton{"Import",this} ;
+	layout->addWidget(button) ;
+	connect(button,&QPushButton::clicked,this,[=]{ this->import() ; }) ;
+      }
+      {
+	auto button = new QPushButton{"FitThickness",this} ;
+	layout->addWidget(button) ;
+	connect(button,&QPushButton::clicked,this,[=]{ this->fitThickness() ; }) ;
+      }
+      {
+	auto button = new QPushButton{"Reset",this} ;
+	layout->addWidget(button) ;
+	connect(button,&QPushButton::clicked,this,[=]{ this->reset() ; }) ;
+      }
     }
     
     void fitThickness() {
@@ -661,7 +691,25 @@ namespace PAP
 	  qDebug() << m.name() << zsensor - zsubstrate ;
 	}
       }
-    } ;
+    }
+
+    void import()
+    {
+      std::vector< MarkerMetrologyPage* > pages{m_tilemarkerpage,
+	  m_sensorsurfacepage[0],m_sensorsurfacepage[1],m_substratesurfacepage} ;
+      for( auto& page : pages )
+	page->importFromFile( page->defaultFileName() ) ;
+    }
+    void reset()
+    {
+      QMessageBox::StandardButton reply;
+      reply = QMessageBox::question(this, "Reset", "Reset all metrology data?",QMessageBox::Yes|QMessageBox::No);
+      if (reply == QMessageBox::Yes) {
+	std::vector< MarkerMetrologyPage* > pages{m_tilemarkerpage,
+	    m_sensorsurfacepage[0],m_sensorsurfacepage[1],m_substratesurfacepage} ;
+	for( auto& page : pages ) page->reset() ;
+      }
+    }
   } ;
   
   //****************************************************************************//
