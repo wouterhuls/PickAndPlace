@@ -66,6 +66,8 @@ namespace PAP
     void updateTableRow( int row, const ReportCoordinate& coord ) ;
     void activateRow( int row ) ;
     void record(const CoordinateMeasurement& measurement) ;
+    void recordCentre() ;
+    //void record() {}
     ViewDirection viewdir() const { return m_viewdir ; }
     void exportToFile() const ;
     void importFromFile() ;
@@ -103,7 +105,7 @@ namespace PAP
     m_markertable->setHorizontalHeaderLabels(QStringList{"Marker","X","Y","Z","residual Z"}) ;
     hlayout->addWidget(m_markertable) ;
     connect(m_markertable,&QTableWidget::cellClicked,[&](int row, int /*column*/) { this->activateRow( row ) ; }) ;
-    connect(m_camerasvc->cameraview(),&CameraView::recording,this,&MarkerMetrologyPage::record) ;
+    //connect(m_camerasvc->cameraview(),&CameraView::recording,this,&MarkerMetrologyPage::record) ;
 
     m_textbox = new QPlainTextEdit{this} ;
     hlayout->addWidget( m_textbox ) ;
@@ -117,10 +119,10 @@ namespace PAP
       connect(button,&QPushButton::clicked,this,[=]{ this->focus() ; }) ;
     }   
     {
-      auto button = new QPushButton{"Reset",this} ;
+      auto button = new QPushButton{"Record",this} ;
       m_buttonlayout->addWidget(button) ;
-      connect(button,&QPushButton::clicked,this,[=]{ this->reset() ; }) ;
-    }
+      connect(button,&QPushButton::clicked,this,[=]{ this->recordCentre() ; }) ;
+    }   
     {
       auto button = new QPushButton{"Export",this} ;
       m_buttonlayout->addWidget(button) ;
@@ -131,7 +133,12 @@ namespace PAP
       m_buttonlayout->addWidget(button) ;
       connect(button,&QPushButton::clicked,this,[=]{ this->importFromFile() ; }) ;
     }
-  }
+    {
+      auto button = new QPushButton{"Reset",this} ;
+      m_buttonlayout->addWidget(button) ;
+      connect(button,&QPushButton::clicked,this,[=]{ this->reset() ; }) ;
+    }
+ }
   
   void MarkerMetrologyPage::focus() const
   {
@@ -225,7 +232,12 @@ namespace PAP
       m_textbox->appendPlainText( os.str().c_str() ) ;
     }
   }
-
+  
+  void MarkerMetrologyPage::recordCentre()
+  {
+    return record(m_camerasvc->cameraview()->coordinateMeasurement()) ;
+  }
+    
   void MarkerMetrologyPage::exportToFile() const
   {
     // pop up a dialog to get a file name
