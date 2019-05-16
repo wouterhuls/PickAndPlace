@@ -30,7 +30,7 @@ namespace PAP
 {
   CameraWindow::CameraWindow(QWidget *parent)
     : QMainWindow(parent),
-      m_moduleName{"ModuleName","NRD000"},
+      m_moduleName{"ModuleName","NRD999"},
       m_stillImageTriggered{false}
   {
     resize(700,500);
