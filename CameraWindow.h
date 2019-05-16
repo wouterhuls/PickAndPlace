@@ -42,6 +42,8 @@ namespace PAP
     void moveToMarker() ;
     void moveToPositionInModuleFrame() ;
   private:
+    void createMenus() ;
+  private:
     CameraView* m_cameraview{0} ;
     AutoFocus* m_autofocus{0} ;
     QDialog*   m_motionsystemdialog{0} ;

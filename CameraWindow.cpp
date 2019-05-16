@@ -24,6 +24,7 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QTableWidget>
+#include <QMenuBar>
 #include "MotionSystemWidget.h"
 
 namespace PAP
@@ -35,14 +36,16 @@ namespace PAP
   {
     resize(700,500);
     setWindowTitle("Velo Pick&Place") ;
-    
+
     m_cameraview = new CameraView{this} ;
     m_autofocus = new AutoFocus{ m_cameraview, this } ;
+    m_autofocus->move(950,600) ;
+    m_autofocus->show() ;
 
     // create dialog for the motion system interface
     m_motionsystemdialog = new QDialog{ this } ;
     m_motionsystemdialog->resize(600,500) ;
-    m_motionsystemdialog->move(50,0) ;
+    m_motionsystemdialog->move(950,0) ;
     m_motionsystemdialog->setWindowIcon( QIcon(":/images/VeloUpgradeLogoSmall.png") ) ;
     m_motionsystemdialog->setWindowTitle("Motion System Window") ;
     new PAP::MotionSystemWidget(m_motionsystemdialog);
@@ -133,14 +136,14 @@ namespace PAP
       togglehlayout->addWidget(csidebutton) ;
     }
     
-    auto msbutton = new QPushButton("Motion System",this) ;
-    connect( msbutton, &QPushButton::clicked, [=](){ m_motionsystemdialog->show() ; }) ;
-    buttonlayout->addWidget( msbutton ) ;
+    // auto msbutton = new QPushButton("Motion System",this) ;
+    // connect( msbutton, &QPushButton::clicked, [=](){ m_motionsystemdialog->show() ; }) ;
+    // buttonlayout->addWidget( msbutton ) ;
     
-    auto focusbutton = new QPushButton("Auto-Focus",this) ;
-    focusbutton->setToolTip("Start autofocus sequence") ;
-    focusbutton->setObjectName(QStringLiteral("focusButton"));
-    buttonlayout->addWidget( focusbutton ) ;
+    // auto focusbutton = new QPushButton("Auto-Focus",this) ;
+    // focusbutton->setToolTip("Start autofocus sequence") ;
+    // focusbutton->setObjectName(QStringLiteral("focusButton"));
+    // buttonlayout->addWidget( focusbutton ) ;
 
     auto markerfocusbutton = new QPushButton("Marker focus",this) ;
     markerfocusbutton->setToolTip("Move to the default focus position of the closest marker") ;
@@ -283,7 +286,7 @@ namespace PAP
     // need to bootstrap this
     viewToggled(m_cameraview->currentViewDirection()) ;
 
-    
+    createMenus() ;
    
     //connect( taskpages, &QTabWidget::tabBarClicked, this, &CameraWindow::toggleView ) ;
     
@@ -414,4 +417,34 @@ namespace PAP
 	 TileInfo{"CSO","CSO_VP30_Fid1","CSO_VP32_Fid2"}} } ;
     return tileinfos[view][tile] ;
   } ;
+
+  void CameraWindow::createMenus()
+  {
+    auto fileMenu = menuBar()->addMenu(tr("&File"));
+    {
+      auto action = new QAction(tr("&Quit"), this);
+      fileMenu->addAction(action);
+      action->setShortcuts(QKeySequence::Quit);
+      action->setStatusTip(tr("Quit application"));
+      connect(action, &QAction::triggered, []() { QCoreApplication::quit(); } ) ;
+    }
+
+    auto viewMenu = menuBar()->addMenu(tr("&View"));
+    {
+      auto action = new QAction(tr("&Motion system controls"), this);
+      viewMenu->addAction(action);
+      action->setStatusTip(tr("Show motion window with motion system controls")) ;
+      connect(action, &QAction::triggered, [=](){ m_motionsystemdialog->show() ; } ) ;
+    }
+    {
+      auto action = new QAction(tr("&Autofocus"), this);
+      viewMenu->addAction(action);
+      action->setStatusTip(tr("Show autofocus window")) ;
+      connect(action, &QAction::triggered, [=](){ m_autofocus->show() ; } ) ;
+    }
+   
+
+    
+    
+  }
 }

@@ -16,9 +16,6 @@ namespace PAP
     explicit MotionSystemWidget(QWidget *parent = 0) ;
     ~MotionSystemWidget();
     
-  private slots:
-    void on_quitButton_clicked() ;
-  private:
   };
 }
 

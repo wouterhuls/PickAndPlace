@@ -67,21 +67,11 @@ namespace PAP
     connect(calibratebutton,&QPushButton::clicked,[=](){ calibrationdialog->show() ; } ) ;
     extrabuttonlayout->addWidget( calibratebutton,1,0) ;
 			   
-    auto quitbutton = new QPushButton("Quit",this) ;
-    quitbutton->setObjectName(QStringLiteral("quitButton"));
-    extrabuttonlayout->addWidget( quitbutton,1,1) ;
-
     setLayout( layout ) ;
     
-    QMetaObject::connectSlotsByName(this);
   }
   
   MotionSystemWidget::~MotionSystemWidget()
   {
-  }
-  
-  void MotionSystemWidget::on_quitButton_clicked()
-  {
-    QCoreApplication::quit();
   }
 }
