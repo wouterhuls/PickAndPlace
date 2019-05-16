@@ -494,6 +494,9 @@ namespace PAP
       if( m_measurements.size()==m_refcoordinates.size() ) {
 	disconnectsignals() ;
 	calibrate() ;
+	// move the focus back to where the module is. for now, choose one of the markers.
+	if(m_status ==  Calibrated)
+	  m_camerasvc->autofocus()->moveFocusToModuleZ(0.0) ;
       } else {
 	move() ;
       }
@@ -525,7 +528,6 @@ namespace PAP
 	for(int icol=0; icol<3; ++icol)
 	  halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
     }
-    qDebug() << "b" ;
     Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
     os << "Solution: " << delta(0) << ", " << delta(1) << ", " << delta(2) << std::endl ;
     qDebug() << os.str().c_str() ;
@@ -536,7 +538,6 @@ namespace PAP
       double residual =  ref.z + m.focus - (delta(0) + delta(1)*m.main.x + delta(2)*m.main.y) ; 
       m_measurementtable->item(i,4)->setText( QString::number( residual, 'g', 5 ) ) ;
     }
-    qDebug() << "c" ;
     // sanity check
     if( std::abs(delta(1))<0.01 && std::abs(delta(2))<0.01 ) {
       // now we need to think waht we want the measurements to mean ...
