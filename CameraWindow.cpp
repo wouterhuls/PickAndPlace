@@ -25,7 +25,9 @@
 #include <QInputDialog>
 #include <QTableWidget>
 #include <QMenuBar>
+#include <QProcessEnvironment>
 #include "MotionSystemWidget.h"
+#include "PropertySvc.h"
 
 namespace PAP
 {
@@ -206,7 +208,7 @@ namespace PAP
     connect( m_showNSideTiles, &QCheckBox::stateChanged,m_cameraview,&CameraView::showNSideMarkers ) ;
     m_showCSideTiles = new QCheckBox{"C-side markers",this} ;
     connect( m_showCSideTiles, &QCheckBox::stateChanged,m_cameraview,&CameraView::showCSideMarkers ) ;
-    buttonlayout->addWidget( m_showNSideTiles) ;
+    buttonlayout->addWidget( m_showNSideTiles ) ;
     buttonlayout->addWidget( m_showCSideTiles ) ;
     if( m_cameraview->currentViewDirection()==PAP::CSideView ) {
       m_cameraview->showNSideMarkers( false ) ;
@@ -217,6 +219,10 @@ namespace PAP
       m_showNSideTiles->setCheckState( Qt::Checked ) ;
       m_showCSideTiles->setCheckState( Qt::Unchecked ) ;
     }
+    auto showGeometryButton = new QCheckBox{"Outlines",this} ;
+    connect( showGeometryButton, &QCheckBox::stateChanged,m_cameraview,&CameraView::showGeometry ) ;
+    showGeometryButton->setCheckState( Qt::Checked ) ;
+    buttonlayout->addWidget( showGeometryButton ) ;
     
     auto cameraresetbutton = new QPushButton{"Reset camera",this} ;
     cameraresetbutton->setToolTip("Reset the camera if the view gets stuck.") ;
@@ -428,7 +434,31 @@ namespace PAP
       action->setStatusTip(tr("Quit application"));
       connect(action, &QAction::triggered, []() { QCoreApplication::quit(); } ) ;
     }
-
+    {
+      auto action = new QAction(tr("&Load default config"), this);
+      fileMenu->addAction(action);
+      action->setStatusTip(tr("Load the default configuration file"));
+      connect(action, &QAction::triggered, []()
+	      {
+		QProcessEnvironment env = QProcessEnvironment::systemEnvironment() ;
+		QString filename = env.value("HOME") + "/.papconfig" ;
+		PAP::PropertySvc::instance()->read(filename.toLatin1()) ;
+	      }) ;
+    }
+    {
+      auto action = new QAction(tr("&Save config"), this);
+      fileMenu->addAction(action);
+      action->setStatusTip(tr("Save a configuration from file"));
+      connect(action, &QAction::triggered, []()
+	      {
+		auto filename = QFileDialog::getSaveFileName(nullptr, tr("Configuration file"),
+							     "",
+							     tr("Config files (*.txt)"));
+		PAP::PropertySvc::instance()->read(filename.toLatin1()) ;
+	      } ) ;
+    }
+    
+    
     auto viewMenu = menuBar()->addMenu(tr("&View"));
     {
       auto action = new QAction(tr("&Motion system controls"), this);
