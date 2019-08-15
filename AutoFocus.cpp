@@ -632,7 +632,7 @@ namespace PAP
 	  std::vector<FocusMeasurement> selection =
 	    selectnearfocusmeasurements(m_fastfocusmeasurements,2,imax) ;
 	  double z0tmp = m_fastfocusmeasurements[imax].z;
-	  bool success = estimatez0(selection,z0tmp) ;
+	  /*bool success = */ estimatez0(selection,z0tmp) ;
 	  qDebug() << "up/down measures of z0: "
 		   << z0 << " " << z0tmp << " " << z0 - z0tmp ;
 	  disconnect(connection) ;
