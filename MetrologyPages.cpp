@@ -9,6 +9,7 @@
 #include <QPushButton>
 #include <QPlainTextEdit>
 #include <QFileDialog>
+#include <QInputDialog>
 #include <QMessageBox>
 #include "CameraWindow.h"
 #include "CameraView.h"
@@ -61,6 +62,7 @@ namespace PAP
     virtual void definemarkers() = 0 ;
     CameraWindow* camerasvc() { return m_camerasvc ; } ;
     virtual QString pageName() const { return QString{"unknown"} ; }
+    void addMarker() ;
   public:
     MarkerMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) ;
     void updateTableRow( int row, const ReportCoordinate& coord ) ;
@@ -124,6 +126,11 @@ namespace PAP
       connect(button,&QPushButton::clicked,this,[=]{ this->recordCentre() ; }) ;
     }   
     {
+      auto button = new QPushButton{"Add",this} ;
+      m_buttonlayout->addWidget(button) ;
+      connect(button,&QPushButton::clicked,this,[=]{ this->addMarker() ; }) ;
+    }   
+   {
       auto button = new QPushButton{"Export",this} ;
       m_buttonlayout->addWidget(button) ;
       connect(button,&QPushButton::clicked,this,[=]{ this->exportToFile() ; }) ;
@@ -166,6 +173,26 @@ namespace PAP
       }
     }
   }
+
+  void MarkerMetrologyPage::addMarker()
+  {
+    // popup a window to ask for a name
+    bool ok{true} ;
+    QString label = QInputDialog::getText(this,
+					      tr("QInputDialog::getText()"),
+					      tr("Measurement label:"), QLineEdit::Normal, "Unknown", &ok);
+    if (ok && !label.isEmpty()) {
+      auto measurement = m_camerasvc->cameraview()->coordinateMeasurement() ;
+      const auto viewdir = m_camerasvc->cameraview()->currentViewDirection() ;
+      const QTransform fromGlobalToModule = GeometrySvc::instance()->fromModuleToGlobal(viewdir).inverted() ;
+      const auto modulecoordinates = fromGlobalToModule.map( measurement.globalcoordinates ) ;
+      const auto z = m_camerasvc->autofocus()->zFromFocus( measurement.mscoordinates.focus ) ;
+      m_measurements.emplace_back( label, modulecoordinates.x(), modulecoordinates.y(),
+				   z, ReportCoordinate::Uninitialized) ;
+      fillTable() ;
+      activateRow( m_measurements.size()-1 ) ;
+    }
+  }  
   
   void MarkerMetrologyPage::updateTableRow( int row, const ReportCoordinate& coord ) {
     m_markertable->item(row,1)->setText( QString::number( coord.m_x, 'g', 5 ) ) ;
