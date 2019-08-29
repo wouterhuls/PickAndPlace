@@ -159,9 +159,10 @@ class ReferenceMarker : public Marker
   class Tile : public QGraphicsItemGroup
   {
   private:
-    const double markerdist = 42.514 ; // approximately
-    const double width  = 43.47 ;
-    const double height = 17.04 ;
+    // for all dimensions, see https://edms.cern.ch/document/2086903
+    const double markerdist = 42.514 ;
+    const double width  = 43.470 ;
+    const double height = 16.950 ;
   public:
   Tile( const std::vector<FiducialDefinition>& markerdefs,
 	QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItemGroup(parent)
@@ -230,9 +231,10 @@ class ReferenceMarker : public Marker
       painter->setPen(pen) ;
       painter->drawLine( QPointF(0,0),QPointF(markerdist,0) ) ;
 
-      // Now draw a rectangle a little bit out. I'll need to get the real dimensions from Freek.
+      // Now draw a rectangle a little bit out. It would be nice to
+      // draw separate boxes for the sensors and the three ASICs.
       const double X = -(width-markerdist)/2 ;
-      const double Y = -0.2 ;
+      const double Y = -0.117 ;
       QRectF rectangle{X,Y,width,height} ;
       pen.setColor( Qt::blue ) ;
       pen.setWidthF(0.02);
