@@ -40,7 +40,7 @@ namespace PAP
     bool isMoving() const { return m_isMoving ; }
     void setIsMoving( bool ismoving ) ;
     bool hasMotorOn() const ;
-    bool parseData( const QString& cmd, const QString& value ) ;
+    bool parseData( const QString& cmd, const QString& value, const QDateTime& timestamp ) ;
     Direction direction() const { return m_direction ; }
     
     const MotionAxisParameters& parameters() const { return m_parameters ; }

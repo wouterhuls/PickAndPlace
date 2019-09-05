@@ -100,7 +100,7 @@ namespace PAP
     return gInstance ;
   }
   
-  void MotionSystemSvc::parseData(int controllerid, const QByteArray& data )
+  void MotionSystemSvc::parseData(int controllerid, const QByteArray& data, const QDateTime& timestamp )
   {
     // this all assumes that we receive data for the current controller.
     //qDebug() << "MotionSystemSvc, parsing message: " << data ;
@@ -132,7 +132,7 @@ namespace PAP
 	    int axis = match.captured(1).toInt() ;
 	    auto it = m_axes.find( MotionAxisID( controllerid, axis ) ) ;
 	    if( it != m_axes.end() ) {
-	      if( !(it->second->parseData( command, result )) ) {
+	      if( !(it->second->parseData( command, result, timestamp )) ) {
 		qWarning() << "Problem parsing data for axis: "
 			   << line ;
 	      }

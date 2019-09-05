@@ -36,6 +36,7 @@ namespace PAP
   {
     int controller ;
     QByteArray data ;
+    QDateTime timestamp ;
   } ;
 
   class MSWorker : public QObject
