@@ -93,10 +93,20 @@ namespace PAP
 	QString line{result.data} ;
 	if( !line.contains( command.cmd.c_str() ) ) {
 	  // very often we are just one read behind. let's just read once more.
-	  qWarning() << "Test in handleOuput failed already in worker!" 
-	 	     << command.cmd.c_str()
-	     	     << result.data ;
-	  result.data = read() ;
+	  auto newdata = read() ;
+	  qWarning() << "Test in handleOuput failed already in worker! We'll try to read again."
+		     << command.cmd.c_str()
+	     	     << result.data << newdata ;
+	  
+	  if( QString{newdata}.contains( command.cmd.c_str() ) ) {
+	    result.data = newdata ;
+	  } else {
+	    // concatenate the two lines, which often seems to be the problem too sometimes solves the problem as well.
+	    result.data.append(newdata) ;
+	    if( !QString{result.data}.contains( command.cmd.c_str() ) ) {
+	      qWarning() << "Test in handleOuput still failed in worker" << result.data ;
+	    }
+	  }
 	}
 	//qDebug() << "Result ready! "
 	//<< command.cmd.c_str()
