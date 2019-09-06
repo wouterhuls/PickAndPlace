@@ -70,7 +70,7 @@ namespace PAP
     MotionAxis& stackYAxis() const { return *m_stackYAxis ; }
     MotionAxis& stackRAxis() const { return *m_stackRAxis ; }    
     
-    void parseData( int controllerid, const QByteArray& data ) ;
+    void parseData( int controllerid, const QByteArray& data, const QDateTime& timestamp ) ;
 
     // return the coordinates of all axis
     MSCoordinates coordinates() const ;

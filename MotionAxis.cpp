@@ -217,10 +217,12 @@ namespace PAP
     }
   }
 
-  bool MotionAxis::parseData( const QString& cmd, const QString& value) {
+  bool MotionAxis::parseData( const QString& cmd, const QString& value, const QDateTime& timestamp)
+  {
     bool success = true ;
     if( cmd == "TP" ) {
       m_position = value.toDouble() ;
+      m_position.setTimeStamp( timestamp ) ;
     } else if (cmd == "MS") {
       // it may be that this doesn't work, because we need to go via a char
       //m_status = value.toUInt() ;
@@ -235,6 +237,7 @@ namespace PAP
 	  QVariant var{value} ;
 	  if( var.convert( p->pardef().type ) ) {
 	    p->getValue().setValue( var );
+	    p->getValue().setTimeStamp( timestamp ) ;
 	    success = true ;
 	  }
 	  break ;

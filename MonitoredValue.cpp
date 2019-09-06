@@ -3,6 +3,12 @@
 
 namespace PAP
 {
+  bool MonitoredValueBase::fromString( const QString& val, const QDateTime& time)
+  {
+    auto rc = fromString(val) ;
+    if( rc ) m_timestamp = time ;
+    return rc ;
+  }
   
   // template specializations
   template<>

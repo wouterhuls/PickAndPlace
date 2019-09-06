@@ -111,6 +111,7 @@ namespace PAP
 	//qDebug() << "Result ready! "
 	//<< command.cmd.c_str()
 	//	       << result.data.size() ;
+	result.timestamp = QDateTime::currentDateTime() ;
 	emit resultReady(result) ;
       } else {
 	emit ready() ;
@@ -280,7 +281,7 @@ namespace PAP
       m_commandqueue.push_back( m_lastcommand ) ;
     } else {
       if( m_lastcommand.target==0 )
-	m_parent->parseData( result.controller, result.data ) ;
+	m_parent->parseData( result.controller, result.data, result.timestamp ) ;
       else {
 	// this code should be moved to MotionSystemSvc.
 	// check that the command is actually part of the result!
@@ -288,7 +289,7 @@ namespace PAP
 	  QRegularExpression re{"^(\\d*)(\\w\\w)(.+)"} ;
 	  QRegularExpressionMatch match = re.match( line ) ;
 	  if( match.hasMatch() ) {
-	    m_lastcommand.target->fromString( match.captured(3) ) ;
+	    m_lastcommand.target->fromString( match.captured(3), result.timestamp ) ;
 	  } else {
 	    qWarning() << "MotionSystemSerialPort cannot parse string!" ;
 	  }

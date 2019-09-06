@@ -5,6 +5,7 @@
 #include <QString>
 #include <QVariant>
 #include <QDebug>
+#include <QDateTime>
 
 namespace PAP
 {
@@ -32,8 +33,13 @@ namespace PAP
     virtual QString toString() const = 0 ;
     // return false in case of failure
     virtual bool fromString( const QString& val ) = 0 ;
+    bool fromString( const QString& val, const QDateTime& time) ;
+    void setTimeStamp( const QDateTime& timestamp ) { m_timestamp = timestamp ; }
+    const QDateTime& timestamp() const { return m_timestamp ; }
   signals:
     void valueChanged() ;
+  private:
+    QDateTime m_timestamp ;
   } ;
 
   template<class T>
