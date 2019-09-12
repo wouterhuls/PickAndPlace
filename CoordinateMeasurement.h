@@ -11,6 +11,7 @@ namespace PAP
   public:
     MSCoordinates mscoordinates ;
     Coordinates2D globalcoordinates ;
+    Coordinates3D modulecoordinates ;
     QString markername ;
   } ;
 } ;

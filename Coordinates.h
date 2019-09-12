@@ -3,6 +3,7 @@
 
 #include <QString>
 #include <QPointF>
+#include <QVector3D>
 
 namespace PAP
 {
@@ -24,6 +25,8 @@ namespace PAP
   private:
     qreal m_phi ;
   } ;
+
+  using Coordinates3D = QVector3D ;
   
   struct MSMainCoordinates
   {
@@ -47,6 +50,8 @@ namespace PAP
     MSStackCoordinates stack ;
     double focus ;
   } ;
+
+  using ModuleCoordinates = Coordinates3D ;
 
   struct FiducialDefinition
   {

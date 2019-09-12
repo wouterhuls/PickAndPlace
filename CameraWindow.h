@@ -41,6 +41,8 @@ namespace PAP
     void processFrame( const QVideoFrame& frame ) ;
     void moveToMarker() ;
     void moveToPositionInModuleFrame() ;
+    void moveCameraToPointInModule( ModuleCoordinates modulepoint ) ;
+    
   private:
     void createMenus() ;
   private:

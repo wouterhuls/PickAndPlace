@@ -168,7 +168,7 @@ namespace PAP
       for( const auto& m : m_measurements ) {
 	for(int icol=0; icol<m_markertable->columnCount(); ++icol )  
 	  m_markertable->setItem(row,icol,new QTableWidgetItem{prototype} ) ;
-	m_markertable->item(row,0)->setText( m.m_name ) ;
+	m_markertable->item(row,0)->setText( m.name() ) ;
 	updateTableRow( row++, m ) ;
       }
     }
@@ -188,17 +188,20 @@ namespace PAP
       const auto modulecoordinates = fromGlobalToModule.map( measurement.globalcoordinates ) ;
       const auto z = m_camerasvc->autofocus()->zFromFocus( measurement.mscoordinates.focus ) ;
       m_measurements.emplace_back( label, modulecoordinates.x(), modulecoordinates.y(),
-				   z, ReportCoordinate::Uninitialized) ;
+				   z, ReportCoordinate::Initialized) ;
+      qDebug() << "Measurement test: "
+	       << measurement.modulecoordinates
+	       << m_measurements.back().position() ;
       fillTable() ;
       activateRow( m_measurements.size()-1 ) ;
     }
   }  
   
   void MarkerMetrologyPage::updateTableRow( int row, const ReportCoordinate& coord ) {
-    m_markertable->item(row,1)->setText( QString::number( coord.m_x, 'g', 5 ) ) ;
-    m_markertable->item(row,2)->setText( QString::number( coord.m_y, 'g', 5 ) ) ;
-    m_markertable->item(row,3)->setText( QString::number( coord.m_z, 'g', 5 ) ) ;
-    const auto color = m_measurements[row].m_status == ReportCoordinate::Status::Ready ? Qt::green : Qt::gray ;
+    m_markertable->item(row,1)->setText( QString::number( coord.x(), 'g', 5 ) ) ;
+    m_markertable->item(row,2)->setText( QString::number( coord.y(), 'g', 5 ) ) ;
+    m_markertable->item(row,3)->setText( QString::number( coord.z(), 'g', 5 ) ) ;
+    const auto color = m_measurements[row].status() == ReportCoordinate::Status::Ready ? Qt::green : Qt::gray ;
     m_markertable->item(row,0)->setBackground( QBrush{ QColor{color} } ) ;
   }
   
@@ -207,17 +210,17 @@ namespace PAP
     if( row != m_activerow ) {
       if( m_activerow>=0 && m_activerow<int(m_measurements.size()) ) {
 	m_markertable->item(m_activerow,0)->
-	  setBackground( QBrush{ QColor{m_measurements[m_activerow].m_status == ReportCoordinate::Status::Ready ? Qt::green : Qt::gray} } ) ;
+	  setBackground( QBrush{ QColor{m_measurements[m_activerow].status() == ReportCoordinate::Status::Ready ? Qt::green : Qt::gray} } ) ;
       }
       m_activerow = row ;
       auto& m = m_measurements[row] ;
-      m_markertable->item(row,0)->setBackground( QBrush{ QColor{m.m_status ==  ReportCoordinate::Status::Ready ? Qt::blue : Qt::yellow} } ) ;
+      m_markertable->item(row,0)->setBackground( QBrush{ QColor{m.status() ==  ReportCoordinate::Status::Ready ? Qt::blue : Qt::yellow} } ) ;
       // now move to the marker position as currently set in the measurement
-      if( int(m.m_status) >= int(ReportCoordinate::Status::Initialized) ) {
-	m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.m_x,m.m_y} ) ;
-	if( m.m_status == ReportCoordinate::Status::Ready ) {
-	  qDebug() << "Moving camera to z: " << m.m_z ;
-	  m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
+      if( int(m.status()) >= int(ReportCoordinate::Status::Initialized) ) {
+	m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.x(),m.y()} ) ;
+	if( m.status() == ReportCoordinate::Status::Ready ) {
+	  qDebug() << "Moving camera to z: " << m.z() ;
+	  m_camerasvc->autofocus()->moveFocusToModuleZ( m.z() ) ;
 	  // move the camera to the current focus point, if any
 	  //m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
 	  // call the autofocus!
@@ -231,7 +234,7 @@ namespace PAP
   {
     if( m_activerow < int(m_measurements.size()) ) {
       const auto& m = m_measurements[m_activerow] ;
-      m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.m_x,m.m_y} ) ;
+      m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.x(),m.y()} ) ;
     }
   }
   
@@ -246,16 +249,19 @@ namespace PAP
       const auto viewdir = m_camerasvc->cameraview()->currentViewDirection() ;
       const QTransform fromGlobalToModule = GeometrySvc::instance()->fromModuleToGlobal(viewdir).inverted() ;
       const auto modulecoordinates = fromGlobalToModule.map( measurement.globalcoordinates ) ;
-      reportcoordinate.m_x = modulecoordinates.x() ;
-      reportcoordinate.m_y = modulecoordinates.y() ;
-      reportcoordinate.m_z = m_camerasvc->autofocus()->zFromFocus( measurement.mscoordinates.focus ) ;
-      reportcoordinate.m_status = ReportCoordinate::Ready ;
+      
+      reportcoordinate.setX( modulecoordinates.x() ) ;
+      reportcoordinate.setY( modulecoordinates.y() ) ;
+      reportcoordinate.setZ( m_camerasvc->autofocus()->zFromFocus( measurement.mscoordinates.focus ) ) ;
+      reportcoordinate.setStatus ( ReportCoordinate::Ready ) ;
+      qDebug() << "Test: " << reportcoordinate.position() << measurement.modulecoordinates ;
+      
       // finally update the table
       updateTableRow(m_activerow,reportcoordinate) ;
       // Let's also export it to the text stream, such that we can easily copy paste it.
       std::stringstream os ;
-      os << reportcoordinate.m_name.toStdString() << ": " << reportcoordinate.m_x << ", " << reportcoordinate.m_y << ", "
-	 << reportcoordinate.m_z  ;
+      os << reportcoordinate.name().toStdString() << ": " << reportcoordinate.x() << ", " << reportcoordinate.y() << ", "
+	 << reportcoordinate.z()  ;
       m_textbox->appendPlainText( os.str().c_str() ) ;
     }
   }
@@ -286,7 +292,7 @@ namespace PAP
     }
     // now the data. why would we take it from the table? only to add the residuals?
     for(int irow=0; irow<= m_markertable->rowCount() && irow<int(m_measurements.size()); ++irow ) {
-      if( m_measurements[irow].m_status == ReportCoordinate::Ready ) {
+      if( m_measurements[irow].status() == ReportCoordinate::Ready ) {
 	QStringList strList;
 	for( int icol=0; icol < m_markertable->columnCount(); ++icol ) 
 	  strList << m_markertable->item(irow,icol)->text() ;
@@ -459,24 +465,24 @@ namespace PAP
     double sumZ{0} ;
     
     for( const auto& m : m_measurements )
-      if( m.m_status == ReportCoordinate::Status::Ready ) {
+      if( m.status() == ReportCoordinate::Status::Ready ) {
 	++numvalid ;
 	Eigen::Vector6d deriv ;
-	double dx = m.m_x-originx ;
-	double dy = m.m_y-originy ;
+	double dx = m.x() -originx ;
+	double dy = m.y() -originy ;
 	deriv(0) = 1 ;
 	deriv(1) = dx ;
 	deriv(2) = dy ;
 	deriv(3) = dx*dx ;
 	deriv(4) = dx*dy ;
 	deriv(5) = dy*dy ;
-	halfdchi2dpar += m.m_z * deriv ;
+	halfdchi2dpar += m.z() * deriv ;
 	for(int irow=0; irow<6; ++irow)
 	  for(int icol=0; icol<6; ++icol)
 	    halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
-	sumX += m.m_x ;
-	sumY += m.m_y ;
-	sumZ += m.m_z ;
+	sumX += m.x() ;
+	sumY += m.y() ;
+	sumZ += m.z() ;
       }
     // compute solution. switch between different polynomial orders here.
     Eigen::Vector6d delta = Eigen::Vector6d::Zero() ;
@@ -506,16 +512,15 @@ namespace PAP
     int row(0) ;
     double sumr2{0} ;
     for( const auto& m : m_measurements ) {
-      double dx = m.m_x-originx ;
-      double dy = m.m_y-originy ;
-      double residual = m.m_z - (delta(0) + delta(1)*dx + delta(2)*dy + delta(3)*dx*dx + delta(4)*dx*dy+ delta(5)*dy*dy ) ;
+      double dx = m.x()-originx ;
+      double dy = m.y()-originy ;
+      double residual = m.z() - (delta(0) + delta(1)*dx + delta(2)*dy + delta(3)*dx*dx + delta(4)*dx*dy+ delta(5)*dy*dy ) ;
       if( !m_markertable->item(row,4) )
 	m_markertable->setItem(row,4,new QTableWidgetItem{}) ;
       m_markertable->item(row,4)->setText( QString::number( residual, 'g', 5 ) ) ;
       ++row ;
-      if(  m.m_status == ReportCoordinate::Status::Ready ) {
+      if(  m.status() == ReportCoordinate::Status::Ready )
 	sumr2 += residual*residual ;
-      }
     }
     const double sigmaz2 = 0.005*0.005 ;
     if(ndof>0) {
@@ -678,6 +683,56 @@ namespace PAP
   {
     return new GenericSurfaceMetrologyPage{camerasvc,viewdir} ;
   }
+
+  //****************************************************************************//
+  
+  class LineScanPage : public SurfaceMetrologyPage
+  {
+  private:
+    //std::vector<ModuleCoordinates> m_trajectory ;
+  public:
+    LineScanPage( CameraWindow& camerasvc, ViewDirection viewdir)
+      : SurfaceMetrologyPage{camerasvc,viewdir}
+    {
+      auto button = new QPushButton{"run", this} ;
+      m_buttonlayout->addWidget(button) ;
+      connect(button,&QPushButton::clicked,[=]() { this->run() ; } ) ;
+    }
+    //
+    void definemarkers() final { m_measurements.clear() ;}
+    
+    void run()
+    {
+      // insert measurements such that we get a certain density of points
+      if( !m_measurements.empty() ) {
+	qDebug() << "Number of trajectory points: " << m_measurements.size() ;
+	std::vector<ReportCoordinate>  newmeasurements  ;
+	newmeasurements.reserve( m_measurements.size() ) ;
+	newmeasurements.emplace_back( m_measurements.front() ) ;
+	
+	double m_density = 2; // mm?
+	// add the first point
+	auto it = m_measurements.begin() ;
+	auto prev = it ;
+	for( ++it ; it != m_measurements.end(); ++it ) {
+	  const auto p1 = prev->position() ;
+	  const auto p2 = it->position() ;
+	  const auto delta = p2 - p1 ;
+	  const unsigned int numpoints = int(delta.length()/m_density) ;
+	  for(unsigned int j=1; j<numpoints; ++j) {
+	    const auto p = p1 + delta * j/numpoints ;
+	    newmeasurements.emplace_back( prev->name() + "_" + QString::number(j+1), p ) ;
+	  }
+	  newmeasurements.emplace_back( *it ) ;
+	  prev = it ;
+	}
+	m_measurements.swap(newmeasurements) ;	    
+      }
+      fillTable() ;
+    }
+  } ;
+
+  
   
   //****************************************************************************//
   class SideReportPage : public QWidget
@@ -773,7 +828,8 @@ namespace PAP
       
       this->addTab(new SideReportPage{this,tilemarkerpage,
 	    sensorsurfacepage[0],sensorsurfacepage[1],substratesurfacepage},"Report") ;
-      
+
+      this->addTab(new LineScanPage{camerasvc,view}, "Generic surface") ;
     }
   } ;
   

@@ -667,6 +667,15 @@ namespace PAP
     measurement.globalcoordinates = globalCoordinates( localpoint ) ;
     // Let's also add the name of the marker
     measurement.markername = closestMarkerName() ;
+    // let's fill the module coordinates
+    const auto viewdir = currentViewDirection() ;
+    const auto& geosvc = GeometrySvc::instance() ;
+    const QTransform fromGlobalToModule = geosvc->fromModuleToGlobal(viewdir).inverted() ;
+    const auto modulecoordinatesXY = fromGlobalToModule.map( measurement.globalcoordinates ) ;
+    measurement.modulecoordinates.setX( modulecoordinatesXY.x() ) ;
+    measurement.modulecoordinates.setY( modulecoordinatesXY.y() ) ;
+    measurement.modulecoordinates.setZ( geosvc->moduleZ( viewdir, mscoord.focus ) ) ;
+    
     return measurement ;
   }
   

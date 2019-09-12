@@ -382,6 +382,11 @@ namespace PAP
   } ;
   */
 
+  void CameraWindow::moveCameraToPointInModule( QVector3D modulepoint ) {
+    m_cameraview->moveCameraToPointInModule( QPointF(modulepoint.x(), modulepoint.y() ) ) ;
+    m_autofocus->moveFocusToModuleZ( modulepoint.z() ) ;
+  }
+  
   void CameraWindow::moveToPositionInModuleFrame()
   {
     // pop up a dialog with a table where we can fill in an x and a y value in the module frame
