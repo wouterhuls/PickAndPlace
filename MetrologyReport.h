@@ -20,7 +20,7 @@ namespace PAP
   // FIXME: we already have a class
   // 'CoordinateMeasurement'. cannot we merge those? or at least make
   // the names a bit more descriptive?
-  class ReportCoordinate 
+  class ReportCoordinate
   {
   public:
     enum Status { Uninitialized, Initialized, Ready, Failed } ;
@@ -28,28 +28,25 @@ namespace PAP
     QString m_name{"Unknown"} ;
     // These coordinates in the GLOBAL LHCb frame? That's most logical
     // but perhaps not the most convenient?
-    double m_x{0} ;
-    double m_y{0} ;
-    double m_z{0} ;
+    Coordinates3D m_position ;
     Status m_status{Uninitialized} ;
   public:
-    ReportCoordinate( const FiducialDefinition& def, double z )
-      : m_name{def.name}, m_x{def.x}, m_y{def.y}, m_z{z}, m_status{Initialized} {}
+    ReportCoordinate( const FiducialDefinition& def, float z )
+      : m_name{def.name}, m_position{static_cast<float>(def.x),static_cast<float>(def.y),z}, m_status{Initialized} {}
     ReportCoordinate( const QString& name, const Coordinates3D& x)
-      : m_name{name}, m_x{x.x()}, m_y{x.y()}, m_z{x.z()}, m_status{Initialized} {}
-    ReportCoordinate( const QString& name, double x, double y, double z, Status s = Initialized )
-    : m_name{name}, m_x{x}, m_y{y}, m_z{z}, m_status{s} {}
+      : m_name{name}, m_position{x}, m_status{Initialized} {}
+    ReportCoordinate( const QString& name, float x, float y, float z, Status s = Initialized )
+      : m_name{name}, m_position{x,y,z}, m_status{s} {}
     ReportCoordinate() = default ;
     const QString& name() const { return m_name ; }
-    double x() const { return m_x ;}
-    double y() const { return m_y ;}
-    double z() const { return m_z ;}
-    void setX( double x ) { m_x = x ; }
-    void setY( double y ) { m_y = y ; }
-    void setZ( double z ) { m_z = z ; }
+    double x() const { return m_position.x() ;}
+    double y() const { return m_position.y() ;}
+    double z() const { return m_position.z() ;}
+    void setPosition( float x, float y, float z ) { m_position = Coordinates3D{x,y,z} ; }
     void setStatus( Status s ) { m_status = s; }
-    Coordinates3D position() const { return Coordinates3D(m_x,m_y,m_z) ; }
+    const Coordinates3D& position() const { return m_position ; }
     Status status() const { return m_status ; }
+    ReportCoordinate& operator=( const Coordinates3D& x ) { m_position=x ; return *this ; }
   } ;
 
   /*

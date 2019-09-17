@@ -6,6 +6,7 @@
 class QLabel ;
 class QPlainTextEdit ;
 class QTableWidget ;
+class QVideoFrame ;
 
 namespace PAP
 {
@@ -57,6 +58,9 @@ namespace PAP
     AlignMainJigPage(ViewDirection dir, PAP::CameraView* camview) ;
   public slots:
     void updateAlignment() const ;
+    void findMarker( const QVideoFrame& frame ) ;
+  private:
+    bool m_triggerMarkerFinder{false} ;
   } ;
   
   // helper class for page for alignment of the tiles
