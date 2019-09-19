@@ -4,6 +4,7 @@
 #include "MotionSystemSvc.h"
 #include "GraphicsItems.h"
 #include "CoordinateMeasurement.h"
+#include "AutoFocus.h"
 
 #include <QCamera>
 #include <QCameraInfo>
@@ -150,8 +151,6 @@ namespace PAP
     m_globalgeometry = new QGraphicsItemGroup{} ;
     m_scene->addItem( m_globalgeometry ) ;
 
-    
-
     // Add the coordinates of the pointer, somewhere
     m_textbox = new QGraphicsItemGroup{} ;
     m_markertext = new QGraphicsSimpleTextItem{"markername"} ;
@@ -210,6 +209,8 @@ namespace PAP
     positionTextBox() ;
 
     show() ;
+
+    m_autofocus = new AutoFocus{ this, this } ;
   }
   
   
@@ -598,13 +599,14 @@ namespace PAP
     return markernames ;
   }
   
-  void CameraView::moveCameraTo( const QString& markername ) const
+  void CameraView::moveCameraTo( const QString& markername, bool useDefaultFocus ) const
   {
     const QGraphicsItem* marker = finditemByToolTipText(*m_detectorgeometry, markername) ;
     if(marker) {
       // get the coordinates in the scene
       QPointF localcoord = m_detectorgeometry->mapToScene( marker->pos() ) ;
       moveCameraTo( localcoord, AbsolutePosition ) ;
+      if( useDefaultFocus ) autofocus()->applyMarkerFocus( markername ) ;
     } else {
       qWarning() << "Cannot find graphics item: " << markername ;
     }

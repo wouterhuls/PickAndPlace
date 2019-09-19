@@ -24,6 +24,7 @@ namespace PAP
 {
   class CoordinateMeasurement ;
   class Marker ;
+  class AutoFocus ;
   
   class CameraView : public QGraphicsView
   {
@@ -84,7 +85,9 @@ namespace PAP
     QString closestMarkerName() const ;
     QStringList visibleMarkers() const ;
     /// Move to a particular marker
-    void moveCameraTo( const QString& name ) const ;
+    void moveCameraTo( const QString& name, bool useDefaultFocus = false ) const ;
+    AutoFocus* autofocus() { return m_autofocus ; }
+    const AutoFocus* autofocus() const { return m_autofocus ; }
   signals:
     void recording( const CoordinateMeasurement& ) const ;
     
@@ -160,6 +163,7 @@ namespace PAP
     
     // derived parameters for the camera centre in the module frame
     MonitoredQPointF m_cameraCentreInModuleFrame ;
+    AutoFocus* m_autofocus{0} ;
   };
 }
 

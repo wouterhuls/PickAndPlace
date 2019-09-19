@@ -40,9 +40,8 @@ namespace PAP
     setWindowTitle("Velo Pick&Place") ;
 
     m_cameraview = new CameraView{this} ;
-    m_autofocus = new AutoFocus{ m_cameraview, this } ;
-    m_autofocus->move(950,600) ;
-    m_autofocus->show() ;
+    autofocus()->move(950,600) ;
+    autofocus()->show() ;
 
     // create dialog for the motion system interface
     m_motionsystemdialog = new QDialog{ this } ;
@@ -149,7 +148,7 @@ namespace PAP
 
     auto markerfocusbutton = new QPushButton("Marker focus",this) ;
     markerfocusbutton->setToolTip("Move to the default focus position of the closest marker") ;
-    connect( markerfocusbutton, &QPushButton::clicked, m_autofocus, &AutoFocus::applyMarkerFocus ) ;
+    connect( markerfocusbutton, &QPushButton::clicked, [&]() { autofocus()->applyMarkerFocus() ; } ) ;
     buttonlayout->addWidget( markerfocusbutton ) ;
 
     {
@@ -311,7 +310,7 @@ namespace PAP
 
   void CameraWindow::on_focusButton_clicked()
   {
-    m_autofocus->show() ;
+    autofocus()->show() ;
     //m_autofocus->startFocusSequence() ;
   }
 
@@ -373,6 +372,11 @@ namespace PAP
     }
   }
 
+  AutoFocus* CameraWindow::autofocus()
+  {
+    return m_cameraview->autofocus() ;
+  }
+
   /*
   void CameraWindow::createActions()
   {
@@ -384,7 +388,7 @@ namespace PAP
 
   void CameraWindow::moveCameraToPointInModule( QVector3D modulepoint ) {
     m_cameraview->moveCameraToPointInModule( QPointF(modulepoint.x(), modulepoint.y() ) ) ;
-    m_autofocus->moveFocusToModuleZ( modulepoint.z() ) ;
+    autofocus()->moveFocusToModuleZ( modulepoint.z() ) ;
   }
   
   void CameraWindow::moveToPositionInModuleFrame()
@@ -475,7 +479,7 @@ namespace PAP
       auto action = new QAction(tr("&Autofocus"), this);
       viewMenu->addAction(action);
       action->setStatusTip(tr("Show autofocus window")) ;
-      connect(action, &QAction::triggered, [=](){ m_autofocus->show() ; } ) ;
+      connect(action, &QAction::triggered, [=](){ autofocus()->show() ; } ) ;
     }
    
 

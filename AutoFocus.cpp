@@ -206,22 +206,35 @@ namespace PAP
 
   void AutoFocus::storeMarkerFocus()
   {
-    auto closestmarker = m_cameraView->closestMarkerName() ;
-    auto dir = m_cameraView->currentViewDirection() ;
-    auto it = m_markerfocuspoints[dir].find( closestmarker ) ;
-    if( it != m_markerfocuspoints[dir].end() ) {
-      double zpos = m_zaxis->position() ;
-      it->second.setValue( zpos ) ;
-    }
+    storeMarkerFocus( m_cameraView->closestMarkerName() ) ;
   }
 
-  void AutoFocus::applyMarkerFocus() const
+  void AutoFocus::storeMarkerFocus(const QString& name)
+  {
+    storeMarkerFocus(name, m_zaxis->position() ) ;
+  }
+    
+  void AutoFocus::storeMarkerFocus(const QString& name, double focus)
   {
     auto closestmarker = m_cameraView->closestMarkerName() ;
     auto dir = m_cameraView->currentViewDirection() ;
     auto it = m_markerfocuspoints[dir].find( closestmarker ) ;
     if( it != m_markerfocuspoints[dir].end() )
+      it->second.setValue( focus ) ;
+  }
+  
+  void AutoFocus::applyMarkerFocus(const QString& markername) const
+  {
+    auto dir = m_cameraView->currentViewDirection() ;
+    auto it = m_markerfocuspoints[dir].find( markername ) ;
+    if( it != m_markerfocuspoints[dir].end() )
       moveFocusTo( it->second.value()  ) ;
+  }
+
+  void AutoFocus::applyMarkerFocus() const
+  {
+    auto closestmarker = m_cameraView->closestMarkerName() ;
+    applyMarkerFocus( closestmarker) ;
   }
   
  void AutoFocus::processFrame( const QVideoFrame& frame )

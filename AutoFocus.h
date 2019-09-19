@@ -66,7 +66,10 @@ namespace PAP
   public slots:      
     void processFrame( const QVideoFrame& frame ) ;
     void storeMarkerFocus() ;
+    void storeMarkerFocus( const QString& name ) ;
+    void storeMarkerFocus( const QString& name, double focus ) ;
     void applyMarkerFocus() const ;
+    void applyMarkerFocus( const QString& markername ) const ;
     void analyseFastFocus( PAP::FocusMeasurement result ) ;
     void analyseSlowFocus( PAP::FocusMeasurement result ) ;
   private:

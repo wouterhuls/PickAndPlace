@@ -27,7 +27,7 @@ namespace PAP
     explicit CameraWindow(QWidget *parent = 0);
     ~CameraWindow() {}
     CameraView* cameraview() { return m_cameraview ; }
-    AutoFocus* autofocus() { return m_autofocus ; }
+    AutoFocus* autofocus() ;
     //MetrologyReport* measurementreport() { return m_measurementreport ; }
 
     QString moduleName() const { return m_moduleName.value(); }
@@ -47,7 +47,6 @@ namespace PAP
     void createMenus() ;
   private:
     CameraView* m_cameraview{0} ;
-    AutoFocus* m_autofocus{0} ;
     QDialog*   m_motionsystemdialog{0} ;
     //MetrologyReportPage* m_metrologyreport{0} ;
     // some labels that tell where the cursor position is

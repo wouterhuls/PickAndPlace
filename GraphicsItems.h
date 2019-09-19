@@ -319,7 +319,7 @@ class ReferenceMarker : public Marker
       // semitransparent yellow??
       QPen pen ;
       pen.setColor( QColor{65,80,244} ) ;
-      pen.setWidthF(0.002);
+      pen.setWidthF(0.1);
       painter->setPen(pen) ;
       QRectF rectangle{-0.5*m_circleradius,-0.5*m_circleradius,m_circleradius,m_circleradius} ;
       painter->drawEllipse(QPointF(+m_circledist,0), m_circleradius,m_circleradius) ;

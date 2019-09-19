@@ -34,7 +34,7 @@ namespace PAP
     auto hlayout = new QHBoxLayout{} ;
     setLayout(hlayout) ;
     auto movetomarker1button = new QPushButton{markername, this} ;
-    connect(movetomarker1button,&QPushButton::clicked,[=](){ camview->moveCameraTo(markername) ; } ) ;
+    connect(movetomarker1button,&QPushButton::clicked,[=](){ camview->moveCameraTo(markername, true) ; } ) ;
     hlayout->addWidget( movetomarker1button ) ;
     
     auto recordcentrebutton = new QPushButton{"record centre", this} ;
@@ -68,11 +68,7 @@ namespace PAP
       }
       m_measurement = m ;
       setStatus( Recorded ) ;
-      //auto T = GeometrySvc::instance()->fromModuleToGlobal(m_cameraview->currentViewDirection()).inverted() ;
-      // qDebug() << "Measured position in module frame: "
-      // 	       << T.map( QPointF{m.globalcoordinates} ) ;
-      // qDebug() << "Nominal position in module frame:  "
-      // 	       << T.map( QPointF{m_markerposition} ) ;
+      // store the markerfocus for later use ?
     }
   }
   
@@ -286,22 +282,22 @@ namespace PAP
 	
 	qDebug() << "Number of circles: " << circles.size() ;
 	// now identify the correct circles. lot's more hardcoded numbers that we can just take from the geometry.
-	int selectedcircles[4] = {0,0,0,0} ;
+	std::vector<int> selectedcircles;
 	bool success=false ;
 	double x{0},y{0},phi{0} ;
-	for( size_t i = 0; i < circles.size(); ++i ) {
+	for( size_t i = 0; i < circles.size() && !success; ++i ) {
 	  const auto ix = circles[i][0]  ;
 	  const auto iy = circles[i][1]  ;
 	  // find 1 circles that is at a distance of 100 from this one
-	  for( size_t j = 0; j < i; ++j ) {
+	  for( size_t j = 0; j < i && !success; ++j ) {
 	    const auto jx = circles[j][0]  ;
 	    const auto jy = circles[j][1]  ;
 	    const auto dx = ix - jx ; 
 	    const auto dy = iy - jy ;
 	    const double r = std::sqrt(dx*dx + dy*dy) ;
 	    if( 95 < r && r < 105 ) {
-	      selectedcircles[0] = i ;
-	      selectedcircles[1] = j ;
+	      selectedcircles.emplace_back(i) ;
+	      selectedcircles.emplace_back(j) ;
 	      // bingo. find the other two
 	      const auto ijx = (ix+jx)/2 ;
 	      const auto ijy = (iy+jy)/2 ;
@@ -319,7 +315,7 @@ namespace PAP
 		    sumx += kx ;
 		    sumy += ky ;
 		    ++n ;
-		    selectedcircles[n+1] = k ;
+		    selectedcircles.emplace_back(k) ;
 		  }
 		}
 	      if( n == 2 ) {
@@ -335,28 +331,46 @@ namespace PAP
 		   sumr2 += std::pow(x - circles[l][0],2) + std::pow(y - circles[l][1],2) ;
 		 }
 		 qDebug() << "Average distance: " << std::sqrt(sumr2/4) ;
+		 qDebug() << "Selected circles: "
+			  << selectedcircles.size() << " : "
+			  << selectedcircles ;
+		 
 		 // I wonder if we better do a chi2 fit, given that we know all dimensions
 	      }
 	    }
 	  }
-	}    
-	// create a graphics item to add to the geometry and draw it
-	if(!m_measuredmarker) {
-	  m_measuredmarker = new MeasuredJigMarker("MeasuredMarker") ;
-	  m_cameraview->globalgeometry()->addToGroup( m_measuredmarker ) ;
 	}
+	if(success) {
+	  // create a graphics item to add to the geometry and draw it
+	  if(!m_measuredmarker) {
+	    m_measuredmarker = new MeasuredJigMarker("MeasuredMarker",m_cameraview->globalgeometry()) ;
+	    //m_measuredmarker = new StackAxisMarker() ;
+	    //new SightMarker( FiducialDefinition{"Measurement",0,0}, 10 ) ;
+	    m_cameraview->globalgeometry()->addToGroup( m_measuredmarker ) ;
+	    m_measuredmarker->setZValue(1) ;
+	    m_measuredmarker->show() ;
+	    m_cameraview->globalgeometry()->show() ;
+	    m_cameraview->show() ;
+	  }
 	  
-	// now translate the pixel coordinates and angles to
-	// coordinates and angles in the global frame
-	// first create the transform in the pixel frame. See Cameraview::updateGeometryView for the inverse.
-	QTransform pixeltomarker;
-	pixeltomarker.translate(x,y) ;
-	pixeltomarker.rotateRadians(phi) ;
-	const auto geomsvc = GeometrySvc::instance() ;
-	// Now watch the order!
-	const QTransform T1 = geomsvc->fromCameraToGlobal() ;
-	const QTransform T2 = m_cameraview->fromCameraToPixel() ;
-	m_measuredmarker->setTransform( pixeltomarker * T2.inverted() * T1 ) ;
+	  // now translate the pixel coordinates and angles to
+	  // coordinates and angles in the global frame
+	  // first create the transform in the pixel frame. See Cameraview::updateGeometryView for the inverse.
+	  QTransform pixeltomarker;
+	  pixeltomarker.translate(x,y) ;
+	  pixeltomarker.rotateRadians(phi) ;
+	  const auto geomsvc = GeometrySvc::instance() ;
+	  // Now watch the order!
+	  const QTransform T1 = geomsvc->fromCameraToGlobal() ;
+	  const QTransform T2 = m_cameraview->fromCameraToPixel() ;
+	  m_measuredmarker->setTransform( pixeltomarker * T2.inverted() * T1 ) ;
+	  qDebug() << "Global coordinates: "
+		   << m_measuredmarker->transform().m31()
+		   << m_measuredmarker->transform().m32() ;
+	  // let's auto move the camera
+	  m_cameraview->moveCameraTo( QPointF{x,y}, CameraView::AbsolutePosition ) ;
+	  
+	}
       }
     }
   }
