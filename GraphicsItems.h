@@ -296,14 +296,14 @@ class ReferenceMarker : public Marker
   } ;
 
   // This is the actual jig marker to scale.
-  class NewJigMarker : public Marker
+  class MeasuredJigMarker : public Marker
   {
   private:
     const float m_circleradius = 0.02 ;
     const float m_circledist   = 0.025*std::sqrt(2.) ;
   public:
-  NewJigMarker(const FiducialDefinition& def, QGraphicsItem *parent = Q_NULLPTR)
-    : Marker(def,parent) {}
+  MeasuredJigMarker(const QString& name, QGraphicsItem *parent = Q_NULLPTR)
+    : Marker{name,0,0, parent} {}
     
     virtual QRectF boundingRect() const
     {
@@ -382,7 +382,7 @@ class ReferenceMarker : public Marker
 
 
   
-   // Implements graphics item for Velopix marker. Center of marker is
+   // Implements graphics item for stack axis marker. Center of marker is
   // center of system. Units are in microns!!!
   class StackAxisMarker : public QGraphicsItem
   {

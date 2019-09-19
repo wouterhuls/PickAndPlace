@@ -7,6 +7,7 @@
 #include "AutoFocus.h"
 #include "TextEditStream.h"
 #include "NominalMarkers.h"
+#include "GraphicsItems.h"
 
 #include <cmath>
 #include "Eigen/Dense"
@@ -286,6 +287,8 @@ namespace PAP
 	qDebug() << "Number of circles: " << circles.size() ;
 	// now identify the correct circles. lot's more hardcoded numbers that we can just take from the geometry.
 	int selectedcircles[4] = {0,0,0,0} ;
+	bool success=false ;
+	double x{0},y{0},phi{0} ;
 	for( size_t i = 0; i < circles.size(); ++i ) {
 	  const auto ix = circles[i][0]  ;
 	  const auto iy = circles[i][1]  ;
@@ -320,8 +323,10 @@ namespace PAP
 		  }
 		}
 	      if( n == 2 ) {
-		auto x = sumx/4 ;
-		auto y = sumy/4 ;
+		x = sumx/4 ;
+		y = sumy/4 ;
+		phi = std::atan2(dy,dx) ;
+		success = true ;
 		qDebug() << "Marker position is: " << x << "," << y ;
 		//circle( src, cv::Point{int(x),int(y)}, 10, cv::Scalar(255,0,255), 3, 8, 0 );
 		double sumr2{0} ;
@@ -336,6 +341,22 @@ namespace PAP
 	  }
 	}    
 	// create a graphics item to add to the geometry and draw it
+	if(!m_measuredmarker) {
+	  m_measuredmarker = new MeasuredJigMarker("MeasuredMarker") ;
+	  m_cameraview->globalgeometry()->addToGroup( m_measuredmarker ) ;
+	}
+	  
+	// now translate the pixel coordinates and angles to
+	// coordinates and angles in the global frame
+	// first create the transform in the pixel frame. See Cameraview::updateGeometryView for the inverse.
+	QTransform pixeltomarker;
+	pixeltomarker.translate(x,y) ;
+	pixeltomarker.rotateRadians(phi) ;
+	const auto geomsvc = GeometrySvc::instance() ;
+	// Now watch the order!
+	const QTransform T1 = geomsvc->fromCameraToGlobal() ;
+	const QTransform T2 = m_cameraview->fromCameraToPixel() ;
+	m_measuredmarker->setTransform( pixeltomarker * T2.inverted() * T1 ) ;
       }
     }
   }

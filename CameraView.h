@@ -48,6 +48,7 @@ namespace PAP
 
     QGraphicsItemGroup* nsidemarkers() { return m_nsidemarkers; }
     QGraphicsItemGroup* csidemarkers() { return m_csidemarkers; }
+    QGraphicsItemGroup* globalgeometry() { return m_globalgeometry ; }
 
     void updateGeometryView() ;
     void updateStackAxisView() ;
@@ -143,10 +144,11 @@ namespace PAP
 
     // some info on the view direction
     ViewDirection m_currentViewDirection ;
-    QGraphicsItemGroup* m_detectorgeometry ;
+    QGraphicsItemGroup* m_detectorgeometry ; // this contains items in the module frame
     QGraphicsItemGroup* m_nsidemarkers ;
     QGraphicsItemGroup* m_csidemarkers ;
     QGraphicsItem* m_stackaxis ;
+    QGraphicsItemGroup* m_globalgeometry ;  // this contains items in the global frame
     
     // needed for the smooth zoom function
     int m_numScheduledScalings ;

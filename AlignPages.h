@@ -7,6 +7,7 @@ class QLabel ;
 class QPlainTextEdit ;
 class QTableWidget ;
 class QVideoFrame ;
+class QGraphicsItem ;
 
 namespace PAP
 {
@@ -61,6 +62,7 @@ namespace PAP
     void findMarker( const QVideoFrame& frame ) ;
   private:
     bool m_triggerMarkerFinder{false} ;
+    QGraphicsItem* m_measuredmarker{0} ;
   } ;
   
   // helper class for page for alignment of the tiles
