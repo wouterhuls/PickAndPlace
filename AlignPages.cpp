@@ -7,6 +7,7 @@
 #include "AutoFocus.h"
 #include "TextEditStream.h"
 #include "NominalMarkers.h"
+#include "GraphicsItems.h"
 
 #include <cmath>
 #include "Eigen/Dense"
@@ -16,8 +17,9 @@
 #include <QLabel>
 #include <QTableWidget>
 #include <QSignalSpy>
+#include <QVideoProbe>
 
-
+#include <opencv2/opencv.hpp>
 
 namespace PAP
 {
@@ -187,6 +189,9 @@ namespace PAP
     auto calibrationbutton = new QPushButton{"Calibrate", this} ;
     connect(calibrationbutton,&QPushButton::clicked,[=](){ this->updateAlignment() ; } ) ;
     vlayout->addWidget( calibrationbutton ) ;
+    auto autofindbutton = new QPushButton{"Find", this} ;
+    connect(autofindbutton,&QPushButton::clicked,[=](){ m_triggerMarkerFinder=true ; } ) ;
+    vlayout->addWidget( autofindbutton ) ;
 
     m_textbox = new QPlainTextEdit{this} ;
     hlayout->addWidget( m_textbox ) ;
@@ -197,6 +202,10 @@ namespace PAP
 			       "d. take a recording\n"
 			       "e. press the calibrate button\n"
 			       "f. repeat steps a-e until you are satisfied\n") ;
+
+    connect(camview->videoProbe(), SIGNAL(videoFrameProbed(QVideoFrame)),
+	    this, SLOT(findMarker(QVideoFrame)));
+     
     //QFont font = tmptext1->font();
     //font.setPointSize(2);
     //font.setBold(true);
@@ -230,6 +239,128 @@ namespace PAP
     }
   }
 
+  void AlignMainJigPage::findMarker( const QVideoFrame& frame )
+  {
+    if( m_triggerMarkerFinder ) {
+      m_triggerMarkerFinder = false ;
+      // first call the 'map' to copy the contents to accessible memory
+      const_cast<QVideoFrame&>(frame).map(QAbstractVideoBuffer::ReadOnly) ;
+      if( frame.bits() && frame.pixelFormat() == QVideoFrame::Format_RGB32 ) {
+	//QImage::Format imageFormat = QVideoFrame::imageFormatFromPixelFormat(frame.pixelFormat());
+	//QImage img( frame.bits(),frame.width(),frame.height(),frame.bytesPerLine(),imageFormat);
+	cv::Mat mat( frame.height(), frame.width(), CV_8UC4,
+		     const_cast<uchar*>(frame.bits()), static_cast<size_t>(frame.bytesPerLine()) );
+	// Officially, we still need to convert this to another format,
+	// because the byte ordering is wrong. That may be not very
+	// important for our application.
+	// (see https://asmaloney.com/2013/11/code/converting-between-cvmat-and-qimage-or-qpixmap/)
+	//cv::Mat  matNoAlpha;
+	//cv::cvtColor( mat, matNoAlpha, cv::COLOR_BGRA2BGR ); // drop the all-white alpha channel
+	// See https://docs.opencv.org/2.4/doc/tutorials/imgproc/imgtrans/hough_circle/hough_circle.html
+	
+	// Very soon we'll wamnt to crop the image, because I think that will save time once we are going to do a Hough transform
+	// Setup a rectangle to define your region of interest
+	//cv::Rect myROI(10, 10, 100, 100);
+	
+	// Crop the full image to that image contained by the rectangle myROI
+	// Note that this doesn't copy the data
+	// cv::Mat croppedImage = image(myROI);
+	
+	cv::Mat  src_gray ;
+	/// Convert it to gray
+	cv::cvtColor( mat, src_gray, cv::COLOR_BGRA2GRAY );
+	
+	/// Reduce the noise so we avoid false circle detection
+	//cv::GaussianBlur( src_gray, src_gray, Size(9, 9), 2, 2 );
+	
+	std::vector<cv::Vec3f> circles;
+	
+	/// Apply the Hough Transform to find the circles
+	const auto min_dist = 50; //src_gray.rows/8,
+	const auto dp = 1 ; //: The inverse ratio of resolution
+	const auto param_1 = 150; // Upper threshold for the internal Canny edge detector
+	const auto param_2 = 10; // Threshold for center detection.
+	const auto min_radius = 10; // Minimum radio to be detected. If unknown, put zero as default.
+	const auto max_radius = 20; // Maximum radius to be detected. If unknown, put zero as default
+	cv::HoughCircles( src_gray, circles, cv::HOUGH_GRADIENT, dp,min_dist,param_1,param_2,min_radius,max_radius);
+	
+	qDebug() << "Number of circles: " << circles.size() ;
+	// now identify the correct circles. lot's more hardcoded numbers that we can just take from the geometry.
+	int selectedcircles[4] = {0,0,0,0} ;
+	bool success=false ;
+	double x{0},y{0},phi{0} ;
+	for( size_t i = 0; i < circles.size(); ++i ) {
+	  const auto ix = circles[i][0]  ;
+	  const auto iy = circles[i][1]  ;
+	  // find 1 circles that is at a distance of 100 from this one
+	  for( size_t j = 0; j < i; ++j ) {
+	    const auto jx = circles[j][0]  ;
+	    const auto jy = circles[j][1]  ;
+	    const auto dx = ix - jx ; 
+	    const auto dy = iy - jy ;
+	    const double r = std::sqrt(dx*dx + dy*dy) ;
+	    if( 95 < r && r < 105 ) {
+	      selectedcircles[0] = i ;
+	      selectedcircles[1] = j ;
+	      // bingo. find the other two
+	      const auto ijx = (ix+jx)/2 ;
+	      const auto ijy = (iy+jy)/2 ;
+	      size_t n{0} ;
+	      auto sumx = ix+jx ;
+	      auto sumy = iy+jy ;
+	      for( size_t k = 0; k < circles.size(); ++k )
+		if(k != i && k!=j ) {
+		  const auto kx = circles[k][0]  ;
+		  const auto ky = circles[k][1]  ;
+		  const auto dx = kx - ijx ; 
+		  const auto dy = ky - ijy ;
+		  const double r = std::sqrt(dx*dx + dy*dy) ;
+		  if( 45 < r && r < 55 ) {
+		    sumx += kx ;
+		    sumy += ky ;
+		    ++n ;
+		    selectedcircles[n+1] = k ;
+		  }
+		}
+	      if( n == 2 ) {
+		x = sumx/4 ;
+		y = sumy/4 ;
+		phi = std::atan2(dy,dx) ;
+		success = true ;
+		qDebug() << "Marker position is: " << x << "," << y ;
+		//circle( src, cv::Point{int(x),int(y)}, 10, cv::Scalar(255,0,255), 3, 8, 0 );
+		double sumr2{0} ;
+		 for(int k=0; k<4; ++k) {
+		   int l = selectedcircles[k] ;
+		   sumr2 += std::pow(x - circles[l][0],2) + std::pow(y - circles[l][1],2) ;
+		 }
+		 qDebug() << "Average distance: " << std::sqrt(sumr2/4) ;
+		 // I wonder if we better do a chi2 fit, given that we know all dimensions
+	      }
+	    }
+	  }
+	}    
+	// create a graphics item to add to the geometry and draw it
+	if(!m_measuredmarker) {
+	  m_measuredmarker = new MeasuredJigMarker("MeasuredMarker") ;
+	  m_cameraview->globalgeometry()->addToGroup( m_measuredmarker ) ;
+	}
+	  
+	// now translate the pixel coordinates and angles to
+	// coordinates and angles in the global frame
+	// first create the transform in the pixel frame. See Cameraview::updateGeometryView for the inverse.
+	QTransform pixeltomarker;
+	pixeltomarker.translate(x,y) ;
+	pixeltomarker.rotateRadians(phi) ;
+	const auto geomsvc = GeometrySvc::instance() ;
+	// Now watch the order!
+	const QTransform T1 = geomsvc->fromCameraToGlobal() ;
+	const QTransform T2 = m_cameraview->fromCameraToPixel() ;
+	m_measuredmarker->setTransform( pixeltomarker * T2.inverted() * T1 ) ;
+      }
+    }
+  }
+  
   // helper class for page for alignment of the tiles
   AlignTilePage::AlignTilePage(PAP::CameraView* camview, const TileInfo& tileinfo)
     : m_cameraview(camview), m_tilename(tileinfo.name)

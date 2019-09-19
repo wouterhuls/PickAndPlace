@@ -18,6 +18,9 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 TARGET = PickAndPlace
 TEMPLATE = app
 
+PKGCONFIG += opencv4
+CONFIG += link_pkgconfig
+
 SOURCES += main.cpp \
     MotionSystemSerialPort.cpp \
     MotionControllerWidget.cpp \

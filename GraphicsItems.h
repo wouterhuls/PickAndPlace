@@ -295,6 +295,41 @@ class ReferenceMarker : public Marker
     }    
   } ;
 
+  // This is the actual jig marker to scale.
+  class MeasuredJigMarker : public Marker
+  {
+  private:
+    const float m_circleradius = 0.02 ;
+    const float m_circledist   = 0.025*std::sqrt(2.) ;
+  public:
+  MeasuredJigMarker(const QString& name, QGraphicsItem *parent = Q_NULLPTR)
+    : Marker{name,0,0, parent} {}
+    
+    virtual QRectF boundingRect() const
+    {
+      //qreal penWidth = 1 ;
+      qreal bound = 2*(m_circledist + m_circleradius) ;
+      return QRectF{-0.5*bound,-0.5*bound,bound,bound} ;
+    }
+
+    virtual void paint(QPainter *painter,
+		       const QStyleOptionGraphicsItem* /*option*/,
+		       QWidget* /*widget*/)
+    {
+      // semitransparent yellow??
+      QPen pen ;
+      pen.setColor( QColor{65,80,244} ) ;
+      pen.setWidthF(0.002);
+      painter->setPen(pen) ;
+      QRectF rectangle{-0.5*m_circleradius,-0.5*m_circleradius,m_circleradius,m_circleradius} ;
+      painter->drawEllipse(QPointF(+m_circledist,0), m_circleradius,m_circleradius) ;
+      painter->drawEllipse(QPointF(0,+m_circledist), m_circleradius,m_circleradius) ;
+      painter->drawEllipse(QPointF(-m_circledist,0), m_circleradius,m_circleradius) ;
+      painter->drawEllipse(QPointF(0,-m_circledist), m_circleradius,m_circleradius) ;
+    }
+  } ;
+  
+
   // Implements graphics item for Velopix marker. Center of marker is
   // center of system. Units are in microns!!!
   class SightMarker : public QGraphicsItem
@@ -347,7 +382,7 @@ class ReferenceMarker : public Marker
 
 
   
-   // Implements graphics item for Velopix marker. Center of marker is
+   // Implements graphics item for stack axis marker. Center of marker is
   // center of system. Units are in microns!!!
   class StackAxisMarker : public QGraphicsItem
   {
@@ -379,6 +414,7 @@ class ReferenceMarker : public Marker
       painter->drawLine(QPointF(-L,0),QPointF(L,0)) ;
     }    
   } ;
+
   
   
 

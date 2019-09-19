@@ -147,6 +147,10 @@ namespace PAP
     m_detectorgeometry->addToGroup( beamline ) ;
     this->setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
 
+    m_globalgeometry = new QGraphicsItemGroup{} ;
+    m_scene->addItem( m_globalgeometry ) ;
+
+    
 
     // Add the coordinates of the pointer, somewhere
     m_textbox = new QGraphicsItemGroup{} ;
@@ -176,13 +180,11 @@ namespace PAP
 	    this,&CameraView::updatePositionText) ;
 
     m_stackaxis = new StackAxisMarker() ;
-    m_scene->addItem(m_stackaxis) ;
+    m_globalgeometry->addToGroup( m_stackaxis ) ;
     connect(MotionSystemSvc::instance(),&MotionSystemSvc::stackStageMoved,
 	    this,&CameraView::updateStackAxisView) ;
-    connect(MotionSystemSvc::instance(),&MotionSystemSvc::mainStageMoved,
-	    this,&CameraView::updateStackAxisView) ;
     updateStackAxisView() ;
-
+    
    
     //m_cursor = new QGraphicsTextItem("0, 0", 0, this); //Fixed at 0, 0
 
@@ -307,7 +309,8 @@ namespace PAP
     // Now watch the order!
     const QTransform T1 = geomsvc->fromCameraToGlobal() ;
     const QTransform T2 = geomsvc->fromModuleToGlobal( m_currentViewDirection ) ;
-    const QTransform fromModuleToCamera = T2 * T1.inverted() ;
+    const QTransform T1inv = T1.inverted() ;
+    const QTransform fromModuleToCamera = T2 * T1inv ;
     // I am totally confused that this works:-)
     m_detectorgeometry->setTransform( fromModuleToCamera * fromCameraToPixel() ) ;
 
@@ -321,14 +324,14 @@ namespace PAP
     auto modulepoint = fromCameraToModule.map( QPointF{0,0} ) ;
     m_cameraCentreInModuleFrame.setValue( modulepoint ) ;
     updatePositionText() ;
-  }
 
+    // update the transform for the global frame
+    m_globalgeometry->setTransform( T1inv * fromCameraToPixel() ) ;
+  }
+  
   void CameraView::updateStackAxisView()
   {
-    const auto geomsvc = GeometrySvc::instance() ;
-    QTransform T1 = geomsvc->fromCameraToGlobal() ;
-    QTransform T2 = geomsvc->fromStackToGlobal() ;
-    m_stackaxis->setTransform( (T2 * T1.inverted()) * fromCameraToPixel() ) ;
+    m_stackaxis->setTransform( GeometrySvc::instance()->fromStackToGlobal() ) ;
   }
 
   void CameraView::resetCamera()

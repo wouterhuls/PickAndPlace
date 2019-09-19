@@ -246,16 +246,7 @@ namespace PAP
 	m_measurements.resize( m_activerow+1 ) ;
       // now store the measurement
       auto& reportcoordinate = m_measurements[m_activerow] ;
-      const auto viewdir = m_camerasvc->cameraview()->currentViewDirection() ;
-      const QTransform fromGlobalToModule = GeometrySvc::instance()->fromModuleToGlobal(viewdir).inverted() ;
-      const auto modulecoordinates = fromGlobalToModule.map( measurement.globalcoordinates ) ;
-      
-      reportcoordinate.setX( modulecoordinates.x() ) ;
-      reportcoordinate.setY( modulecoordinates.y() ) ;
-      reportcoordinate.setZ( m_camerasvc->autofocus()->zFromFocus( measurement.mscoordinates.focus ) ) ;
-      reportcoordinate.setStatus ( ReportCoordinate::Ready ) ;
-      qDebug() << "Test: " << reportcoordinate.position() << measurement.modulecoordinates ;
-      
+      reportcoordinate = measurement.modulecoordinates ;
       // finally update the table
       updateTableRow(m_activerow,reportcoordinate) ;
       // Let's also export it to the text stream, such that we can easily copy paste it.
