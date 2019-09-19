@@ -159,7 +159,7 @@ namespace PAP
   void MarkerMetrologyPage::fillTable()
   {
     int N = int(m_measurements.size()) ;
-    if(N>0) {
+    if(N>=0) {
       m_markertable->setRowCount(N) ;
       QTableWidgetItem prototype ;
       prototype.setBackground( QBrush{ QColor{Qt::white} } ) ;
@@ -171,7 +171,7 @@ namespace PAP
 	m_markertable->item(row,0)->setText( m.name() ) ;
 	updateTableRow( row++, m ) ;
       }
-    }
+    } 
   }
 
   void MarkerMetrologyPage::addMarker()
@@ -699,7 +699,10 @@ namespace PAP
       connect(button,&QPushButton::clicked,[=]() { this->run() ; } ) ;
     }
     //
-    void definemarkers() final { m_measurements.clear() ;}
+    void definemarkers() final {
+      m_measurements.clear() ;
+      fillTable() ;
+    }
     
     void run()
     {
