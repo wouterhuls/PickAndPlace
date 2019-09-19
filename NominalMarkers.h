@@ -70,7 +70,10 @@ namespace PAP
 	return std::vector<FiducialDefinition>
 	  {
 	    {"CLI_Sensor_Fid1",-22.794,29.479},
-	    {"CLI_Sensor_Fid2",-22.794,30.257}
+	    {"CLI_Sensor_Fid2",-22.794,30.257},
+	    {"CLI_Sensor_Fid40",+5.658,1.068},
+	    {"CSO_Sensor_Fid3",19.200,-27.115},
+	    {"CSO_Sensor_Fid210",11.185,-19.100}
 	  } ;
       }
     
@@ -79,7 +82,8 @@ namespace PAP
 	return std::vector<FiducialDefinition>
 	  {
 	    {"NSI_Sensor_Fid1",-0.237,-6.923},
-	      {"NSI_Sensor_Fid2",-0.237,-7.700}
+	    {"NSI_Sensor_Fid2",-0.237,-7.700},
+	    {"NSI_Sensor_Fid610",-5.797,-0.897}
 	  } ;
       }
 
