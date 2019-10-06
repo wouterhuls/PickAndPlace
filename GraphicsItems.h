@@ -115,8 +115,9 @@ namespace PAP
       } ;
       QPen pen ;
       //      pen.setColor( QColor{65,80,244} ) ;
-      pen.setWidthF(0.2);
-      pen.setStyle(Qt::DotLine) ;
+      pen.setCosmetic(true) ;
+      pen.setWidthF(1);
+      //pen.setStyle(Qt::DotLine) ;
       painter->setPen(pen) ;
       painter->drawPolygon( points, 9 ) ;
     }
@@ -163,6 +164,14 @@ class ReferenceMarker : public Marker
     const double markerdist = 42.514 ;
     const double width  = 43.470 ;
     const double height = 16.950 ;
+    const double sensorwidth  = 43.470 ;
+    const double sensorheight = 14.980 ;
+    const double sensoredgetoasicmarker = 1.853 ;
+    const double asicdist  = 0.105 ;
+    const double asicsidetomarker = 0.058 ;
+    const double asicbottomtomarker = 0.117 ;
+    const double asicwidth  = (42.514 +2*asicsidetomarker- 2*asicdist)/3. ;
+    const double asicheight = 16.600 ;
   public:
   Tile( const std::vector<FiducialDefinition>& markerdefs,
 	QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItemGroup(parent)
@@ -227,19 +236,29 @@ class ReferenceMarker : public Marker
       // Let's first just draw a thin line that connects the first and last marker
       QPen pen ;
       pen.setColor( QColor{230,100,25} ) ;//Qt::yellow ) ;
-      pen.setWidthF(0.002);
+      pen.setWidthF(1.0);
+      pen.setCosmetic(true) ;
       painter->setPen(pen) ;
       painter->drawLine( QPointF(0,0),QPointF(markerdist,0) ) ;
 
-      // Now draw a rectangle a little bit out. It would be nice to
-      // draw separate boxes for the sensors and the three ASICs.
-      const double X = -(width-markerdist)/2 ;
-      const double Y = -0.117 ;
-      QRectF rectangle{X,Y,width,height} ;
-      pen.setColor( Qt::blue ) ;
-      pen.setWidthF(0.02);
-      painter->setPen(pen) ;
-      painter->drawRect( rectangle ) ;
+       // draw the sensor
+      {
+	pen.setColor( Qt::blue ) ;
+	painter->setPen(pen) ;
+	painter->drawRect( QRectF{ -(sensorwidth-markerdist)/2, sensoredgetoasicmarker, sensorwidth, sensorheight} ) ;
+      }
+      
+      // draw the three ASICs
+      {
+	double x0 = -asicsidetomarker;
+	const double y0 = -asicbottomtomarker ;
+	pen.setColor( Qt::green ) ;
+	painter->setPen(pen) ;
+	for(int i=0; i<3; ++i) {
+	  painter->drawRect(QRectF{x0,y0,asicwidth,asicheight}) ;
+	  x0 += asicwidth + asicdist ;
+	}
+      }
     }
     
     virtual QRectF boundingRect() const
