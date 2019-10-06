@@ -235,6 +235,7 @@ namespace PAP
     if( m_activerow < int(m_measurements.size()) ) {
       const auto& m = m_measurements[m_activerow] ;
       m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.x(),m.y()} ) ;
+      m_markertable->item(m_activerow,0)->setBackground( QBrush{ QColor{m.status() ==  ReportCoordinate::Status::Ready ? Qt::blue : Qt::yellow} } ) ;
     }
   }
   
@@ -247,6 +248,7 @@ namespace PAP
       // now store the measurement
       auto& reportcoordinate = m_measurements[m_activerow] ;
       reportcoordinate = measurement.modulecoordinates ;
+      reportcoordinate.setStatus( ReportCoordinate::Ready ) ;
       // finally update the table
       updateTableRow(m_activerow,reportcoordinate) ;
       // Let's also export it to the text stream, such that we can easily copy paste it.
