@@ -30,7 +30,7 @@ namespace PAP
     auto it = std::find_if( std::begin(m_props),
 			    std::end(m_props),
 			    [key](Property* p)->bool { return p->name()==key; }  ) ;
-    return it != std::end(m_props) ? *it : 0 ;
+    return it != std::end(m_props) ? *it : nullptr ;
   } ;
   
   void PropertySvc::read( const char* filename )
