@@ -5,6 +5,7 @@
 #include "GraphicsItems.h"
 #include "CoordinateMeasurement.h"
 #include "AutoFocus.h"
+#include "VideoRecorder.h"
 
 #include <QCamera>
 #include <QCameraInfo>
@@ -42,7 +43,8 @@ namespace PAP
       //m_magnification("Cam.Magnification",2.159),
       m_rotation("Cam.Rotation",+M_PI/2),
       m_currentViewDirection(NSideView),
-      m_numScheduledScalings(0)
+      m_numScheduledScalings{0},
+      m_videorecorder{ new VideoRecorder{this} }
   {
     qRegisterMetaType<PAP::CoordinateMeasurement>() ;
     
@@ -278,8 +280,10 @@ namespace PAP
     if (imageProcessing->isAvailable()) {
       imageProcessing->setWhiteBalanceMode(QCameraImageProcessing::WhiteBalanceFluorescent);
     } else {
-      qWarning() << "Image processing no available!" ;
+      qWarning() << "Image processing not available!" ;
     }
+
+    m_videorecorder->setCamera( m_camera ) ;
   }
 
   void CameraView::updateGeometryView()

@@ -28,6 +28,7 @@
 #include <QProcessEnvironment>
 #include "MotionSystemWidget.h"
 #include "PropertySvc.h"
+#include "VideoRecorder.h"
 
 namespace PAP
 {
@@ -235,6 +236,10 @@ namespace PAP
     
     connect(m_cameraview->videoProbe(), SIGNAL(videoFrameProbed(QVideoFrame)),
 	    this, SLOT(processFrame(QVideoFrame)));
+
+    buttonlayout->addWidget( m_cameraview->videoRecorder() ) ;
+    
+    
 
     /*
     auto lockwhitebalancebutton = new QPushButton{"Lock white balance",this} ;
