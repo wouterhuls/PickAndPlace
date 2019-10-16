@@ -41,8 +41,8 @@ namespace PAP
     double pixelSize() const { return m_chipPixelSize / m_magnification ; }
     double pixelSizeX() const { return pixelSize() ; }
     double pixelSizeY() const { return pixelSize() ; }
-    auto numPixelsX() const { return m_numPixelsX ; }
-    auto numPixelsY() const { return m_numPixelsY ; }
+    int numPixelsX() const { return m_numPixelsX ; }
+    int numPixelsY() const { return m_numPixelsY ; }
     
     MonitoredQPointF& cameraCentreInModuleFrame() { return m_cameraCentreInModuleFrame ; }
     const MonitoredQPointF& cameraCentreInModuleFrame() const { return m_cameraCentreInModuleFrame ; }
