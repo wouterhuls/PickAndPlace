@@ -51,7 +51,12 @@ namespace PAP
     // some signal 'forwarding'
     connect(&(m_mainXAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::mainStageMoved) ;
     connect(&(m_mainYAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::mainStageMoved) ;
-
+    auto emitMainStageStopped = [&](){
+      if( !m_mainXAxis->isMoving() && !m_mainYAxis->isMoving() )
+	emit MotionSystemSvc::mainStageStopped() ; } ;
+    connect(m_mainXAxis,&MotionAxis::movementStopped,emitMainStageStopped) ;
+    connect(m_mainYAxis,&MotionAxis::movementStopped,emitMainStageStopped) ;
+    
     connect(&(m_stackXAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::stackStageMoved) ;
     connect(&(m_stackYAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::stackStageMoved) ;
     connect(&(m_stackRAxis->position()),&NamedValueBase::valueChanged,this,&MotionSystemSvc::stackStageMoved) ;

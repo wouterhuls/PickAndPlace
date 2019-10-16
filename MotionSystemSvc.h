@@ -79,6 +79,7 @@ namespace PAP
     
   signals:
     void mainStageMoved() const ;
+    void mainStageStopped() const ;
     void stackStageMoved() const ;
     
   private: 
