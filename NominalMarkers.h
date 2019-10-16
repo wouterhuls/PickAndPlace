@@ -83,7 +83,8 @@ namespace PAP
 	  {
 	    {"NSI_Sensor_Fid1",-0.237,-6.923},
 	    {"NSI_Sensor_Fid2",-0.237,-7.700},
-	    {"NSI_Sensor_Fid610",-5.797,-0.897}
+	    {"NSI_Sensor_Fid610",5.797,-0.897},
+	    {"NSI_Sensor_Fid30",8.358,-16.411}
 	  } ;
       }
 
