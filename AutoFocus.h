@@ -40,7 +40,7 @@ namespace PAP
     AutoFocus(CameraView*, QWidget* parent );
     virtual ~AutoFocus() ;
     const QImage* focusImage() const { return m_focusImage ; }
-    double computeContrast( const QVideoFrame& frame ) ;
+    double computeContrast( QVideoFrame& frame ) ;
 
     // temporary, before we put this int he dialog
     QLabel* focusView() { return m_focusView ; }
@@ -55,6 +55,7 @@ namespace PAP
     double focusFromZ( double z ) const ;
     double zFromFocus( double focus ) const ;
     double currentFocus() const ;
+    double currentModuleZ() const { return zFromFocus(currentFocus()) ; }
     
    
   signals:
@@ -64,7 +65,7 @@ namespace PAP
     void focusfailed() ;
     void focus() ;
   public slots:      
-    void processFrame( const QVideoFrame& frame ) ;
+    void processFrame( QVideoFrame& frame ) ;
     void storeMarkerFocus() ;
     void storeMarkerFocus( const QString& name ) ;
     void storeMarkerFocus( const QString& name, double focus ) ;

@@ -216,9 +216,8 @@ namespace PAP
     
   void AutoFocus::storeMarkerFocus(const QString& name, double focus)
   {
-    auto closestmarker = m_cameraView->closestMarkerName() ;
     auto dir = m_cameraView->currentViewDirection() ;
-    auto it = m_markerfocuspoints[dir].find( closestmarker ) ;
+    auto it = m_markerfocuspoints[dir].find( name ) ;
     if( it != m_markerfocuspoints[dir].end() )
       it->second.setValue( focus ) ;
   }
@@ -237,18 +236,15 @@ namespace PAP
     applyMarkerFocus( closestmarker) ;
   }
   
- void AutoFocus::processFrame( const QVideoFrame& frame )
+  void AutoFocus::processFrame( QVideoFrame& frame )
   {
-    // compute image contrast ? maybe not on every call!
-    //qDebug() << "Frame size: " << frame.size() ;
-    //qDebug() << "Pointer to frame A: " << m_frame ;
     if( m_focusTriggered ) {
       computeContrast(frame) ;
       m_focusTriggered = false ;
     }
   }
 
-  double AutoFocus::computeContrast( const QVideoFrame& frame )
+  double AutoFocus::computeContrast( QVideoFrame& frame )
   {
     /*qDebug()
       << "Pointer to frame B: "
@@ -274,7 +270,7 @@ namespace PAP
 
     // first call the 'map' to copy the contents to accessible memory
     //qDebug() << "Before calling QVideoFrame::map" ;
-    const_cast<QVideoFrame&>(frame).map(QAbstractVideoBuffer::ReadOnly) ;
+    frame.map(QAbstractVideoBuffer::ReadOnly) ;
     //qDebug() << "After calling QVideoFrame::map" ;
     // My laptop camera uses "UYVY", which means that UVY for two
     // adjacent pixels is stored with common U and V values. The Y
@@ -405,7 +401,7 @@ namespace PAP
       //qDebug() << "Entropy = "
       //<< entropy ;
       // unmap in order to free the memory
-      const_cast<QVideoFrame&>(frame).unmap() ;
+      frame.unmap() ;
       rc = entropy ;
       rc = var/mu ;
       rc = WHsum/mu ;
