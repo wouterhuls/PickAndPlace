@@ -263,6 +263,7 @@ namespace PAP
     QTabWidget* apages[2] ;
     QTabWidget* mpages[2] ;
     QTabWidget* ppages[2] ;
+    QWidget* photopages[2] ; // not sure why I would split this page. but let's leave for now.
 
     for( int iview=0; iview<2; ++iview ) {
       ViewDirection view = ViewDirection(iview) ;
@@ -282,16 +283,19 @@ namespace PAP
       }
       
       mpages[view] = createSideMetrologyPage(*this,view) ;
+      photopages[view] = createPhotoBoothPage(*this,view) ;
     }
 
     connect(this, &CameraWindow::viewToggled, this, [=](int view)
 	    {
+	      taskpages->removeTab(3) ;
 	      taskpages->removeTab(2) ;
 	      taskpages->removeTab(1) ;
 	      taskpages->removeTab(0) ;
 	      taskpages->addTab(apages[view],"Jig alignment") ;
 	      taskpages->addTab(ppages[view],"Tile positioning") ;
 	      taskpages->addTab(mpages[view],"Metrology") ;
+	      taskpages->addTab(photopages[view],"Photo booth") ;
 	    } ) ;
     // need to bootstrap this
     viewToggled(m_cameraview->currentViewDirection()) ;
