@@ -45,7 +45,9 @@ SOURCES += main.cpp \
     StackCalibration.cpp \
     CameraImageProcessingDialog.cpp \
     MetrologyPages.cpp \
-    VideoRecorder.cpp
+    VideoRecorder.cpp \
+    MovementSeries.cpp \
+    PhotoBooth.cpp
 
 HEADERS  += \
     NominalMarkers.h \
@@ -77,7 +79,8 @@ HEADERS  += \
     MonitoredValueLabel.h \
     MetrologyReport.h \
     MetrologyPages.h \
-    VideoRecorder.h
+    VideoRecorder.h \
+    MovementSeries.h
 
 FORMS    += SerialPortSettingsDialog.ui
 
