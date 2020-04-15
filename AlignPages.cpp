@@ -235,12 +235,12 @@ namespace PAP
     }
   }
 
-  void AlignMainJigPage::findMarker( QVideoFrame& frame )
+  void AlignMainJigPage::findMarker( const QVideoFrame& frame )
   {
     if( m_triggerMarkerFinder ) {
       m_triggerMarkerFinder = false ;
       // first call the 'map' to copy the contents to accessible memory
-      frame.map(QAbstractVideoBuffer::ReadOnly) ;
+      const_cast<QVideoFrame&>(frame).map(QAbstractVideoBuffer::ReadOnly) ;
       if( frame.bits() && frame.pixelFormat() == QVideoFrame::Format_RGB32 ) {
 	//QImage::Format imageFormat = QVideoFrame::imageFormatFromPixelFormat(frame.pixelFormat());
 	//QImage img( frame.bits(),frame.width(),frame.height(),frame.bytesPerLine(),imageFormat);
@@ -372,7 +372,7 @@ namespace PAP
 	  
 	}
       }
-      frame.unmap() ;
+      const_cast<QVideoFrame&>(frame).unmap() ;
     }
   }
   

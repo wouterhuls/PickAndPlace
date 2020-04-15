@@ -59,7 +59,7 @@ namespace PAP
     AlignMainJigPage(ViewDirection dir, PAP::CameraView* camview) ;
   public slots:
     void updateAlignment() const ;
-    void findMarker( QVideoFrame& frame ) ;
+    void findMarker( const QVideoFrame& frame ) ;
   private:
     bool m_triggerMarkerFinder{false} ;
     QGraphicsItem* m_measuredmarker{0} ;
