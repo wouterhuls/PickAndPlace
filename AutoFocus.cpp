@@ -61,7 +61,7 @@ namespace PAP
     connect( m_zaxis, &MotionAxis::movementStopped,
 	     [=]{this->m_focusTriggered = true ; } ) ;
     connect(&(m_zaxis->position()),&NamedValueBase::valueChanged,[&]{this->m_focusTriggered = true ; }) ;
-    connect( this, &AutoFocus::focus, [&](){ /*if(!m_isFocussing)*/ this->startNearFocusSequence() ; } ) ;
+    connect( this, &AutoFocus::focus, [&](){ /*if(!isFocussing())*/ this->startNearFocusSequence() ; } ) ;
 
     // QObject::connect(camview->videoProbe(), &QVideoFrame::videoFrameProbed,
     // 		     this, 
@@ -107,9 +107,9 @@ namespace PAP
     auto buttonlayout = new QHBoxLayout{} ;
     vlayout->addLayout( buttonlayout ) ;
 
-    auto startfocusbutton = new QPushButton{"AutoFocus", this} ;
-    connect( startfocusbutton,  &QPushButton::clicked, [=](){ this->startFocusSequence() ; } ) ;
-    buttonlayout->addWidget( startfocusbutton ) ;
+    //auto startfocusbutton = new QPushButton{"AutoFocus", this} ;
+    //connect( startfocusbutton,  &QPushButton::clicked, [=](){ this->startFocusSequence() ; } ) ;
+    //buttonlayout->addWidget( startfocusbutton ) ;
     
     auto startfocussearchbutton = new QPushButton{"Search", this} ;
     connect( startfocussearchbutton,  &QPushButton::clicked, [=](){ this->startFastFocusSequenceSimple() ; } ) ;
@@ -236,15 +236,16 @@ namespace PAP
     applyMarkerFocus( closestmarker) ;
   }
   
-  void AutoFocus::processFrame( QVideoFrame& frame )
+  void AutoFocus::processFrame( const QVideoFrame& frame )
   {
+    // argument needs to be const, because VideoFrameProbed has a const signal!
     if( m_focusTriggered ) {
       computeContrast(frame) ;
       m_focusTriggered = false ;
     }
   }
 
-  double AutoFocus::computeContrast( QVideoFrame& frame )
+  double AutoFocus::computeContrast( const QVideoFrame& frame )
   {
     /*qDebug()
       << "Pointer to frame B: "
@@ -270,7 +271,7 @@ namespace PAP
 
     // first call the 'map' to copy the contents to accessible memory
     //qDebug() << "Before calling QVideoFrame::map" ;
-    frame.map(QAbstractVideoBuffer::ReadOnly) ;
+    const_cast<QVideoFrame&>(frame).map(QAbstractVideoBuffer::ReadOnly) ;
     //qDebug() << "After calling QVideoFrame::map" ;
     // My laptop camera uses "UYVY", which means that UVY for two
     // adjacent pixels is stored with common U and V values. The Y
@@ -401,7 +402,7 @@ namespace PAP
       //qDebug() << "Entropy = "
       //<< entropy ;
       // unmap in order to free the memory
-      frame.unmap() ;
+      const_cast<QVideoFrame&>(frame).unmap() ;
       rc = entropy ;
       rc = var/mu ;
       rc = WHsum/mu ;
@@ -575,8 +576,8 @@ namespace PAP
   void AutoFocus::startNearFocusSequence()
   {
     qDebug() << "AutoFocus::startNearFocusSequence" << m_zaxis ;
-    if( !m_isFocussing ) {
-      m_isFocussing = true ;
+    if( !isFocussing() ) {
+      m_status = IsFocussing ;
       auto axisvelocity =  m_zaxis->parameter("Velocity") ;
       const auto originalspeed = axisvelocity->getValue().value() ;
       double zstart = m_zaxis->position().value() ;
@@ -613,7 +614,7 @@ namespace PAP
       QObject::disconnect(connection) ;
       if( m_fastfocusmeasurements.empty() ) {
 	qDebug() << "No measurements. Issue focusfailed signal" ;
-	m_isFocussing = false ;
+	m_status = FocusFailed ;
 	emit focusfailed() ;
 	
       } else {
@@ -648,7 +649,7 @@ namespace PAP
 	}
 	axisvelocity->setValue() = originalspeed ;
 	m_zaxis->moveTo(z0) ;
-	m_isFocussing = false ;
+	m_status = IsFocussed ;
 	emit focussed() ;
       }
     }
@@ -663,9 +664,9 @@ namespace PAP
   
   void AutoFocus::startFocusSequence(double zmin, double zmax)
   {
-    if( !m_isFocussing ) {
+    if( !isFocussing() ) {
       bool success = true ;
-      m_isFocussing = true ;
+      m_status = IsFocussing ;
       
       // cache the speed
       auto axisvelocity =  m_zaxis->parameter("Velocity") ;
@@ -770,16 +771,17 @@ namespace PAP
 	success = false ;
       }
 
-      m_isFocussing = false ;
+      m_status = success ? IsFocussed : FocusFailed ;
       emit success ? focussed() : focusfailed() ;
     }
   }
   
+  /*
   void AutoFocus::startFastFocusSequence()
   {
-    if( !m_isFocussing ) {
-      m_isFocussing = true ;
-      
+    if( !isFocussing() ) {
+      m_status = IsFocussing ;
+            
       // cache the speed
       auto axisvelocity =  m_zaxis->parameter("Velocity") ;
       const auto originalspeed = axisvelocity->getValue().value() ;
@@ -841,8 +843,6 @@ namespace PAP
     }
   }
   
-  
-
   FocusMeasurement AutoFocus::takeMeasurement(MotionAxis& axis, double zpos )
   {
     // move the camera to position zpos
@@ -879,10 +879,9 @@ namespace PAP
     return rc ;
   }
 
-  
   void AutoFocus::startFocusSequence()
   {
-    if( !m_isFocussing ) {
+    if( !isFocussing() ) {
       m_isFocussing = true ;
       qDebug() << "In focussing routine" ;
       // perhaps we should use 'minuit' for this. we don't actually
@@ -1004,5 +1003,5 @@ namespace PAP
   }
 
   
-  
+  */
 }
