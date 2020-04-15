@@ -347,5 +347,6 @@ namespace PAP
     }
     f.close();
     fillTable() ;
+    m_currentcoordinate = -1 ;
   } ;
 }
