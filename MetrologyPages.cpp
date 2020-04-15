@@ -11,12 +11,14 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QMessageBox>
+#include <QCheckBox>
 #include "CameraWindow.h"
 #include "CameraView.h"
 #include "AutoFocus.h"
 #include "MetrologyReport.h"
 #include "GraphicsItems.h"
 #include "TextEditStream.h"
+#include "NamedValueInputWidget.h"
 #include <iostream>
 #include <Eigen/Dense>
 
@@ -82,9 +84,11 @@ namespace PAP
       return QString("/home/velouser/Documents/PickAndPlaceData/") +
 	m_camerasvc->moduleName() + "/" + pageName() + ".csv" ;
     }
-    void focus() const ;
+    virtual void focus() const ;
     void move() const ;
     const std::vector<ReportCoordinate>& measurements() const { return  m_measurements ; }
+    void acceptall() { for(auto&m:m_measurements) m.setStatus( ReportCoordinate::Ready ) ; }
+    void resetall() { for(auto&m:m_measurements) m.setStatus( ReportCoordinate::Initialized ) ; }
   } ;
   
   MarkerMetrologyPage::MarkerMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
@@ -201,32 +205,41 @@ namespace PAP
     m_markertable->item(row,1)->setText( QString::number( coord.x(), 'g', 5 ) ) ;
     m_markertable->item(row,2)->setText( QString::number( coord.y(), 'g', 5 ) ) ;
     m_markertable->item(row,3)->setText( QString::number( coord.z(), 'g', 5 ) ) ;
-    const auto color = m_measurements[row].status() == ReportCoordinate::Status::Ready ? Qt::green : Qt::gray ;
+    const auto color = m_measurements[row].status() == ReportCoordinate::Status::Ready ? Qt::green : Qt::lightGray ;
     m_markertable->item(row,0)->setBackground( QBrush{ QColor{color} } ) ;
   }
   
   void MarkerMetrologyPage::activateRow( int row ) {
-    // uncolor the current row
-    if( row != m_activerow ) {
-      if( m_activerow>=0 && m_activerow<int(m_measurements.size()) ) {
-	m_markertable->item(m_activerow,0)->
-	  setBackground( QBrush{ QColor{m_measurements[m_activerow].status() == ReportCoordinate::Status::Ready ? Qt::green : Qt::gray} } ) ;
+
+    if( row>=0 && row<=int(m_measurements.size()) ) {
+      const auto& m = m_measurements[row] ;
+      
+      if( row != m_activerow ) {
+	// uncolor the current row
+	if( m_activerow>=0 && m_activerow<int(m_measurements.size()) ) {
+	  m_markertable->item(m_activerow,0)->
+	    setBackground( QBrush{ QColor{m_measurements[m_activerow].status() == ReportCoordinate::Status::Ready ? Qt::green : Qt::lightGray} } ) ;
+	  //m_markertable->item(m_activerow,0)->setSelected(false) ;
+	}
+	// move the camera
+	if( int(m.status()) >= int(ReportCoordinate::Status::Initialized) ) {
+	  m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.x(),m.y()} ) ;
+	  if( m.status() == ReportCoordinate::Status::Ready ) {
+	    qDebug() << "Moving camera to z: " << m.z() ;
+	    m_camerasvc->autofocus()->moveFocusToModuleZ( m.z() ) ;
+	    // move the camera to the current focus point, if any
+	    //m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
+	    // call the autofocus!
+	    // m_camerasvc->autofocus()->startNearFocusSequence() ;
+	  }	
+	}
       }
+
+      // recolor the new row
+      m_markertable->item(row,0)->setBackground( QBrush{ QColor{m.status() ==  ReportCoordinate::Status::Ready ? Qt::darkGreen : Qt::gray} } ) ;
+      //m_markertable->item(row,0)->setSelected(true) ;
+      // make sure to set the active row flag
       m_activerow = row ;
-      auto& m = m_measurements[row] ;
-      m_markertable->item(row,0)->setBackground( QBrush{ QColor{m.status() ==  ReportCoordinate::Status::Ready ? Qt::blue : Qt::yellow} } ) ;
-      // now move to the marker position as currently set in the measurement
-      if( int(m.status()) >= int(ReportCoordinate::Status::Initialized) ) {
-	m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.x(),m.y()} ) ;
-	if( m.status() == ReportCoordinate::Status::Ready ) {
-	  qDebug() << "Moving camera to z: " << m.z() ;
-	  m_camerasvc->autofocus()->moveFocusToModuleZ( m.z() ) ;
-	  // move the camera to the current focus point, if any
-	  //m_camerasvc->autofocus()->moveFocusToModuleZ( m.m_z ) ;
-	  // call the autofocus!
-	  // m_camerasvc->autofocus()->startNearFocusSequence() ;
-	}	
-      }
     }
   }
   
@@ -402,7 +415,7 @@ namespace PAP
 	connect(button,&QPushButton::clicked,this,[=]{ this->fitPlane(FitModel::Plane) ; }) ;
       }
       {
-	auto button = new QPushButton{"Fit curved plane", this} ;
+	auto button = new QPushButton{"Fit curved", this} ;
 	m_buttonlayout->addWidget(button) ;
 	connect(button,&QPushButton::clicked,this,[=]{ this->fitPlane(FitModel::CurvedPlane) ; }) ;
       }
@@ -414,6 +427,8 @@ namespace PAP
   private:
     // fit result. is there a better place to keep this? do we need to keep it at all?
     std::vector<QMetaObject::Connection> m_conns ;
+  protected:
+    QCheckBox m_ignoreFocusFailed{"Ignore focus failed",this} ;
   } ;
   
   void SurfaceMetrologyPage::disconnectsignals()
@@ -429,6 +444,8 @@ namespace PAP
     //   m_camerasvc->cameraview()->record( camview->localOrigin() ) ;
     auto measurement = m_camerasvc->cameraview()->coordinateMeasurement() ;
     record( measurement ) ;
+    if( !m_camerasvc->autofocus()->isFocussed() )
+      m_measurements[m_activerow].setStatus( ReportCoordinate::Failed ) ;
     ++m_activerow ;
     if( m_activerow<int(m_measurements.size())) move() ;
     else {
@@ -445,7 +462,10 @@ namespace PAP
     m_conns.emplace_back( connect( &(MotionSystemSvc::instance()->mainYAxis()), &MotionAxis::movementStopped, this, [=]() { this->focus() ; },
 				   type ) ) ;
     m_conns.emplace_back( connect( m_camerasvc->autofocus(), &AutoFocus::focussed, this, [=]() { this->measure() ; },type ) ) ;
-    m_conns.emplace_back( connect( m_camerasvc->autofocus(), &AutoFocus::focusfailed, this, [=]() { this->disconnectsignals() ; },type ) ) ;
+    m_conns.emplace_back( connect( m_camerasvc->autofocus(), &AutoFocus::focusfailed, this, [=]() {
+	  if( m_ignoreFocusFailed.isChecked() ) this->measure() ;
+	  else this->disconnectsignals() ; },
+	type ) ) ;
   }
   
   PlaneFitResult SurfaceMetrologyPage::fitPlane(FitModel mode, double originx, double originy)
@@ -655,22 +675,192 @@ namespace PAP
   }
 
   //****************************************************************************//
+
+  namespace {
+    template<typename T>
+    struct BoundingRange
+    {
+      T min{std::numeric_limits<T>::max()} ;
+      T max{std::numeric_limits<T>::min()} ;
+      void add(const T& x) {
+	if(min>x)      min=x ;
+	else if(max<x) max=x ;
+      }
+    } ;
+    
+    template<typename T=double>
+    struct BoundingBox
+    {
+      BoundingRange<T> x, y ;
+      void add( double ax, double ay ) {
+	x.add(ax) ;
+	y.add(ay) ;
+      }
+    } ;
+  }
   
   class GenericSurfaceMetrologyPage : public SurfaceMetrologyPage
   {
+  private:
+    //std::vector<ModuleCoordinates> m_trajectory ;
+    NamedValue<double> m_zmin{"LineScan.ZMin",23.0} ;  // Minimal z for focus search
+    NamedValue<double> m_zmax{"LineScan.ZMax",24.5} ;  // Maximal z for focus search
+    NamedValue<double> m_spacing{"AutoFocus.GridSpacing",2.0} ; // maximal distance between grid points
+    bool m_keepOriginalMeasurements{true} ;
+    QDialog m_settingsdialog ;
   public:
     GenericSurfaceMetrologyPage( CameraWindow& camerasvc, ViewDirection viewdir)
-      : SurfaceMetrologyPage{camerasvc,viewdir}
+      : SurfaceMetrologyPage{camerasvc,viewdir},
+	m_settingsdialog{this}
     {
-      definemarkers() ;
+      // auto button = new QPushButton{"run", this} ;
+      // m_buttonlayout->addWidget(button) ;
+      // connect(button,&QPushButton::clicked,[=]() { this->run() ; } ) ;
+
+      // configure the settingsdialog
+      {
+	m_settingsdialog.setWindowTitle( "LineScanPageSettings" ) ;
+	m_settingsdialog.setContentsMargins(0, 0, 0, 0);
+	//auto layout = new QGridLayout{} ;
+	auto layout = new QVBoxLayout{} ;
+	m_settingsdialog.setLayout(layout) ;
+	layout->addWidget( new NamedValueInputWidget<double>{m_zmin,18.0,25.0,2} ) ;
+	layout->addWidget( new NamedValueInputWidget<double>{m_zmax,18.0,26.0,2} ) ;
+	layout->addWidget( new NamedValueInputWidget<double>{m_spacing,0,50,2} ) ;
+	{
+	  auto button = new QPushButton{"build grid", this} ;
+	  layout->addWidget(button) ;
+	  connect(button,&QPushButton::clicked,[=]() { this->run() ; } ) ;
+	}
+	{
+	  auto button = new QPushButton{"reset all", this} ;
+	  layout->addWidget(button) ;
+	  connect(button,&QPushButton::clicked,[=]() { this->resetall(); } ) ;
+	}
+	{
+	  auto button = new QPushButton{"accept all", this} ;
+	  layout->addWidget(button) ;
+	  connect(button,&QPushButton::clicked,[=]() { this->acceptall(); } ) ;
+	}
+	layout->addWidget(&m_ignoreFocusFailed) ;
+      }
+      
+      auto settingsbutton = new QPushButton(QIcon(":/images/settings.png"),"",this) ;
+      connect( settingsbutton, &QPushButton::clicked, [&](){ m_settingsdialog.show() ; } ) ;
+      m_buttonlayout->addWidget(settingsbutton);
     }
-    void definemarkers() final
-    {
+    //
+    void definemarkers() final {
       m_measurements.clear() ;
-      m_measurements.resize(16) ;
+      fillTable() ;
+    }
+    // override the focus routine such that we can use the external z-range
+    void focus() const override
+    {
+      if( !MotionSystemSvc::instance()->mainXAxis().isMoving() &&
+	  !MotionSystemSvc::instance()->mainYAxis().isMoving() ) {
+	m_camerasvc->autofocus()->startFocusSequence(m_zmin,m_zmax) ;
+      } ;
+    }
+    void run()
+    {
+      // insert measurements such that we get a certain density of points
+      if( m_measurements.size()>=4 ) {
+	qDebug() << "Number of trajectory points: " << m_measurements.size() ;
+	
+	// Tag: find the smallest rectangle around all the points
+	// This is called the "smallest surrounding rectangle" problem
+
+	// the simplest alg I just found is:
+	// * loop over all combinations of points (better if you have them ordered: complex hull problem)
+	// * define axis from those points
+	// * transform every point to that frame and compute the min/max coordinates to get a bounding box
+	// * of all combinations of initial points, take the one with the smallest surface
+
+	const double x0 = m_measurements.front().position().x() ;
+	const double y0 = m_measurements.front().position().y() ;
+
+	double cosphi{1},sinphi{0} ;
+	BoundingBox<double> bbox ;
+	BoundingRange<double> zrange ;
+	
+	//double x1prime{+9999},x2prime{-9999},y1prime{+9999},y2prime{-9999} ;
+	double minarea = -1 ;
+	for( size_t i=0;i<m_measurements.size(); ++i) {
+	  zrange.add(m_measurements[i].position().z()) ;
+	  //sumz += m_measurements[i].position().z() ;
+	  for( size_t j=0;j<i; ++j) {
+	    const auto& p1 = m_measurements[i].position() ;
+	    const auto& p2 = m_measurements[j].position() ;
+	    // we can actually choose phi to be in the domain
+	    // [-pi/4,pi/4], which means we could significantly
+	    // simplify this:-)
+	    double thisphi    = std::atan2(p2.y()-p1.y(),p2.x()-p1.x()) ;
+	    while( thisphi < -M_PI/4) thisphi += M_PI/2 ; 
+	    while( thisphi > +M_PI/4) thisphi -= M_PI/2 ; 
+	    const double thiscosphi =std::cos(thisphi) ;
+	    const double thissinphi =std::sin(thisphi) ;
+	    BoundingBox<double> thisbbox ;
+	    {
+	      for( const auto& m : m_measurements ) {
+		const auto& pos = m.position() ;
+		const auto x = (pos.x()-x0)*thiscosphi + (pos.y()-y0)*thissinphi ;
+		const auto y = (pos.y()-y0)*thiscosphi - (pos.x()-x0)*thissinphi ;
+		thisbbox.add(x,y) ;
+	      }
+	    }
+	    const double thisarea = (thisbbox.x.max-thisbbox.x.min)*(thisbbox.y.max-thisbbox.y.min) ;
+	    if( minarea<0 || thisarea < minarea) {
+	      minarea = thisarea ;
+	      cosphi  = thiscosphi ;
+	      sinphi  = thissinphi ;
+	      bbox = thisbbox ;
+	    }
+	  }
+	}
+	std::cout << "phi angle = " << std::atan2(sinphi,cosphi)*180/M_PI
+		  << " " << sinphi << " " << cosphi << std::endl ;
+	const auto& x1prime = bbox.x.min ;
+	const auto& x2prime = bbox.x.max ;
+	const auto& y1prime = bbox.y.min ;
+	const auto& y2prime = bbox.y.max ;
+	std::cout << "x1prime, x2prime: " << bbox.x.min << " " << bbox.x.max << std::endl ;
+	std::cout << "y1prime, y2prime: " << bbox.y.min << " " << bbox.y.max << std::endl ;
+	// whap happens if we rotate these back
+	std::cout << "x1, y1: "
+		  << x0 + x1prime*cosphi - y1prime*sinphi << ", "
+		  << y0 + y1prime*cosphi + x1prime*sinphi << std::endl
+		  << "x2, y2: "
+		  << x0 + x2prime*cosphi - y2prime*sinphi << ", "
+		  << y0 + y2prime*cosphi + x2prime*sinphi << std::endl ;
+	// compute the new grid points
+	const int nx = std::max(int((x2prime-x1prime)/m_spacing),2) ;
+	const int ny = std::max(int((y2prime-y1prime)/m_spacing),2) ;
+	std::cout << "nx,ny: " << nx << " " << ny << std::endl ;
+	std::vector<ReportCoordinate>  newmeasurements  ;
+	newmeasurements.reserve( nx*ny ) ;
+	for(int ix=0; ix<nx; ++ix) 
+	  for(int iy=0; iy<ny; ++iy) {
+	    const double xprime = x1prime + ix*(x2prime-x1prime)/(nx-1) ;
+	    const double yprime = y1prime + iy*(y2prime-y1prime)/(ny-1) ;
+	    const double x = x0 + xprime*cosphi - yprime*sinphi ;
+	    const double y = y0 + yprime*cosphi + xprime*sinphi ;
+	    QString name = QString{"p"} + QString::number(ix) + QString::number(iy) ;
+	    newmeasurements.emplace_back( name , x, y, 0.5*(zrange.min+zrange.max) ) ;
+	  }
+	if(m_keepOriginalMeasurements) {
+	  m_measurements.insert(m_measurements.end(),newmeasurements.begin(),newmeasurements.end()) ;
+	} else {
+	  m_measurements.swap(newmeasurements) ;
+	}
+	m_zmin = m_camerasvc->autofocus()->focusFromZ( zrange.max ) - 0.1 ;
+	m_zmax = m_camerasvc->autofocus()->focusFromZ( zrange.min ) + 0.1 ;
+      }
       fillTable() ;
     }
   } ;
+  
+
 
   QWidget* createGenericSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
   {
@@ -678,18 +868,41 @@ namespace PAP
   }
 
   //****************************************************************************//
-  
   class LineScanPage : public SurfaceMetrologyPage
   {
   private:
     //std::vector<ModuleCoordinates> m_trajectory ;
+    NamedValue<double> m_zmin{"LineScan.ZMin",23.0} ;  // Minimal z for focus search
+    NamedValue<double> m_zmax{"LineScan.ZMax",24.5} ;  // Maximal z for focus search
+    NamedValue<double> m_spacing{"AutoFocus.GridSpacing",2.0} ; // maximal distance between grid points
+    QDialog m_settingsdialog ;
   public:
     LineScanPage( CameraWindow& camerasvc, ViewDirection viewdir)
-      : SurfaceMetrologyPage{camerasvc,viewdir}
+      : SurfaceMetrologyPage{camerasvc,viewdir},
+	m_settingsdialog{this}
     {
-      auto button = new QPushButton{"run", this} ;
-      m_buttonlayout->addWidget(button) ;
-      connect(button,&QPushButton::clicked,[=]() { this->run() ; } ) ;
+      // auto button = new QPushButton{"run", this} ;
+      // m_buttonlayout->addWidget(button) ;
+      // connect(button,&QPushButton::clicked,[=]() { this->run() ; } ) ;
+
+      // configure the settingsdialog
+      {
+	m_settingsdialog.setWindowTitle( "LineScanPageSettings" ) ;
+	m_settingsdialog.setContentsMargins(0, 0, 0, 0);
+	//auto layout = new QGridLayout{} ;
+	auto layout = new QVBoxLayout{} ;
+	m_settingsdialog.setLayout(layout) ;
+	layout->addWidget( new NamedValueInputWidget<double>{m_zmin,18.0,25.0,2} ) ;
+	layout->addWidget( new NamedValueInputWidget<double>{m_zmax,18.0,26.0,2} ) ;
+	layout->addWidget( new NamedValueInputWidget<double>{m_spacing,0,50,2} ) ;
+	auto button = new QPushButton{"run", this} ;
+	layout->addWidget(button) ;
+	connect(button,&QPushButton::clicked,[=]() { this->run() ; } ) ;
+      }
+      
+      auto settingsbutton = new QPushButton(QIcon(":/images/settings.png"),"",this) ;
+      connect( settingsbutton, &QPushButton::clicked, [&](){ m_settingsdialog.show() ; } ) ;
+      m_buttonlayout->addWidget(settingsbutton);
     }
     //
     void definemarkers() final {
@@ -705,8 +918,6 @@ namespace PAP
 	std::vector<ReportCoordinate>  newmeasurements  ;
 	newmeasurements.reserve( m_measurements.size() ) ;
 	newmeasurements.emplace_back( m_measurements.front() ) ;
-	
-	double m_density = 2; // mm?
 	// add the first point
 	auto it = m_measurements.begin() ;
 	auto prev = it ;
@@ -714,7 +925,7 @@ namespace PAP
 	  const auto p1 = prev->position() ;
 	  const auto p2 = it->position() ;
 	  const auto delta = p2 - p1 ;
-	  const unsigned int numpoints = int(delta.length()/m_density) ;
+	  const unsigned int numpoints = int(delta.length()/m_spacing) ;
 	  for(unsigned int j=1; j<numpoints; ++j) {
 	    const auto p = p1 + delta * j/numpoints ;
 	    newmeasurements.emplace_back( prev->name() + "_" + QString::number(j+1), p ) ;
@@ -825,7 +1036,8 @@ namespace PAP
       this->addTab(new SideReportPage{this,tilemarkerpage,
 	    sensorsurfacepage[0],sensorsurfacepage[1],substratesurfacepage},"Report") ;
 
-      this->addTab(new LineScanPage{camerasvc,view}, "Generic surface") ;
+      //this->addTab(new LineScanPage{camerasvc,view}, "Generic surface") ;
+      this->addTab(new GenericSurfaceMetrologyPage{camerasvc,view}, "Generic surface") ;
     }
   } ;
   
