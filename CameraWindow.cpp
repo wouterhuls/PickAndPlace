@@ -41,13 +41,13 @@ namespace PAP
     setWindowTitle("Velo Pick&Place") ;
 
     m_cameraview = new CameraView{this} ;
-    autofocus()->move(950,600) ;
+    autofocus()->move(1000,580) ;
     autofocus()->show() ;
 
     // create dialog for the motion system interface
     m_motionsystemdialog = new QDialog{ this } ;
     m_motionsystemdialog->resize(600,500) ;
-    m_motionsystemdialog->move(950,0) ;
+    m_motionsystemdialog->move(1000,0) ;
     m_motionsystemdialog->setWindowIcon( QIcon(":/images/VeloUpgradeLogoSmall.png") ) ;
     m_motionsystemdialog->setWindowTitle("Motion System Window") ;
     new PAP::MotionSystemWidget(m_motionsystemdialog);
