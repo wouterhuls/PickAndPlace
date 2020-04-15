@@ -39,6 +39,7 @@ namespace PAP
       m_viewfinder(0),
       m_videoProbe(0),
       m_chipPixelSize(0.00345),
+      //m_magnification("Cam.Magnification",4.865),
       m_magnification("Cam.Magnification",4.865),
       //m_magnification("Cam.Magnification",2.159),
       m_rotation("Cam.Rotation",+M_PI/2),
@@ -510,7 +511,28 @@ namespace PAP
 	//qInfo() << "CameraView: result=" << result << " " << QDialogButtonBox::ActionRole ;
       }
   }
- 
+  
+  QTransform CameraView::fromCameraToPixel() const
+  {
+    // Also here, take into account that we apply operators from left to right, rather than vice versa:
+    QTransform T ;
+    T.translate( m_localOrigin.x(), m_localOrigin.y() ) ;
+    QTransform S ;
+    S.scale( 1.0/pixelSizeX(), -1.0/pixelSizeY() ) ;
+    return  S * T;
+    // The following solution may be a bit faster:
+    // QTransform T ;
+    // T.scale( 1.0/pixelSizeX(), -1.0/pixelSizeY() ) ;
+    // T.translate( m_localOrigin.x()*pixelSizeX(), -m_localOrigin.y()*pixelSizeY() ) ;
+    // return T ;
+  }
+
+  QTransform CameraView::fromModuleToPixel() const
+  {
+    return m_detectorgeometry->transform() ;
+  }
+
+  
   void CameraView::moveCameraTo( QPointF localpoint, MovementType mode ) const
   {
     //QTransform T = m_detectorgeometry->transform().inverted() ;

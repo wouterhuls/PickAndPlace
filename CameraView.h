@@ -59,20 +59,8 @@ namespace PAP
     void resetCamera() ;
     //void lockWhiteBalance( bool lock = true ) ;
 
-    QTransform fromCameraToPixel() const
-    {
-      // Also here, take into account that we apply operators from left to right, rather than vice versa:
-      QTransform T ;
-      T.translate( m_localOrigin.x(), m_localOrigin.y() ) ;
-      QTransform S ;
-      S.scale( 1.0/pixelSizeX(), -1.0/pixelSizeY() ) ;
-      return  S * T;
-      // The following solution may be a bit faster:
-      // QTransform T ;
-      // T.scale( 1.0/pixelSizeX(), -1.0/pixelSizeY() ) ;
-      // T.translate( m_localOrigin.x()*pixelSizeX(), -m_localOrigin.y()*pixelSizeY() ) ;
-      // return T ;
-    }
+    QTransform fromCameraToPixel() const ;
+    QTransform fromModuleToPixel() const ;
 
     ViewDirection currentViewDirection() const { return m_currentViewDirection ; }
 
