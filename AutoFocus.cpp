@@ -424,7 +424,8 @@ namespace PAP
 
       FocusMeasurement focusmeasurement ;
       focusmeasurement.I = rc ;
-      focusmeasurement.z    = m_zaxis->position() ;
+      focusmeasurement.z    = m_zaxis->position().value() ;
+      focusmeasurement.timestamp = m_zaxis->position().timestamp() ;
       focusmeasurement.zdir = m_zaxis->direction() ;
       emit focusMeasurement( focusmeasurement ) ;
       if( m_focusmeasurements->count()/10==0 )
@@ -444,8 +445,56 @@ namespace PAP
   }
 
   namespace {
-    bool estimatez0( const std::vector< FocusMeasurement >& mvec,
-		     double& z0 )
+    bool testseries( const std::vector< FocusMeasurement >& mvecorig, const double zvelocity)
+    {
+      // this routine tests how many measurements are missing. we
+      // don't really know the frequency, but we can compare the
+      // average interval, to the maximum interval. If the ratio is
+      // too odd, then something is wrong.
+
+      if( mvecorig.size()>2 ) {
+	// for some reason the first measurement is always odd. so let's
+	// leave that out. it is probably beause we start taking data
+	// before the axis moves.
+	const std::vector< FocusMeasurement > mvec( mvecorig.begin()+1, mvecorig.end() ) ;
+      	const auto z0 = mvec.front().z ;
+	const auto z1 = mvec.back().z ;
+	const auto t0 = mvec.front().timestamp ;
+	const auto t1 = mvec.back().timestamp;
+	const double dtinseconds = 1e-3*t0.msecsTo(t1) ;
+	// check that the velocity makes sense
+	qDebug() << "AutoFocus testseries: Velocity = " << zvelocity << " " << std::abs((z1-z0)/dtinseconds) ;
+	if( std::abs(std::abs((z1-z0)/dtinseconds)/zvelocity -1 ) > 0.2 ) {
+	  qWarning() << "AutoFocus testseries: Bad velocity: "
+		     << t0 << t1 << dtinseconds << z1 << z0 ;
+	  for( const auto& m: mvec)
+	    qDebug() << m.timestamp << m.z ;
+	  return false ;
+	}
+	
+	double maxinterval{0} ;
+	for( size_t i=0; i<mvec.size()-1; ++i) {
+	  const double thisdtinseconds = 1e-3*std::abs(mvec[i].timestamp.msecsTo( mvec[i+1].timestamp )) ;
+	  if( thisdtinseconds > maxinterval ) maxinterval = thisdtinseconds ;
+	}
+	const double averageinterval = dtinseconds / mvec.size() ; 
+	qDebug() << "Average/max interval: "
+		 << averageinterval << " " << maxinterval ;
+	if( maxinterval > 2* averageinterval ) {
+	  qWarning() << "Maximum interval too large: " ;
+	  for( const auto& m: mvec)
+	    qDebug() << m.timestamp ;
+	  return false ;
+	}
+      } else {
+	qDebug() << "AutoFocus testseries: Not enough measurement: " << mvecorig.size() ;
+	return false ;
+      }
+      return true ;
+    }
+    
+    
+    bool estimatez0( const std::vector< FocusMeasurement >& mvec, double& z0 )
     {
       // return true if success
       
@@ -456,40 +505,42 @@ namespace PAP
       //    I = [0] + [1]*(z-zref) + [2]*(z-zref)^2
       // initial values are all zero
       // double chi2(0) ;
-      Eigen::Vector3d halfdchi2dpar   ;
-      Eigen::Matrix3d halfd2chi2dpar2 ;
-      const double zref = mvec.front().z ;
-      for( const auto& m : mvec ) {
-	double dz = m.z - zref ;
-	Eigen::Vector3d deriv ;
-	deriv(0) = 1 ;
-	deriv(1) = dz ;
-	deriv(2) = dz*dz ;
-	halfdchi2dpar += m.I*deriv ;
-	for(int irow=0; irow<3; ++irow)
-	  for(int icol=0; icol<3; ++icol)
-	    halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
-      }
-      // now solve
-      Eigen::Vector3d pars = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar);
-      Eigen::Vector3d resid = halfdchi2dpar - halfd2chi2dpar2 * pars ;
-      qDebug() << "Resid: " << resid(0) << resid(1) << resid(2) ;     
-      qDebug() << "Solution: " << pars(0) << " " << pars(1) << " " << pars(2)
-	       << "---> " << zref - 0.5*pars(1)/pars(2) ;
-      qDebug() << "Fitting to measurements: " ;
-      for( const auto& m : mvec )
-	qDebug() << m.z << " " << m.I
-		 << ( pars(0) + (m.z-zref)*pars(1) + (m.z-zref)*(m.z-zref)*pars(2) ) ;
-		    
-      bool success = pars(2) < 0 ;
-      if( !success ) {
-	std::stringstream str ;
-	str << "Vector: " << halfdchi2dpar << std::endl
-	    << "Matrix: " << halfd2chi2dpar2 ;
-	qDebug() << str.str().c_str() ;
+      bool success = false ;
+      if( mvec.size() >2 ) {
+	Eigen::Vector3d halfdchi2dpar{Eigen::Vector3d::Zero()}   ;
+	Eigen::Matrix3d halfd2chi2dpar2{Eigen::Matrix3d::Zero()} ;
+	const double zref = mvec.front().z ;
+	for( const auto& m : mvec ) {
+	  double dz = m.z - zref ;
+	  Eigen::Vector3d deriv ;
+	  deriv(0) = 1 ;
+	  deriv(1) = dz ;
+	  deriv(2) = dz*dz ;
+	  halfdchi2dpar += m.I*deriv ;
+	  for(int irow=0; irow<3; ++irow)
+	    for(int icol=0; icol<3; ++icol)
+	      halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
+	}
+	// now solve
+	Eigen::Vector3d pars = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar);
+	Eigen::Vector3d resid = halfdchi2dpar - halfd2chi2dpar2 * pars ;
+	qDebug() << "Resid: " << resid(0) << resid(1) << resid(2) ;     
+	qDebug() << "Solution: " << pars(0) << " " << pars(1) << " " << pars(2)
+		 << "---> " << zref - 0.5*pars(1)/pars(2) ;
+	qDebug() << "Fitting to measurements: " ;
+	for( const auto& m : mvec )
+	  qDebug() << m.z << " " << m.I
+		   << ( pars(0) + (m.z-zref)*pars(1) + (m.z-zref)*(m.z-zref)*pars(2) ) ;
 	
+	success = pars(2) < 0 ;
+	if( !success ) {
+	  std::stringstream str ;
+	  str << "Vector: " << halfdchi2dpar << std::endl
+	      << "Matrix: " << halfd2chi2dpar2 ;
+	  qDebug() << str.str().c_str() ;
+	}
+	if( success ) z0 = zref - 0.5*pars(1)/pars(2) ;
       }
-      if( success ) z0 = zref - 0.5*pars(1)/pars(2) ;
       return success ;
     }
     
@@ -661,41 +712,67 @@ namespace PAP
     startFocusSequence( m_settings->zmin, m_settings->zmax) ;
   }
 
+  void AutoFocus::takeSeries( double zmin, double zmax, double velocity )
+  {
+
+    // First make sure that we are no longer moving
+    if( m_zaxis->isMoving() ) {
+      m_zaxis->stop() ;
+      QSignalSpy spy( m_zaxis, &MotionAxis::movementStopped) ;
+      spy.wait( 60000 ) ;
+    }
+    
+    // Now move to zmin, if we are not yet there.
+    auto axisvelocity =  m_zaxis->parameter("Velocity") ;
+    axisvelocity->setValue() = m_settings->movespeed.value() ;
+    const double positiontolerance = 0.001 ;
+    if( std::abs(m_zaxis->position() - zmin) > positiontolerance ) {
+      m_zaxis->moveTo(zmin) ;
+      QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
+      spy.wait( 60000 ) ;
+    }
+    
+    axisvelocity->setValue() = velocity ;
+    
+    // clear the focusmeasurements and start taking data.
+    m_focusmeasurements->clear() ;
+    m_fastfocusmeasurements.clear() ;
+    connect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
+    m_zaxis->moveTo(zmax) ;
+    QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
+    // factor 5 safety margin?
+    const double timeout = 5000*std::abs(zmax-zmin)/velocity ;
+    qDebug() << "AutoFocus::takeSeries: timeout for  search: " << timeout  ;
+    spy.wait( timeout ) ;
+    // disconnect and reset velocity
+    disconnect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
+    axisvelocity->setValue() = m_settings->movespeed.value() ;
+  }
   
   void AutoFocus::startFocusSequence(double zmin, double zmax)
   {
+    // FIXME: we still need to return a failure in case we fail the number of tries
+    const int maxtries = 3 ;
     if( !isFocussing() ) {
-      bool success = true ;
+      bool success = false ;
       m_status = IsFocussing ;
       
       // cache the speed
       auto axisvelocity =  m_zaxis->parameter("Velocity") ;
       const auto originalspeed = axisvelocity->getValue().value() ;
-      // set the speed to the move speed (which is actually just as fast as we can go)
-      axisvelocity->setValue() = m_settings->movespeed.value() ;
 
-      // we always go down. so first move to zmin. can update this later.
-      {
-	m_zaxis->moveTo(zmin) ;
-	QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
-	spy.wait( 60000 ) ;
-      }
-      m_focusmeasurements->clear() ;
-      m_fastfocusmeasurements.clear() ;
-      double z1 = zmin ;
-      double z2 = zmax ;
-      connect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
-      // First do a fast scan
-      if( zmax - zmin > 0.11 ) {
-	axisvelocity->setValue() = m_settings->fastspeed.value() ;
-	{
-	  m_zaxis->moveTo(zmax) ;
-	  QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
-	  // factor 5 safety margin?
-	  const double timeout = 5000*std::abs(zmax-zmin)/m_settings->fastspeed.value() ;
-	  qDebug() << "timeout for fast search: " << timeout  ;
-	  spy.wait( timeout ) ;
-	}
+      // Take the fast series, until it is right
+      double z1 = std::min(zmin,zmax) ;
+      double z2 = std::max(zmin,zmax) ;
+      if( z2 - z1 > 0.11 ) {
+	qDebug() << "Starting fast search loop" ;
+	int ntries{0} ;
+	do {
+	  qDebug() << "Fast search iteration: " << ntries ;
+	  takeSeries(z1,z2,m_settings->fastspeed.value()) ;
+	} while(!testseries( m_fastfocusmeasurements, axisvelocity->getValue().value().toDouble() ) &&
+		++ntries<=maxtries ) ;
+	
 	// find the maximum
 	m_bestfocus = m_fastfocusmeasurements.front() ;
 	for( const auto& m : m_fastfocusmeasurements )
@@ -703,29 +780,21 @@ namespace PAP
 	qDebug() << "Fast search done: " << m_bestfocus.z ;
 	// move to 50 micron below it. why do we have an asymmetric
 	// range. because we are so much biased?
-	z1 = std::max(zmin,m_bestfocus.z-0.05) ;
-	z2 = std::min(m_bestfocus.z+0.10,zmax) ;
-	{
-	  axisvelocity->setValue() = m_settings->movespeed.value() ;
-	  m_zaxis->moveTo(z1) ;
-	  QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
-	  spy.wait( 10000 ) ;
-	}
+	z1 = std::max(z1,m_bestfocus.z-0.05) ;
+	z2 = std::min(m_bestfocus.z+0.10,z2) ;
+	
+      } else {
+	qDebug() << "No need to do fast search as we are close enough" ;
       }
-      // perform a slow search
-      m_focusmeasurements->clear() ;
-      m_fastfocusmeasurements.clear() ;
-      {
-	// why do we have an asymmetric range. because we are so much biased?
-	axisvelocity->setValue() = m_settings->slowspeed.value() ;
-	m_zaxis->moveTo(z2) ;
-	QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
-	// use factor 2 safety margin
-	const double timeout = 2000*std::abs(z2-z1)/m_settings->slowspeed.value() ;
-	qDebug() << "timeout for slow search: " << timeout  ;
-	spy.wait( timeout ) ;
-      }
-      disconnect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
+      
+      // now perform a slow search
+      int ntries = 0 ;
+      do {
+	qDebug() << "FastSlow search iteration: " << ntries ;
+	takeSeries(z1,z2,m_settings->slowspeed.value()) ;
+      } while(!testseries( m_fastfocusmeasurements, axisvelocity->getValue().value().toDouble() ) &&
+	      ++ntries<=maxtries ) ;
+      
       // for now just print the series
       // for_each( m_fastfocusmeasurements.begin(),
       // 		m_fastfocusmeasurements.end(),
@@ -747,15 +816,7 @@ namespace PAP
 		 << z0 ;
 	if(!success || z0<zmin || z0 > zmax)
 	  z0 = m_fastfocusmeasurements[imax].z ;
-	if(false) {
-	  // take another curve coming from the top
-	  m_fastfocusmeasurements.clear() ;
-	  connect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
-	  m_zaxis->moveTo(z0-0.05) ;
-	  QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
-	  spy.wait( 10000 ) ;
-	  disconnect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
-	}
+
 	axisvelocity->setValue() = m_settings->movespeed.value() ;
 	// now we need to arrive from below
 	{
@@ -776,232 +837,4 @@ namespace PAP
     }
   }
   
-  /*
-  void AutoFocus::startFastFocusSequence()
-  {
-    if( !isFocussing() ) {
-      m_status = IsFocussing ;
-            
-      // cache the speed
-      auto axisvelocity =  m_zaxis->parameter("Velocity") ;
-      const auto originalspeed = axisvelocity->getValue().value() ;
-      // set the speed to the fast focusspeed
-      axisvelocity->setValue() = m_settings->fastspeed.value() ;
-      
-      // we first walk down until we have passed the measurement best
-      // focus. how do we decide in which direction to go?
-      double currentz = m_zaxis->position() ;
-      double targetz  = m_settings->zmax ;
-      if(      currentz > m_settings->zmax ) targetz = m_settings->zmin ;
-      else if( currentz < m_settings->zmin ) targetz = m_settings->zmax ;
-      m_focusseriestype = FocusSeriesType::None ;
-      m_bestfocus.I = 0 ;
-      m_fastfocusmeasurements.clear() ;
-      connect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseFastFocus) ;
-      m_zaxis->moveTo(targetz) ;
-      QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
-      spy.wait( 10000 ) ;
-      qDebug() << "Fast focus success step A: "
-	       << m_focusseriestype << " "
-	       << m_bestfocus.z << " " << m_zaxis->position().value() ;
-      if( m_focusseriestype == FocusSeriesType::Falling ||
-	  m_focusseriestype == FocusSeriesType::None ) {
-	// repeat, but in the other direction
-	m_fastfocusmeasurements.clear() ;
-	m_bestfocus.I = 0 ;
-	m_focusseriestype = FocusSeriesType::None ;
-	targetz = m_settings->zmin ;
-	m_zaxis->moveTo(targetz) ;
-	QSignalSpy spy( m_zaxis,&MotionAxis::movementStopped) ;
-	spy.wait( 10000 ) ;
-      }
-      disconnect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseFastFocus) ;
-      qDebug() << "Fast focus success step B: "
-	       << m_focusseriestype << " "
-	       << m_bestfocus.z << " " << m_zaxis->position().value() ;
-      // move to best focus minus 50 micron
-      m_zaxis->moveTo(m_bestfocus.z-0.05) ;
-      QSignalSpy spyB( m_zaxis,&MotionAxis::movementStopped) ;
-      spyB.wait( 10000 ) ;
-      // now we go for the slow focussing
-      // move 100 micron up, while analysing the data.
-      m_focusseriestype = FocusSeriesType::None ;
-      m_bestfocus.I = 0 ;
-      m_fastfocusmeasurements.clear() ;
-      connect(this,&AutoFocus::focusMeasurement,this,&AutoFocus::analyseSlowFocus) ;
-      axisvelocity->setValue() = m_settings->slowspeed.value() ;
-      m_zaxis->moveTo(m_bestfocus.z+0.05) ;
-      QSignalSpy slowspy( m_zaxis,&MotionAxis::movementStopped) ;
-      slowspy.wait( 10000 ) ;
-      // for now just print the series
-      for_each( m_fastfocusmeasurements.begin(),
-		m_fastfocusmeasurements.end(),
-		[]( const FocusMeasurement& m ) { qDebug() << m.z << " " << m.I ; } ) ;
-      
-      axisvelocity->setValue() = originalspeed ;
-      m_isFocussing = false ;
-    }
-  }
-  
-  FocusMeasurement AutoFocus::takeMeasurement(MotionAxis& axis, double zpos )
-  {
-    // move the camera to position zpos
-    if( true ||  axis.hasMotorOn() ) {
-      axis.moveTo( zpos ) ;
-      // wait until it is no longer moving
-      if( axis.isMoving() ) {
-	qDebug() << "Waiting for focussing axis to move to correct place." ;
-	// FIXME: it would be nicer to wait for a signal here, but we
-	// could also just wait
-	//QThread::msleep(10) ;
-	//   http://doc.qt.io/qt-5/qsignalspy.html#wait
-	// the problem with this one is that it starts a separate event loop. if it waits for-ever in this 
-	QSignalSpy spy( &axis, SIGNAL(movementStopped())) ;
-	spy.wait( 10000 ) ;
-      }
-    } else {
-      qDebug() << "Cannot focus because Motor is not on" ;
-    }
-    // make the measurement
-    qDebug() << "Will now call computeContrast" ;
-
-    m_focusTriggered = true ;
-    QSignalSpy spy(this, &AutoFocus::focusMeasurement) ;
-    spy.wait(10000) ;
-    FocusMeasurement rc= qvariant_cast<FocusMeasurement>(spy.at(0).at(0)) ;
-    
-    //FIXME: the position is not updated, unfortunately. let's take the setposition.
-    qDebug() << "Creating focus measurement: "
-	     << zpos << " "
-	     << axis.position() << " "
-	     << rc.I ;
-    rc.z = zpos ;
-    return rc ;
-  }
-
-  void AutoFocus::startFocusSequence()
-  {
-    if( !isFocussing() ) {
-      m_isFocussing = true ;
-      qDebug() << "In focussing routine" ;
-      // perhaps we should use 'minuit' for this. we don't actually
-      // know the shape of the function very well. it looks a bit like
-      // a gaussian on top of a flat background.
-      const float maxstepsize = 0.025 ; // 30 micron?
-      const float minstepsize = 0.001 ;
-      MotionAxis& axis = MotionSystemSvc::instance()->focusAxis() ;
-      // tricky: need to make sure this is up-to-date. that will turn
-      // out the problem all over this routine: how do we make sure that
-      // we have an up-to-date position measurement?
-      //if(! axis ) { qDebug() << "Cannot find axis!" ; return ; }
-      
-      const double zstart = axis.position() ;
-      std::vector< FocusMeasurement > measurements ;
-      m_focusmeasurements->clear() ;
-      measurements.reserve(64) ;
-      qDebug() << "Ready to take focus measurements" ;
-      
-      // collect sufficient measurements that we are sure that we have
-      // on both sides of the maximum. first do positive, then
-      // negative direction.
-      size_t maxnumsteps=10 ;
-      double maximum(0) ;
-      bool readypos=false ;
-      bool failure = false ;
-      double z0 = zstart ;
-      double zpos = zstart ;
-      while( !readypos && !failure ) {
-	auto meas = takeMeasurement(axis, zpos ) ;
-	if( meas.I > maximum ) {
-	  maximum = meas.I ;
-	  z0 = zpos ;
-	} else readypos = true ;
-	measurements.push_back( meas ) ;
-	zpos += maxstepsize ;
-	failure = measurements.size()>maxnumsteps ;
-      }
-      bool readyneg=false ;
-      zpos = zstart - maxstepsize ;
-      while( !readyneg && !failure ) {
-	auto meas = takeMeasurement(axis, zpos ) ;
-	if( meas.I > maximum ) {
-	  maximum = meas.I ;
-	  z0 = zpos ;
-	} else readyneg = true ;
-	measurements.insert(measurements.begin(),meas) ;
-	zpos -= maxstepsize ;
-	failure = measurements.size()>maxnumsteps ;
-      }
-
-      //
-      qDebug() << "Number of measurements after step 1: "
-	       << measurements.size() ;
-      qDebug() << "Best z position after firs step: "
-	       << z0 ;
-      	
-      // 1. compute three points, around the current z-position
-      //{
-      //double zpositions[] = { zstart - maxstepsize, zstart, zstart + maxstepsize } ;
-      //	for( auto zpos : zpositions )
-      //  measurements.push_back( takeMeasurement(*m_autofocus, axis, zpos ) ) ;
-      //}
-      // 2. collect more measurements 
-
-      // 2. extrapolate to the estimated minimum.
-      //double z0 = zstart ;
-      double deltaz0 = maxstepsize ;
-      bool success = true ;
-      do {
-	// pruning: if we have more than 4 measurements, remove all of those
-	// that are more than maxstepsize away from the current best
-	// estimate.
-	bool readypruning = false ;
-	while( measurements.size()>4 && !readypruning ) {
-	  // find the worst measurement
-	  size_t iworst=0 ;
-	  for(size_t i=1; i<measurements.size(); ++i)
-	    if( measurements[i].I < measurements[iworst].I ) iworst=i ;
-	  if( std::abs(measurements[iworst].z - z0 ) > 2*maxstepsize ) 
-	    measurements.erase( measurements.begin() + iworst ) ;
-	  else
-	    readypruning = true ;
-	}
-	// now estimate the new z0 from the remaining measurements
-	double z0prev = z0 ;
-	success = estimatez0( measurements, z0 ) ;
-	if( success ) {
-	  // maximize the step size
-	  if(     z0 > measurements.back().z + maxstepsize )
-	    z0 = measurements.back().z + maxstepsize ;
-	  else if( z0 < measurements.front().z - maxstepsize )
-	    z0 = measurements.front().z - maxstepsize ;
-	  deltaz0 = z0 - z0prev ;
-	  // move to the new position and take a new focus measurement
-	  measurements.push_back( takeMeasurement( axis, z0 ) ) ;
-	  std::sort( measurements.begin(), measurements.end() ) ;
-	  qDebug() << "Number of focussing measurements: " << measurements.size() ;
-	  qDebug() << "Delta-z: " << deltaz0 ;
-	  
-	  // if we have more than 4 measurements, remove all of those
-	  // that are more than maxstepsize away from the current best
-	  // estimate.
-	  
-	}
-      } while( success && std::abs(deltaz0) > minstepsize ) ;
-      
-      // if not successful, move back to where we started
-      if( !success ) {
-	qWarning() << "Focussing failed!" ;
-	qDebug() << "Measurements: " << measurements.size() ;
-	for( const auto& m : measurements )
-	  qDebug() << m.z << " " << m.I ;
-	axis.moveTo( zstart ) ;
-      }
-      m_isFocussing = false ;
-      m_focuschart->createDefaultAxes();
-    }
-  }
-
-  
-  */
 }

@@ -25,6 +25,8 @@ namespace PAP
     FocusMeasurement( double _z=0, double _I=0) : z(_z),I(_I) {}
     MotionAxis::Direction zdir ;
     double z ;
+    QDateTime timestamp ;
+    //double z ;
     double I ;
     bool operator<(const FocusMeasurement& rhs) const { return z < rhs.z ; }
   } ;
@@ -58,7 +60,7 @@ namespace PAP
     double currentModuleZ() const { return zFromFocus(currentFocus()) ; }
     bool isFocussing() const { return m_status == IsFocussing ; }
     bool isFocussed() const { return m_status == IsFocussed ; }
-    
+    void takeSeries(double zmin, double zmax, double velocity) ;
   signals:
     void focusMeasureUpdated() ;
     void focusMeasurement(PAP::FocusMeasurement result) ;
