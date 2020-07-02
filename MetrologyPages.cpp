@@ -58,6 +58,7 @@ namespace PAP
     ViewDirection m_viewdir{ViewDirection::NumViews} ;
     QHBoxLayout* m_buttonlayout{0} ;
     QPlainTextEdit* m_textbox{0} ;
+    QDialog m_settingsdialog ;
   protected:
     std::vector<ReportCoordinate> m_measurements ;
     void fillTable() ;
@@ -74,6 +75,7 @@ namespace PAP
     //void record() {}
     ViewDirection viewdir() const { return m_viewdir ; }
     void exportToFile() const ;
+    void exportToFile(const QString& filename) const ;
     void importFromFile() ;
     void importFromFile(const QString& filename) ;
     void reset() {
@@ -84,15 +86,21 @@ namespace PAP
       return QString("/home/velouser/Documents/PickAndPlaceData/") +
 	m_camerasvc->moduleName() + "/" + pageName() + ".csv" ;
     }
+    QString autoSaveFileName() const {
+      return QString{ pageName() + "_" + QDateTime::currentDateTime().toString("yyyyMMdd.hhmmss") + ".csv" } ;
+    }
     virtual void focus() const ;
     void move() const ;
     const std::vector<ReportCoordinate>& measurements() const { return  m_measurements ; }
-    void acceptall() { for(auto&m:m_measurements) m.setStatus( ReportCoordinate::Ready ) ; }
-    void resetall() { for(auto&m:m_measurements) m.setStatus( ReportCoordinate::Initialized ) ; }
+    void acceptall() { for(auto&m:m_measurements) m.setStatus( ReportCoordinate::Ready ) ; updateTableColors() ; }
+    void resetall() { for(auto&m:m_measurements) m.setStatus( ReportCoordinate::Initialized ) ; updateTableColors() ; }
+    void updateTableColors() ;
+    void updateRowColors(int row) ;
   } ;
   
   MarkerMetrologyPage::MarkerMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
-    : QWidget{&camerasvc}, m_camerasvc{&camerasvc}, m_viewdir{viewdir}
+    : QWidget{&camerasvc}, m_camerasvc{&camerasvc}, m_viewdir{viewdir},
+      m_settingsdialog{this}
   {
     //this->resize(500,300);
     auto layout =  new QVBoxLayout{} ;
@@ -119,6 +127,27 @@ namespace PAP
     
     m_buttonlayout = new QHBoxLayout{} ;
     layout->addLayout(m_buttonlayout) ;
+    {
+      m_settingsdialog.setWindowTitle( "Settings" ) ;
+      m_settingsdialog.setContentsMargins(0, 0, 0, 0);
+      //auto layout = new QGridLayout{} ;
+      auto layout = new QVBoxLayout{} ;
+      m_settingsdialog.setLayout(layout) ;
+      {
+	auto button = new QPushButton{"reset all", this} ;
+	layout->addWidget(button) ;
+	connect(button,&QPushButton::clicked,[=]() { this->resetall(); } ) ;
+      }
+      {
+	auto button = new QPushButton{"accept all", this} ;
+	layout->addWidget(button) ;
+	connect(button,&QPushButton::clicked,[=]() { this->acceptall(); } ) ;
+      }
+      auto settingsbutton = new QPushButton(QIcon(":/images/settings.png"),"",this) ;
+      connect( settingsbutton, &QPushButton::clicked, [&](){ m_settingsdialog.show() ; } ) ;
+      m_buttonlayout->addWidget(settingsbutton);
+    }
+    
     {
       auto button = new QPushButton{"Focus",this} ;
       m_buttonlayout->addWidget(button) ;
@@ -149,7 +178,9 @@ namespace PAP
       m_buttonlayout->addWidget(button) ;
       connect(button,&QPushButton::clicked,this,[=]{ this->reset() ; }) ;
     }
- }
+
+
+  }
   
   void MarkerMetrologyPage::focus() const
   {
@@ -175,7 +206,8 @@ namespace PAP
 	m_markertable->item(row,0)->setText( m.name() ) ;
 	updateTableRow( row++, m ) ;
       }
-    } 
+    }
+    updateTableColors() ;
   }
 
   void MarkerMetrologyPage::addMarker()
@@ -202,25 +234,24 @@ namespace PAP
   }  
   
   void MarkerMetrologyPage::updateTableRow( int row, const ReportCoordinate& coord ) {
+    qDebug() << "MarkerMetrologyPage::updateTableRow: "
+	     << row << m_measurements.size() << m_markertable->rowCount() ;
+    if( row >= int(m_measurements.size()) || row>= m_markertable->rowCount() ) {
+      qWarning() << "Severe problem in MarkerMetrologyPage::updateTableRow: "
+	       << row << m_measurements.size() << m_markertable->rowCount() ;
+      return ;
+    } 
     m_markertable->item(row,1)->setText( QString::number( coord.x(), 'g', 5 ) ) ;
     m_markertable->item(row,2)->setText( QString::number( coord.y(), 'g', 5 ) ) ;
     m_markertable->item(row,3)->setText( QString::number( coord.z(), 'g', 5 ) ) ;
-    const auto color = m_measurements[row].status() == ReportCoordinate::Status::Ready ? Qt::green : Qt::lightGray ;
-    m_markertable->item(row,0)->setBackground( QBrush{ QColor{color} } ) ;
+    updateRowColors(row) ;
   }
   
   void MarkerMetrologyPage::activateRow( int row ) {
 
-    if( row>=0 && row<=int(m_measurements.size()) ) {
+    if( row>=0 && row<int(m_measurements.size()) ) {
       const auto& m = m_measurements[row] ;
-      
       if( row != m_activerow ) {
-	// uncolor the current row
-	if( m_activerow>=0 && m_activerow<int(m_measurements.size()) ) {
-	  m_markertable->item(m_activerow,0)->
-	    setBackground( QBrush{ QColor{m_measurements[m_activerow].status() == ReportCoordinate::Status::Ready ? Qt::green : Qt::lightGray} } ) ;
-	  //m_markertable->item(m_activerow,0)->setSelected(false) ;
-	}
 	// move the camera
 	if( int(m.status()) >= int(ReportCoordinate::Status::Initialized) ) {
 	  m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.x(),m.y()} ) ;
@@ -233,14 +264,35 @@ namespace PAP
 	    // m_camerasvc->autofocus()->startNearFocusSequence() ;
 	  }	
 	}
+	//const auto tmprow = m_activerow ;
+	m_activerow = row ;
+	// make sure to set the inactive row color
+	// updateRowColors( tmprow ) ;
       }
-
-      // recolor the new row
-      m_markertable->item(row,0)->setBackground( QBrush{ QColor{m.status() ==  ReportCoordinate::Status::Ready ? Qt::darkGreen : Qt::gray} } ) ;
-      //m_markertable->item(row,0)->setSelected(true) ;
-      // make sure to set the active row flag
-      m_activerow = row ;
+      // make sure to set the active row color
+      // updateRowColors( m_activerow ) ;
     }
+    updateTableColors() ;
+  }
+
+  void MarkerMetrologyPage::updateRowColors(int row)
+  {
+    //qDebug() << "In updateRowColors " << row ;
+    if( row>=0 && row<m_markertable->rowCount() ) {
+      const auto status = row<int(m_measurements.size()) ? m_measurements[row].status() : ReportCoordinate::Status::Uninitialized ;
+      QColor col = status == ReportCoordinate::Status::Ready ? Qt::green : Qt::lightGray;
+      if( row == m_activerow ) 
+	col = QColor{status ==  ReportCoordinate::Status::Ready ? Qt::darkGreen : Qt::gray} ;
+      //qDebug() << "color = " << col << " " << int(status) << row == m_activerow ;
+      m_markertable->item(row,0)->setBackground( QBrush{ col } ) ;
+    }
+  }
+  
+  void MarkerMetrologyPage::updateTableColors()
+  {
+    // safest: loop over the table, then get the status from the measurement
+    //qDebug() << "In updateTableColors" ;
+    for(int row=0; row<m_markertable->rowCount(); ++row) updateRowColors(row) ;
   }
   
   void MarkerMetrologyPage::move() const
@@ -276,13 +328,19 @@ namespace PAP
   {
     return record(m_camerasvc->cameraview()->coordinateMeasurement()) ;
   }
-    
+
+
+  
   void MarkerMetrologyPage::exportToFile() const
   {
-    // pop up a dialog to get a file name
     auto filename = QFileDialog::getSaveFileName(nullptr, tr("Save data"),
 						 defaultFileName(),
 						 tr("Csv files (*.csv)"));
+    exportToFile( filename ) ;
+  }
+  
+  void MarkerMetrologyPage::exportToFile(const QString& filename) const
+  {
     QFile f( filename );
     f.open(QIODevice::WriteOnly) ;
     QTextStream data( &f );
@@ -450,6 +508,7 @@ namespace PAP
     if( m_activerow<int(m_measurements.size())) move() ;
     else {
       disconnectsignals();
+      exportToFile(autoSaveFileName()) ;
       this->fitPlane(FitModel::Plane) ;
     }
   }
@@ -676,54 +735,23 @@ namespace PAP
 
   //****************************************************************************//
 
-  namespace {
-    template<typename T>
-    struct BoundingRange
-    {
-      T min{std::numeric_limits<T>::max()} ;
-      T max{std::numeric_limits<T>::min()} ;
-      void add(const T& x) {
-	if(min>x)      min=x ;
-	else if(max<x) max=x ;
-      }
-    } ;
-    
-    template<typename T=double>
-    struct BoundingBox
-    {
-      BoundingRange<T> x, y ;
-      void add( double ax, double ay ) {
-	x.add(ax) ;
-	y.add(ay) ;
-      }
-    } ;
-  }
-  
   class GenericSurfaceMetrologyPage : public SurfaceMetrologyPage
   {
-  private:
+  protected:
     //std::vector<ModuleCoordinates> m_trajectory ;
     NamedValue<double> m_zmin{"LineScan.ZMin",23.0} ;  // Minimal z for focus search
     NamedValue<double> m_zmax{"LineScan.ZMax",24.5} ;  // Maximal z for focus search
     NamedValue<double> m_spacing{"AutoFocus.GridSpacing",2.0} ; // maximal distance between grid points
     bool m_keepOriginalMeasurements{true} ;
-    QDialog m_settingsdialog ;
   public:
     GenericSurfaceMetrologyPage( CameraWindow& camerasvc, ViewDirection viewdir)
-      : SurfaceMetrologyPage{camerasvc,viewdir},
-	m_settingsdialog{this}
+      : SurfaceMetrologyPage{camerasvc,viewdir}
     {
-      // auto button = new QPushButton{"run", this} ;
-      // m_buttonlayout->addWidget(button) ;
-      // connect(button,&QPushButton::clicked,[=]() { this->run() ; } ) ;
-
       // configure the settingsdialog
       {
-	m_settingsdialog.setWindowTitle( "LineScanPageSettings" ) ;
-	m_settingsdialog.setContentsMargins(0, 0, 0, 0);
+
 	//auto layout = new QGridLayout{} ;
-	auto layout = new QVBoxLayout{} ;
-	m_settingsdialog.setLayout(layout) ;
+	auto layout = m_settingsdialog.layout() ;
 	layout->addWidget( new NamedValueInputWidget<double>{m_zmin,18.0,25.0,2} ) ;
 	layout->addWidget( new NamedValueInputWidget<double>{m_zmax,18.0,26.0,2} ) ;
 	layout->addWidget( new NamedValueInputWidget<double>{m_spacing,0,50,2} ) ;
@@ -732,22 +760,8 @@ namespace PAP
 	  layout->addWidget(button) ;
 	  connect(button,&QPushButton::clicked,[=]() { this->run() ; } ) ;
 	}
-	{
-	  auto button = new QPushButton{"reset all", this} ;
-	  layout->addWidget(button) ;
-	  connect(button,&QPushButton::clicked,[=]() { this->resetall(); } ) ;
-	}
-	{
-	  auto button = new QPushButton{"accept all", this} ;
-	  layout->addWidget(button) ;
-	  connect(button,&QPushButton::clicked,[=]() { this->acceptall(); } ) ;
-	}
 	layout->addWidget(&m_ignoreFocusFailed) ;
       }
-      
-      auto settingsbutton = new QPushButton(QIcon(":/images/settings.png"),"",this) ;
-      connect( settingsbutton, &QPushButton::clicked, [&](){ m_settingsdialog.show() ; } ) ;
-      m_buttonlayout->addWidget(settingsbutton);
     }
     //
     void definemarkers() final {
@@ -762,7 +776,7 @@ namespace PAP
 	m_camerasvc->autofocus()->startFocusSequence(m_zmin,m_zmax) ;
       } ;
     }
-    void run()
+    virtual void run()
     {
       // insert measurements such that we get a certain density of points
       if( m_measurements.size()>=4 ) {
@@ -834,8 +848,8 @@ namespace PAP
 		  << x0 + x2prime*cosphi - y2prime*sinphi << ", "
 		  << y0 + y2prime*cosphi + x2prime*sinphi << std::endl ;
 	// compute the new grid points
-	const int nx = std::max(int((x2prime-x1prime)/m_spacing),2) ;
-	const int ny = std::max(int((y2prime-y1prime)/m_spacing),2) ;
+	const int nx = std::max(int((x2prime-x1prime)/m_spacing)+1,2) ;
+	const int ny = std::max(int((y2prime-y1prime)/m_spacing)+1,2) ;
 	std::cout << "nx,ny: " << nx << " " << ny << std::endl ;
 	std::vector<ReportCoordinate>  newmeasurements  ;
 	newmeasurements.reserve( nx*ny ) ;
@@ -868,49 +882,12 @@ namespace PAP
   }
 
   //****************************************************************************//
-  class LineScanPage : public SurfaceMetrologyPage
+  class LineScanPage : public GenericSurfaceMetrologyPage
   {
-  private:
-    //std::vector<ModuleCoordinates> m_trajectory ;
-    NamedValue<double> m_zmin{"LineScan.ZMin",23.0} ;  // Minimal z for focus search
-    NamedValue<double> m_zmax{"LineScan.ZMax",24.5} ;  // Maximal z for focus search
-    NamedValue<double> m_spacing{"AutoFocus.GridSpacing",2.0} ; // maximal distance between grid points
-    QDialog m_settingsdialog ;
   public:
     LineScanPage( CameraWindow& camerasvc, ViewDirection viewdir)
-      : SurfaceMetrologyPage{camerasvc,viewdir},
-	m_settingsdialog{this}
-    {
-      // auto button = new QPushButton{"run", this} ;
-      // m_buttonlayout->addWidget(button) ;
-      // connect(button,&QPushButton::clicked,[=]() { this->run() ; } ) ;
-
-      // configure the settingsdialog
-      {
-	m_settingsdialog.setWindowTitle( "LineScanPageSettings" ) ;
-	m_settingsdialog.setContentsMargins(0, 0, 0, 0);
-	//auto layout = new QGridLayout{} ;
-	auto layout = new QVBoxLayout{} ;
-	m_settingsdialog.setLayout(layout) ;
-	layout->addWidget( new NamedValueInputWidget<double>{m_zmin,18.0,25.0,2} ) ;
-	layout->addWidget( new NamedValueInputWidget<double>{m_zmax,18.0,26.0,2} ) ;
-	layout->addWidget( new NamedValueInputWidget<double>{m_spacing,0,50,2} ) ;
-	auto button = new QPushButton{"run", this} ;
-	layout->addWidget(button) ;
-	connect(button,&QPushButton::clicked,[=]() { this->run() ; } ) ;
-      }
-      
-      auto settingsbutton = new QPushButton(QIcon(":/images/settings.png"),"",this) ;
-      connect( settingsbutton, &QPushButton::clicked, [&](){ m_settingsdialog.show() ; } ) ;
-      m_buttonlayout->addWidget(settingsbutton);
-    }
-    //
-    void definemarkers() final {
-      m_measurements.clear() ;
-      fillTable() ;
-    }
-    
-    void run()
+      : GenericSurfaceMetrologyPage{camerasvc,viewdir} {}
+    void run() override
     {
       // insert measurements such that we get a certain density of points
       if( !m_measurements.empty() ) {
@@ -938,8 +915,6 @@ namespace PAP
       fillTable() ;
     }
   } ;
-
-  
   
   //****************************************************************************//
   class SideReportPage : public QWidget
@@ -1036,8 +1011,8 @@ namespace PAP
       this->addTab(new SideReportPage{this,tilemarkerpage,
 	    sensorsurfacepage[0],sensorsurfacepage[1],substratesurfacepage},"Report") ;
 
-      //this->addTab(new LineScanPage{camerasvc,view}, "Generic surface") ;
-      this->addTab(new GenericSurfaceMetrologyPage{camerasvc,view}, "Generic surface") ;
+      this->addTab(new LineScanPage{camerasvc,view}, "Line surface") ;
+      this->addTab(new GenericSurfaceMetrologyPage{camerasvc,view}, "Grid surface") ;
     }
   } ;
   
