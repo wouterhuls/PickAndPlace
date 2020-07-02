@@ -10,6 +10,27 @@ namespace PAP
   enum ViewDirection { NSideView = 0 , CSideView=1, NumViews=2 } ;
   enum TileType { ShortSide=0, LongSide=1, NumTiles=2} ;
   
+  template<typename T>
+    struct BoundingRange
+    {
+      T min{std::numeric_limits<T>::max()} ;
+      T max{std::numeric_limits<T>::min()} ;
+      void add(const T& x) {
+        if(min>x)      min=x ;
+        else if(max<x) max=x ;
+      }
+    } ;
+  
+  template<typename T=double>
+    struct BoundingBox
+    {
+      BoundingRange<T> x, y ;
+      void add( double ax, double ay ) {
+        x.add(ax) ;
+        y.add(ay) ;
+      }
+    } ;
+  
   class Coordinates2D : public QPointF
   {
   public:
