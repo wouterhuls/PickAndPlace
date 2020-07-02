@@ -380,13 +380,17 @@ class ReferenceMarker : public Marker
       pen.setColor( QColor{65,80,244} ) ;
       
       // let's draw some thin lines near the center
-      pen.setWidthF(0.0002*m_size); // in which units? this is shit ... rescaling does not work!
+      //pen.setWidthF(0.0002*m_size); // in which units? this is shit ... rescaling does not work!
+      pen.setWidthF(1.0);
+      pen.setCosmetic(true) ;
       painter->setPen(pen) ;
       const double L = 0.02*m_size ;
       painter->drawLine(QPointF(0,-L),QPointF(0,L)) ;
       painter->drawLine(QPointF(-L,0),QPointF(L,0)) ;
       // let's draw as a circle with some lines inside
-      pen.setWidthF(0.01*m_size); // in which units? this is shit ... rescaling does not work!      
+      pen.setWidthF(0.01*m_size); // in which units? this is shit ... rescaling does not work!
+      pen.setWidthF(2.0);
+      pen.setCosmetic(true) ;
       painter->setPen(pen) ;
       QRectF rectangle{-0.5*m_size,-0.5*m_size,m_size,m_size};
       painter->drawRect( rectangle ) ;
