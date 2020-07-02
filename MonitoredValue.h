@@ -26,8 +26,8 @@ namespace PAP
     Q_OBJECT
   public:
     MonitoredValueBase() = default ;
-    MonitoredValueBase( const MonitoredValueBase&) : QObject{} {}
-    MonitoredValueBase( MonitoredValueBase&& ) : QObject{} {}
+    MonitoredValueBase( const MonitoredValueBase& rhs) : QObject{}, m_timestamp{rhs.m_timestamp} {}
+    MonitoredValueBase( MonitoredValueBase&& rhs) : QObject{}, m_timestamp{rhs.m_timestamp} {}
     virtual ~MonitoredValueBase() {}
     // to interface with property service
     virtual QString toString() const = 0 ;
