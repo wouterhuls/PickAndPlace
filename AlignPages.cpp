@@ -7,7 +7,7 @@
 #include "AutoFocus.h"
 #include "TextEditStream.h"
 #include "NominalMarkers.h"
-#include "GraphicsItems.h"
+#include "MarkerGraphics.h"
 
 #include <cmath>
 #include "Eigen/Dense"

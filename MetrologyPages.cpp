@@ -16,7 +16,7 @@
 #include "CameraView.h"
 #include "AutoFocus.h"
 #include "MetrologyReport.h"
-#include "GraphicsItems.h"
+#include "MarkerGraphics.h"
 #include "TextEditStream.h"
 #include "NamedValueInputWidget.h"
 #include <iostream>
