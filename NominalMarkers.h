@@ -71,9 +71,9 @@ namespace PAP
 	  {
 	    {"CLI_Sensor_Fid1",-22.794,29.479},
 	    {"CLI_Sensor_Fid2",-22.794,30.257},
-	    {"CLI_Sensor_Fid40",+5.658,1.068},
+	    {"CLI_Sensor_T40",+5.676,1.009},
 	    {"CSO_Sensor_Fid3",19.200,-27.115},
-	    {"CSO_Sensor_Fid210",11.185,-19.100}
+	    {"CSO_Sensor_L230",10.382,-18.319}
 	  } ;
       }
     
@@ -83,8 +83,8 @@ namespace PAP
 	  {
 	    {"NSI_Sensor_Fid1",-0.237,-6.923},
 	    {"NSI_Sensor_Fid2",-0.237,-7.700},
-	    {"NSI_Sensor_Fid610",5.797,-0.897},
-	    {"NSI_Sensor_Fid30",8.358,-16.411}
+	    {"NSI_Sensor_T610",5.793,-0.893},
+	    {"NSI_Sensor_R30",8.437,-16.374}
 	  } ;
       }
 
