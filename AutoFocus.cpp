@@ -802,11 +802,12 @@ namespace PAP
       // why does every measurement appear two times?
       // perform a parabola fit two measurements close to the maximum?
       if(!m_fastfocusmeasurements.empty()) {
-	size_t imax=0 ;
+	int imax=0 ;
 	for(size_t i = 0; i<m_fastfocusmeasurements.size(); ++i)
-	  if( m_fastfocusmeasurements[imax].I < m_fastfocusmeasurements[i].I) imax=i ;
-	auto i1 = std::max(size_t{0},imax-2) ;
-	auto i2 = std::min(m_fastfocusmeasurements.size(),imax+3) ;
+	  if( m_fastfocusmeasurements[imax].I < m_fastfocusmeasurements[i].I) imax=int(i) ;
+	auto i1 = std::max(0,imax-2) ;
+	auto i2 = std::min(int(m_fastfocusmeasurements.size()),imax+3) ;
+	qDebug() << "Focus selection: " << m_fastfocusmeasurements.size() << imax << i1 << i2 ;
 	std::vector<FocusMeasurement> selection(m_fastfocusmeasurements.begin() + i1,
 						m_fastfocusmeasurements.begin() + i2) ;
 	double z0 = m_fastfocusmeasurements[imax].z ;

@@ -22,7 +22,7 @@ namespace PAP
   
   struct FocusMeasurement
   {
-    FocusMeasurement( double _z=0, double _I=0) : z(_z),I(_I) {}
+    FocusMeasurement( double _z=0, double _I=0) : z{_z},I{_I} {}
     MotionAxis::Direction zdir ;
     double z ;
     QDateTime timestamp ;
