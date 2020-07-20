@@ -124,16 +124,34 @@ namespace PAP
     Tile( const std::vector<FiducialDefinition>& markerdefs,
 	  QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItemGroup(parent)
     {
+      // fine the correct markers
+      auto pm1 = std::find_if(begin(markerdefs),end(markerdefs),
+			      [](const auto& def) { return def.name.endsWith("0_Fid1") ; } ) ;
+      auto pm2 = std::find_if(begin(markerdefs),end(markerdefs),
+			      [](const auto& def) { return def.name.endsWith("2_Fid2") ; } ) ;
+      if( pm1==end(markerdefs) || pm2==end(markerdefs) ) {
+	qWarning() << "Cannot find tile marker names in list" ;
+	return ;
+      }
+      const bool isCSide = markerdefs.front().name.startsWith("C") ;
+            
       // the position is the middle between the first and las velopix marker
-      const auto& m1 = markerdefs.front() ;
-      const auto& m2 = markerdefs.back() ;
+      const auto& m1 = *pm1 ;//markerdefs.front() ;
+      const auto& m2 = *pm2 ;//markerdefs.back() ;
       const auto dx = m2.x - m1.x ;
       const auto dy = m2.y - m1.y ;
       const auto angle = std::atan2( dy, dx ) ;
       const auto x0 = 0.5*(m2.x+m1.x) ;
       const auto y0 = 0.5*(m2.y+m1.y) ;
-      setPos(x0,y0) ;
-      setRotation( angle * 180.0 / M_PI ) ;
+
+      //setPos(x0,y0) ;
+      //setRotation( angle * 180.0 / M_PI ) ;
+      QTransform T ;
+      T.translate(x0,y0) ;
+      T.rotateRadians(angle) ;
+      if( isCSide ) T.scale(1,-1) ;
+      this->setTransform(T) ;
+      
       setToolTip(QString("Tile ") + markerdefs.front().name.leftRef(3) ) ;
       qDebug() << "Tile average position: " << toolTip() << x0 << y0 ;
       
@@ -170,35 +188,37 @@ namespace PAP
 	}
       }
       
-      // add the sensor circular markers
+      // add the sensor circular markers. because we define he
+      // coordinate system looking from the tile side, we need to
+      // replace x by minus x.
 
-      // left edge
+      // right edge (but with left edge x)
       for(int ipixel=10; ipixel<=256; ipixel+=10) {
-	// I don't know the offset yet
 	const double x = -0.5*sensorwidth + sensormarkeredgedist ;
 	const double y = sensoredgetoasicmarker + 0.5*(sensorheight-distfirstlastpixely) + (ipixel-1)*pixelsize ;
 	FiducialDefinition def{sensorname + QString{"_R"} + QString::number(ipixel),x,y} ;
-	(static_cast<QGraphicsItemGroup*>(parent))->addToGroup( new SensorPixelMarker{def,this} ) ;
+	this->addToGroup( new SensorPixelMarker{def,this} ) ;
       }
-      // right edge
+      // left edge (but with right edge x)
       for(int ipixel=10; ipixel<=256; ipixel+=10) {
 	// I don't know the offset yet
 	const double x = 0.5*sensorwidth - sensormarkeredgedist ;
 	const double y = sensoredgetoasicmarker + 0.5*(sensorheight-distfirstlastpixely) + (ipixel-1)*pixelsize ;
 	FiducialDefinition def{sensorname + QString{"_L"} + QString::number(ipixel),x,y} ;
-	(static_cast<QGraphicsItemGroup*>(parent))->addToGroup( new SensorPixelMarker{def,this} ) ;
+	this->addToGroup( new SensorPixelMarker{def,this} ) ;
       }
-      // top edge
+      // top edge (replacing x by minus x)
       for(int ipixel=10; ipixel<=3*256; ipixel+=10) {
 	//
 	const auto iasic = (ipixel-1)/256 ;
-	// I don't know the offset yet
 	const double y = sensoredgetoasicmarker + sensorheight - sensormarkeredgedist ;
-	//const double x = -0.5*distfirstlastpixelx + (ipixel-1)*pixelsize + iasic*extrainterasicdist ;
 	const double x = 0.5*distfirstlastpixelx - (ipixel-1)*pixelsize - iasic*extrainterasicdist ;
 	FiducialDefinition def{sensorname + QString{"_T"} + QString::number(ipixel),x,y} ;
-	(static_cast<QGraphicsItemGroup*>(parent))->addToGroup( new SensorPixelMarker{def,this} ) ;
+	this->addToGroup( new SensorPixelMarker{def,this} ) ;
       }
+
+      // usefull for debugging the bounding rectangle
+      //this->setFlag(QGraphicsItem::ItemClipsToShape) ;
     }
   
     // we'll draw just a 
@@ -245,7 +265,8 @@ namespace PAP
     
     virtual QRectF boundingRect() const
     { 
-      QRectF rectangle{-(width+1),-0.9,width+1,height+1.5} ;
+      QRectF rectangle{-(width/2+1),-1,width+2,height+2} ;
+      //QRectF rectangle{-100,-100,100,100} ;
       return rectangle ;
     }
   } ;
