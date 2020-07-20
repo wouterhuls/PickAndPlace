@@ -71,7 +71,7 @@ namespace PAP
 	  {
 	    {"CLI_Sensor_Fid1",-22.794,29.479},
 	    {"CLI_Sensor_Fid2",-22.794,30.257},
-	    {"CLI_Sensor_T40",+5.676,1.009},
+	    {"CLI_Sensor_T40",+5.6374,1.0483},//+5.676,1.009},
 	    {"CSO_Sensor_Fid3",19.200,-27.115},
 	    {"CSO_Sensor_L230",10.382,-18.319}
 	  } ;
