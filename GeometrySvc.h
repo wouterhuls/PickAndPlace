@@ -28,7 +28,7 @@ namespace PAP
     // - the 'module' frame is the frame of the module (jig,
     //   LHCb coordinates). This is the frame in which the coordinates of the
     //   fiducials are defined.
-    
+
     GeometrySvc() ;
     virtual ~GeometrySvc() ;
     // these translate a point to a point. but I need more: for the
@@ -69,6 +69,13 @@ namespace PAP
     
     void updateStackCalibration( double X0, double XA, double XB,
 				 double Y0, double YA, double YB, double Phi0) ;
+
+    // Access the turn jig version
+    enum TurnJigVersion { VersionA, VersionB } ;
+    const auto& turnJigVersion() const { return m_turnJigVersion; }
+    auto& turnJigVersion() { return m_turnJigVersion; }
+    void setTurnJigVersion( int version ) { m_turnJigVersion = version ; }
+    
   public:
     // access to various marker positions in the 'Module' frame. these
     // have already been corrected for the 'view'.
@@ -98,6 +105,9 @@ namespace PAP
     const NamedDouble& stackPhi0() const { return m_stackPhi0 ; }
 
   private:
+    // Some flags
+    NamedInteger m_turnJigVersion{"Geo.TurnJigVersion",TurnJigVersion::VersionA} ;
+    
     // various calibration parameters
     NamedDouble m_mainX0 ;
     NamedDouble m_mainXA ;

@@ -1,6 +1,7 @@
 #include "CameraWindow.h"
 #include "CameraView.h"
 #include "MotionSystemSvc.h"
+#include "GeometrySvc.h"
 
 #include "AutoFocus.h"
 #include "AlignPages.h"
@@ -101,7 +102,7 @@ namespace PAP
 	  if(ok) this->m_moduleName.setValue(d) ;
 	}) ;
     }
-    // buttons to switch view
+    // buttons to switch view. this is a really complicated way to make a switch button.
     {
       auto togglehlayout = new QHBoxLayout{} ;
       buttonlayout->addLayout( togglehlayout ) ;
@@ -111,7 +112,12 @@ namespace PAP
       csidebutton->setCheckable(true) ;
       togglehlayout->setSpacing(0) ;
       togglehlayout->addWidget(nsidebutton) ;
-      nsidebutton->setChecked(true) ;
+      togglehlayout->addWidget(csidebutton) ;
+      if( m_cameraview->currentViewDirection()==PAP::CSideView ) {
+	csidebutton->setChecked(true ) ;
+      } else {
+	nsidebutton->setChecked(true ) ;
+      }
       connect( csidebutton,  &QAbstractButton::clicked, [=]() {
 	  csidebutton->setChecked(true ) ;
 	  nsidebutton->setChecked(false) ;
@@ -125,19 +131,36 @@ namespace PAP
 	  //csidebutton->setChecked(!nsidebutton->isChecked()) ;
 	  qDebug() << "N: " << nsidebutton->isChecked() << csidebutton->isChecked() ;
 	} ) ;
-      if( m_cameraview->currentViewDirection()==PAP::CSideView ) {
-	csidebutton->setChecked(true ) ;
-      } else {
-	nsidebutton->setChecked(true ) ;
-      }
-      
-      /*connect( nsidebutton,  &QAbstractButton::pressed, [=]() {
-	csidebutton->setChecked(!nsidebutton->isChecked()) ; } ) ;*/
-      
-      //connect( viewtogglebutton, &QAbstractButton::toggled, this, &CameraWindow::toggleView ) ;
-      togglehlayout->addWidget(csidebutton) ;
     }
     
+    // buttons to switch turnjig. this is a really complicated way to make a switch button.
+    {
+      auto togglehlayout = new QHBoxLayout{} ;
+      buttonlayout->addLayout( togglehlayout ) ;
+      auto jigAbutton = new QPushButton{"Jig A",this} ;
+      auto jigBbutton = new QPushButton{"Jig B",this} ;
+      jigAbutton->setCheckable(true) ;
+      jigBbutton->setCheckable(true) ;
+      togglehlayout->setSpacing(0) ;
+      togglehlayout->addWidget(jigAbutton) ;
+      togglehlayout->addWidget(jigBbutton) ;
+      auto geosvc = GeometrySvc::instance() ;
+      if( geosvc->turnJigVersion()==GeometrySvc::TurnJigVersion::VersionA ) {
+	jigAbutton->setChecked(true ) ;
+      } else {
+	jigBbutton->setChecked(true ) ;
+      }
+      connect( jigBbutton,  &QAbstractButton::clicked, [=]() {
+	  jigBbutton->setChecked(true ) ;
+	  jigAbutton->setChecked(false) ;
+	  geosvc->setTurnJigVersion( GeometrySvc::TurnJigVersion::VersionB ) ;
+	} ) ;
+      connect( jigAbutton,  &QAbstractButton::clicked, [=]() {
+	  jigBbutton->setChecked(false ) ;
+	  jigAbutton->setChecked(true) ;
+	  geosvc->setTurnJigVersion( GeometrySvc::TurnJigVersion::VersionA ) ;
+	} ) ;
+    }
     // auto msbutton = new QPushButton("Motion System",this) ;
     // connect( msbutton, &QPushButton::clicked, [=](){ m_motionsystemdialog->show() ; }) ;
     // buttonlayout->addWidget( msbutton ) ;
@@ -338,7 +361,7 @@ namespace PAP
       emit viewToggled(view) ;
     }
   }
-  
+
   void CameraWindow::moveToMarker()
   {
     // pop-up a dialog with all markers such that the use can choose one to move to

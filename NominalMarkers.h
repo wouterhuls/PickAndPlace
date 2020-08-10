@@ -98,7 +98,7 @@ namespace PAP
     // LHCb frame.
     // See my root macro "markermeasurements.cxx"
     
-    inline std::vector<FiducialDefinition> jigNCSide()
+    inline std::vector<FiducialDefinition> turnJigA()
       {
 	return std::vector<FiducialDefinition>
 	  {
@@ -120,6 +120,15 @@ namespace PAP
 	
       }
 
+    // Measured by Martijn in July 2020.
+    inline std::vector<FiducialDefinition> turnJigB()
+      {
+	return std::vector<FiducialDefinition>
+	  {
+	    {"MainJigMarker1", -50.466, -60.219},
+	    {"MainJigMarker2",  19.853, 70.455}
+	  } ;
+      }
     // Measured by Martijn in November 2018, then translated into the
     // module frame. For one of these two sets, I need to change the
     // sign of the y-coordinate. Note that the Z-coordinate is always

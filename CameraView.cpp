@@ -124,27 +124,26 @@ namespace PAP
     m_scene->addItem( m_detectorgeometry ) ;
 
     m_detectorgeometry->addToGroup( new Substrate() ) ;
-    for( const auto& m : GeometrySvc::instance()->jigmarkers() )
+    auto geosvc = GeometrySvc::instance() ;
+    for( const auto& m : geosvc->jigmarkers() )
       m_detectorgeometry->addToGroup( new JigMarker{m,m_detectorgeometry} ) ;
 
     m_nsidemarkers = new QGraphicsItemGroup{} ;
     m_detectorgeometry->addToGroup( m_nsidemarkers ) ;
-    m_nsidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersNSI(),
-					  m_nsidemarkers) ) ;
-    m_nsidemarkers->addToGroup( new Tile( GeometrySvc::instance()->velopixmarkersNLO(),
-					  m_nsidemarkers ) ) ;
-    for( const auto& m : GeometrySvc::instance()->velopixmarkersNSide() )
+    m_nsidemarkers->addToGroup( new Tile( geosvc->velopixmarkersNSI(),m_nsidemarkers) ) ;
+    m_nsidemarkers->addToGroup( new Tile( geosvc->velopixmarkersNLO(),m_nsidemarkers ) ) ;
+    for( const auto& m : geosvc->velopixmarkersNSide() )
       m_nsidemarkers->addToGroup( new VelopixMarker{m,m_nsidemarkers} ) ;
-    for( const auto& m : GeometrySvc::instance()->mcpointsNSide() )
+    for( const auto& m : geosvc->mcpointsNSide() )
       m_nsidemarkers->addToGroup( new ReferenceMarker{m,m_nsidemarkers} ) ;
     
     m_csidemarkers = new QGraphicsItemGroup{} ;
     m_detectorgeometry->addToGroup( m_csidemarkers ) ;
-    m_csidemarkers->addToGroup( new Tile{GeometrySvc::instance()->velopixmarkersCLI(),m_csidemarkers}) ;
-    m_csidemarkers->addToGroup( new Tile{GeometrySvc::instance()->velopixmarkersCSO(),m_csidemarkers} ) ;
-    for( const auto& m : GeometrySvc::instance()->velopixmarkersCSide() )
+    m_csidemarkers->addToGroup( new Tile{geosvc->velopixmarkersCLI(),m_csidemarkers}) ;
+    m_csidemarkers->addToGroup( new Tile{geosvc->velopixmarkersCSO(),m_csidemarkers} ) ;
+    for( const auto& m : geosvc->velopixmarkersCSide() )
       m_csidemarkers->addToGroup( new VelopixMarker{m,m_csidemarkers} ) ;
-    for( const auto& m : GeometrySvc::instance()->mcpointsCSide() )
+    for( const auto& m : geosvc->mcpointsCSide() )
       m_csidemarkers->addToGroup( new ReferenceMarker{m,m_csidemarkers} ) ;
  
     auto beamline = new SightMarker( FiducialDefinition{"Beamline",0,0}, 2.0 ) ;
@@ -186,8 +185,11 @@ namespace PAP
     connect(MotionSystemSvc::instance(),&MotionSystemSvc::stackStageMoved,
 	    this,&CameraView::updateStackAxisView) ;
     updateStackAxisView() ;
+
+    // add functionality to switch turn jig version.
+    connect(&geosvc->turnJigVersion(),&NamedInteger::valueChanged,
+	    this,&CameraView::updateTurnJigMarkers) ;
     
-   
     //m_cursor = new QGraphicsTextItem("0, 0", 0, this); //Fixed at 0, 0
 
     //m_view = new QGraphicsView{m_scene,this} ;
@@ -363,6 +365,22 @@ namespace PAP
       // m_detectorgeometry->setTransform( T ) ;
       m_currentViewDirection = dir ;
       updateGeometryView() ;
+    }
+  }
+
+  void CameraView::updateTurnJigMarkers()
+  {
+    // Get the new marker positions
+    auto jigmarkers = GeometrySvc::instance()->jigmarkers() ;
+    // Go through the entire list to find the right ones
+    for( const auto& newmarker : GeometrySvc::instance()->jigmarkers() ) {
+      for( const auto& item : m_detectorgeometry->childItems() ) {
+	auto jigmarker = dynamic_cast<JigMarker*>( item ) ;
+	if( jigmarker && jigmarker->name() == newmarker.name ) {
+	  jigmarker->setPos( newmarker.x, newmarker.y ) ;
+	  qDebug() << "Found jig marker: " << newmarker.name ;
+	}
+      }
     }
   }
   

@@ -101,6 +101,7 @@ namespace PAP
     void zoomReset() ;
     void zoomOut() ;
     void setViewDirection( ViewDirection view ) ;
+    void updateTurnJigMarkers() ;
 
     void showNSideMarkers( int state ) { m_nsidemarkers->setVisible( state>0 ) ; }
     void showCSideMarkers( int state ) { m_csidemarkers->setVisible( state>0 ) ; }

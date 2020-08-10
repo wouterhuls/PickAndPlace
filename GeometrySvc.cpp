@@ -411,7 +411,7 @@ namespace PAP
   }
   
   std::vector<FiducialDefinition>
-  GeometrySvc::jigmarkers() const { return Markers::jigNCSide() ; }
+  GeometrySvc::jigmarkers() const { return m_turnJigVersion == TurnJigVersion::VersionA ? Markers::turnJigA() : Markers::turnJigB() ; }
 
   std::vector<FiducialDefinition>
   GeometrySvc::mcpointsNSide() const { return Markers::microchannelNSide() ; }
