@@ -156,15 +156,13 @@ namespace PAP
       qDebug() << "Tile average position: " << toolTip() << x0 << y0 ;
       
       // add a few markers for the sensor flatness measurements
-      const double X0 = -(width-markerdist)/2 + 0.6 - x0 ;
-      const double Y0 = +2.5 - y0 ;
-      bool nside = markerdefs.front().name.contains("N") ;
+      const double X0 = -width/2 + 0.6 ;
+      const double Y0 = +2.5 ;
       QPointF orderedcorners[4] ;
-      for(int j=0; j<4; ++j) {
-	int i = nside ? j : ( 2*(j/2) + (1 - j%2 ) ) ;
+      for(int i=0; i<4; ++i) {
 	const double x = X0 + ((i+i/2)%2) * (width-1.2) ;
 	const double y = Y0 + (i/2) * (height-3.2) ;
-	orderedcorners[j] = QPointF(x,y) ;
+	orderedcorners[i] = QPointF(x,y) ;
       }
             
       // I want more: let's go for 12, 4 lines of 4 in a snake pattern
