@@ -125,8 +125,8 @@ namespace PAP
       {
 	return std::vector<FiducialDefinition>
 	  {
-	    {"MainJigMarker1", -50.466, -60.219},
-	    {"MainJigMarker2",  19.853, 70.455}
+	    {"MainJigMarker1", -50.466, 60.219},
+	    {"MainJigMarker2",  19.853, -70.455}
 	  } ;
       }
     // Measured by Martijn in November 2018, then translated into the
