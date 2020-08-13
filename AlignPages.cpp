@@ -235,6 +235,122 @@ namespace PAP
     }
   }
 
+  int findJigAMarker( const cv::Mat& mat, double& x, double& y, double& phi )
+  {
+    int success = false ;
+    
+    /// Convert it to gray
+    cv::Mat  src_gray ;
+    cv::cvtColor( mat, src_gray, cv::COLOR_BGRA2GRAY );
+	
+    /// Reduce the noise so we avoid false circle detection
+    //cv::GaussianBlur( src_gray, src_gray, Size(9, 9), 2, 2 );
+    
+    std::vector<cv::Vec3f> circles;
+    
+    /// Apply the Hough Transform to find the circles
+    const auto min_dist = 50; //src_gray.rows/8,
+    const auto dp = 1 ; //: The inverse ratio of resolution
+    const auto param_1 = 150; // Upper threshold for the internal Canny edge detector
+    const auto param_2 = 10; // Threshold for center detection.
+    const auto min_radius = 10; // Minimum radio to be detected. If unknown, put zero as default.
+    const auto max_radius = 20; // Maximum radius to be detected. If unknown, put zero as default
+    cv::HoughCircles( src_gray, circles, cv::HOUGH_GRADIENT, dp,min_dist,param_1,param_2,min_radius,max_radius);
+    
+    qDebug() << "Number of circles: " << circles.size() ;
+    // now identify the correct circles. lot's more hardcoded numbers that we can just take from the geometry.
+    std::vector<int> selectedcircles;
+    x=y=phi=0 ;
+    for( size_t i = 0; i < circles.size() && !success; ++i ) {
+      const auto ix = circles[i][0]  ;
+      const auto iy = circles[i][1]  ;
+      // find 1 circles that is at a distance of 100 from this one
+      for( size_t j = 0; j < i && !success; ++j ) {
+	const auto jx = circles[j][0]  ;
+	const auto jy = circles[j][1]  ;
+	const auto dx = ix - jx ; 
+	const auto dy = iy - jy ;
+	const double r = std::sqrt(dx*dx + dy*dy) ;
+	if( 95 < r && r < 105 ) {
+	  selectedcircles.emplace_back(i) ;
+	  selectedcircles.emplace_back(j) ;
+	  // bingo. find the other two
+	  const auto ijx = (ix+jx)/2 ;
+	  const auto ijy = (iy+jy)/2 ;
+	  size_t n{0} ;
+	  auto sumx = ix+jx ;
+	  auto sumy = iy+jy ;
+	  for( size_t k = 0; k < circles.size(); ++k )
+	    if(k != i && k!=j ) {
+	      const auto kx = circles[k][0]  ;
+	      const auto ky = circles[k][1]  ;
+	      const auto dx = kx - ijx ; 
+	      const auto dy = ky - ijy ;
+	      const double r = std::sqrt(dx*dx + dy*dy) ;
+	      if( 45 < r && r < 55 ) {
+		sumx += kx ;
+		sumy += ky ;
+		++n ;
+		selectedcircles.emplace_back(k) ;
+	      }
+	    }
+	  if( n == 2 ) {
+	    x = sumx/4 ;
+	    y = sumy/4 ;
+	    phi = std::atan2(dy,dx) ;
+	    success = true ;
+	    qDebug() << "Marker position is: " << x << "," << y ;
+	    //circle( src, cv::Point{int(x),int(y)}, 10, cv::Scalar(255,0,255), 3, 8, 0 );
+	    double sumr2{0} ;
+	    for(int k=0; k<4; ++k) {
+	      int l = selectedcircles[k] ;
+		   sumr2 += std::pow(x - circles[l][0],2) + std::pow(y - circles[l][1],2) ;
+		 }
+		 qDebug() << "Average distance: " << std::sqrt(sumr2/4) ;
+		 qDebug() << "Selected circles: "
+			  << selectedcircles.size() << " : "
+			  << selectedcircles ;
+		 
+		 // I wonder if we better do a chi2 fit, given that we know all dimensions
+	      }
+	    }
+	  }
+	}
+    return success ;
+  }
+
+  int findJigBMarker( const cv::Mat& mat, double& x, double& y, double& phi )
+  {
+    int success = false ;
+    x=y=phi=0 ;
+    
+    /// Convert it to gray
+    cv::Mat  src_gray ;
+    cv::cvtColor( mat, src_gray, cv::COLOR_BGRA2GRAY );
+    
+    /// Reduce the noise so we avoid false circle detection
+    cv::GaussianBlur( src_gray, src_gray, cv::Size(3, 3), 1, 1 );
+    
+    /// Apply the Hough Transform to find the circles
+    const auto min_dist=100; //src_gray.rows/8,
+    const auto dp = 1 ; //: The inverse ratio of resolution
+    const auto param_1 = 100; // Upper threshold for the internal Canny edge detector
+    const auto param_2 = 20; // Threshold for center detection.
+    const auto min_radius = 690; // Minimum radio to be detected. If unknown, put zero as default.
+    const auto max_radius = 710; // Maximum radius to be detected. If unknown, put zero as default
+    std::vector<cv::Vec3f> circles;
+    cv::HoughCircles( src_gray, circles, cv::HOUGH_GRADIENT, dp,min_dist,param_1,param_2,min_radius,max_radius);
+    qDebug() << "Number of circles: " << circles.size() ;
+    
+    if( circles.size() > 0 ) {
+      x = circles[0][0] ;
+      y = circles[0][1] ;
+      success = true ;
+    }
+    
+    return success ;
+  }
+  
   void AlignMainJigPage::findMarker( const QVideoFrame& frame )
   {
     if( m_triggerMarkerFinder ) {
@@ -261,85 +377,18 @@ namespace PAP
 	// Crop the full image to that image contained by the rectangle myROI
 	// Note that this doesn't copy the data
 	// cv::Mat croppedImage = image(myROI);
-	
-	cv::Mat  src_gray ;
-	/// Convert it to gray
-	cv::cvtColor( mat, src_gray, cv::COLOR_BGRA2GRAY );
-	
-	/// Reduce the noise so we avoid false circle detection
-	//cv::GaussianBlur( src_gray, src_gray, Size(9, 9), 2, 2 );
-	
-	std::vector<cv::Vec3f> circles;
-	
-	/// Apply the Hough Transform to find the circles
-	const auto min_dist = 50; //src_gray.rows/8,
-	const auto dp = 1 ; //: The inverse ratio of resolution
-	const auto param_1 = 150; // Upper threshold for the internal Canny edge detector
-	const auto param_2 = 10; // Threshold for center detection.
-	const auto min_radius = 10; // Minimum radio to be detected. If unknown, put zero as default.
-	const auto max_radius = 20; // Maximum radius to be detected. If unknown, put zero as default
-	cv::HoughCircles( src_gray, circles, cv::HOUGH_GRADIENT, dp,min_dist,param_1,param_2,min_radius,max_radius);
-	
-	qDebug() << "Number of circles: " << circles.size() ;
-	// now identify the correct circles. lot's more hardcoded numbers that we can just take from the geometry.
-	std::vector<int> selectedcircles;
-	bool success=false ;
+
 	double x{0},y{0},phi{0} ;
-	for( size_t i = 0; i < circles.size() && !success; ++i ) {
-	  const auto ix = circles[i][0]  ;
-	  const auto iy = circles[i][1]  ;
-	  // find 1 circles that is at a distance of 100 from this one
-	  for( size_t j = 0; j < i && !success; ++j ) {
-	    const auto jx = circles[j][0]  ;
-	    const auto jy = circles[j][1]  ;
-	    const auto dx = ix - jx ; 
-	    const auto dy = iy - jy ;
-	    const double r = std::sqrt(dx*dx + dy*dy) ;
-	    if( 95 < r && r < 105 ) {
-	      selectedcircles.emplace_back(i) ;
-	      selectedcircles.emplace_back(j) ;
-	      // bingo. find the other two
-	      const auto ijx = (ix+jx)/2 ;
-	      const auto ijy = (iy+jy)/2 ;
-	      size_t n{0} ;
-	      auto sumx = ix+jx ;
-	      auto sumy = iy+jy ;
-	      for( size_t k = 0; k < circles.size(); ++k )
-		if(k != i && k!=j ) {
-		  const auto kx = circles[k][0]  ;
-		  const auto ky = circles[k][1]  ;
-		  const auto dx = kx - ijx ; 
-		  const auto dy = ky - ijy ;
-		  const double r = std::sqrt(dx*dx + dy*dy) ;
-		  if( 45 < r && r < 55 ) {
-		    sumx += kx ;
-		    sumy += ky ;
-		    ++n ;
-		    selectedcircles.emplace_back(k) ;
-		  }
-		}
-	      if( n == 2 ) {
-		x = sumx/4 ;
-		y = sumy/4 ;
-		phi = std::atan2(dy,dx) ;
-		success = true ;
-		qDebug() << "Marker position is: " << x << "," << y ;
-		//circle( src, cv::Point{int(x),int(y)}, 10, cv::Scalar(255,0,255), 3, 8, 0 );
-		double sumr2{0} ;
-		 for(int k=0; k<4; ++k) {
-		   int l = selectedcircles[k] ;
-		   sumr2 += std::pow(x - circles[l][0],2) + std::pow(y - circles[l][1],2) ;
-		 }
-		 qDebug() << "Average distance: " << std::sqrt(sumr2/4) ;
-		 qDebug() << "Selected circles: "
-			  << selectedcircles.size() << " : "
-			  << selectedcircles ;
-		 
-		 // I wonder if we better do a chi2 fit, given that we know all dimensions
-	      }
-	    }
-	  }
+	int success = false ;
+	switch( GeometrySvc::instance()->turnJigVersion() ) {
+	case GeometrySvc::TurnJigVersion::VersionA:
+	  success = findJigAMarker( mat, x, y, phi ) ;
+	  break;
+	case GeometrySvc::TurnJigVersion::VersionB:
+	  success = findJigBMarker( mat, x, y, phi ) ;
+	  break;
 	}
+	
 	if(success) {
 	  // create a graphics item to add to the geometry and draw it
 	  if(!m_measuredmarker) {
