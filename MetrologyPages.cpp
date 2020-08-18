@@ -688,7 +688,7 @@ namespace PAP
       collectReferenceMarkers( *(viewdir() == ViewDirection::NSideView ? camview->nsidemarkers() : camview->csidemarkers()),
 			       markers) ;
       for( const auto& m: markers )
-	if(m->toolTip().contains("Sensor") && m->toolTip().contains(m_tilename))
+	if(m->toolTip().contains("SensorSurface") && m->toolTip().contains(m_tilename))
 	   m_measurements.emplace_back( m->toolTip(), m->pos().x(), m->pos().y(), sensorZ ) ;
       fillTable() ;
     }

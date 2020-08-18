@@ -167,7 +167,7 @@ namespace PAP
             
       // I want more: let's go for 12, 4 lines of 4 in a snake pattern
       //std::vector< QPointF > points ;
-      QString sensorname = QString{"Sensor"}+markerdefs.front().name.leftRef(3); 
+      QString sensorname = QString{"SensorSurface"}+markerdefs.front().name.leftRef(3); 
       const int nX = 7 ;
       const int nY = 4 ;
       const float dY = orderedcorners[2].y() - orderedcorners[0].y() ;
