@@ -47,7 +47,15 @@ namespace PAP
     }
   } ;
 
-
+  namespace {
+    QString turnjigMarkerFocusSuffix( int jigversion, int viewdir )
+    {
+      QString rc ;
+      rc.append( jigversion == GeometrySvc::TurnJigVersion::VersionA ? ".JigA" : ".JigB" ) ;
+      rc.append( viewdir == ViewDirection::NSideView ? ".NSide" : ".CSide" ) ;
+      return rc ;
+    }
+  }
   
   AutoFocus::AutoFocus(CameraView* camview, QWidget* parent)
     : QDialog(parent), m_cameraView(camview),
@@ -149,31 +157,37 @@ namespace PAP
     // double m_zpositionCSideJigMarker2 = 23.223 ; // 
     // double m_zpositionVelopixMarker   = 23.610 ;
     
-    // for( const auto& m : GeometrySvc::instance()->jigmarkers() ) {
-    //   m_markerfocuspoints[NSideView].insert( {m.name,NamedDouble{QString{"Focus.NSide."} + m.name,24.5} } ) ;
-    //   m_markerfocuspoints[CSideView].insert( {m.name,NamedDouble{QString{"Focus.CSide."} + m.name,23.2} } ) ;
-    // }
-    // for( const auto& m : GeometrySvc::instance()->velopixmarkersNSide() )
-    //   m_markerfocuspoints[NSideView].insert( {m.name,NamedDouble{QString{"Focus.NSide."} + m.name,23.61} } ) ;
-    // for( const auto& m : GeometrySvc::instance()->velopixmarkersCSide() ) {
-    //   m_markerfocuspoints[CSideView].insert( {m.name,NamedDouble{QString{"Focus.CSide."} + m.name,23.61} } ) ;
-    // }
+    const QString prefix = "Focus." ;
+    const auto& geosvc = GeometrySvc::instance() ;
+    for( const auto& m : geosvc->jigmarkers() )
+      for( int iside=0; iside<2; ++iside )
+	for(int iversion=0; iversion<2; ++iversion ) {
+	  QString name = m.name + turnjigMarkerFocusSuffix( iversion, iside ) ;
+	  m_markerfocuspoints.insert( { name, NamedDouble{prefix + name, 24.} } ) ;
+	}
+    for( const auto& m : geosvc->velopixmarkersNSide() )
+      m_markerfocuspoints.insert( {m.name,NamedDouble{prefix + m.name,24.} } ) ;
+    for( const auto& m : geosvc->velopixmarkersCSide() )
+      m_markerfocuspoints.insert( {m.name,NamedDouble{prefix + m.name,24.} } ) ;
+    for( const auto& m : geosvc->mcpointsNSide() )
+      m_markerfocuspoints.insert( {m.name,NamedDouble{prefix + m.name,24.} } ) ;
+    for( const auto& m : geosvc->mcpointsCSide() )
+      m_markerfocuspoints.insert( {m.name,NamedDouble{prefix + m.name,24.} } ) ;
 
-    auto currentviewdirection = m_cameraView->currentViewDirection();
-    for(int i=0; i<2; ++i) {
-      QString prefix = i==0 ? "Focus.NSide." : "Focus.CSide." ;
-      m_cameraView->setViewDirection( i==0 ? ViewDirection::NSideView :  ViewDirection::CSideView) ;
-      //if( i==0 ) m_cameraview->setViewDirection(NSideView) ;
-      auto markers = m_cameraView->visibleMarkers() ;
-      for( const auto& m : markers ) {
-	auto it = m_markerfocuspoints[i].insert( {m,NamedDouble{prefix + m,24.0} } ) ;
-	PropertySvc::instance()->add( it.first->second ) ;
-      }
-    }
-    m_cameraView->setViewDirection( currentviewdirection ) ;
+    // auto currentviewdirection = m_cameraView->currentViewDirection();
+    // for(int i=0; i<2; ++i) {
+    //   QString prefix = i==0 ? "Focus.NSide." : "Focus.CSide." ;
+    //   m_cameraView->setViewDirection( i==0 ? ViewDirection::NSideView :  ViewDirection::CSideView) ;
+    //   auto markers = m_cameraView->visibleMarkers() ;
+    //   for( const auto& m : markers ) {
+    // 	auto it = m_markerfocuspoints[i].insert( {m,NamedDouble{prefix + m,24.0} } ) ;
+    // 	PropertySvc::instance()->add( it.first->second ) ;
+    //   }
+    // }
+    // m_cameraView->setViewDirection( currentviewdirection ) ;
     // for(int i=0; i<2; ++i)
-    //   for(auto& it: m_markerfocuspoints[i])
-    // 	PropertySvc::instance()->add( it.second ) ;
+    for(auto& it: m_markerfocuspoints)
+      PropertySvc::instance()->add( it.second ) ;
   }
 
   AutoFocus::~AutoFocus() {}
@@ -213,20 +227,23 @@ namespace PAP
   {
     storeMarkerFocus(name, m_zaxis->position() ) ;
   }
-    
-  void AutoFocus::storeMarkerFocus(const QString& name, double focus)
+
+  void AutoFocus::storeMarkerFocus(const QString& markername, double focus)
   {
-    auto dir = m_cameraView->currentViewDirection() ;
-    auto it = m_markerfocuspoints[dir].find( name ) ;
-    if( it != m_markerfocuspoints[dir].end() )
-      it->second.setValue( focus ) ;
+    QString name = markername ;
+    if( markername.contains( "MainJigMarker") )
+      name.append(turnjigMarkerFocusSuffix( GeometrySvc::instance()->turnJigVersion(), m_cameraView->currentViewDirection() )) ;
+    auto it = m_markerfocuspoints.find( name ) ;
+    if( it != m_markerfocuspoints.end() ) it->second.setValue( focus ) ;
   }
   
   void AutoFocus::applyMarkerFocus(const QString& markername) const
   {
-    auto dir = m_cameraView->currentViewDirection() ;
-    auto it = m_markerfocuspoints[dir].find( markername ) ;
-    if( it != m_markerfocuspoints[dir].end() )
+    QString name = markername ;
+    if( markername.contains( "MainJigMarker") )
+      name.append(turnjigMarkerFocusSuffix( GeometrySvc::instance()->turnJigVersion(), m_cameraView->currentViewDirection() )) ;
+    auto it = m_markerfocuspoints.find( name ) ;
+    if( it != m_markerfocuspoints.end() )
       moveFocusTo( it->second.value()  ) ;
   }
 

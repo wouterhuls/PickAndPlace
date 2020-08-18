@@ -105,7 +105,7 @@ namespace PAP
     FocusMeasurement m_bestfocus ;
 
     // map that stores markers with focus point
-    std::map< QString,NamedDouble> m_markerfocuspoints[2] ;
+    std::map< QString,NamedDouble> m_markerfocuspoints ;
   } ;
 
 } ;
