@@ -159,7 +159,7 @@ namespace PAP
     //   m_markerfocuspoints[CSideView].insert( {m.name,NamedDouble{QString{"Focus.CSide."} + m.name,23.61} } ) ;
     // }
 
-    auto currentviewdirection = m_cameraView->currentViewDirection();
+    const auto currentviewdirection = m_cameraView->currentViewDirection();
     for(int i=0; i<2; ++i) {
       QString prefix = i==0 ? "Focus.NSide." : "Focus.CSide." ;
       m_cameraView->setViewDirection( i==0 ? ViewDirection::NSideView :  ViewDirection::CSideView) ;
