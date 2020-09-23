@@ -120,13 +120,14 @@ namespace PAP
 	
       }
 
-    // Measured by Martijn in July 2020.
+    // Measured by Martijn in September 2020.
+    // (This is acually for the third jig, but we'll never use he 2nd.)
     inline std::vector<FiducialDefinition> turnJigB()
       {
 	return std::vector<FiducialDefinition>
 	  {
-	    {"MainJigMarker1", -50.466, 60.219},
-	    {"MainJigMarker2",  19.853, -70.455}
+	    {"MainJigMarker1", -50.421, 60.420},
+	    {"MainJigMarker2",  19.627, -70.504}
 	  } ;
       }
     // Measured by Martijn in November 2018, then translated into the
