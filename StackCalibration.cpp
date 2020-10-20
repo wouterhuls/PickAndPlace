@@ -82,7 +82,7 @@ namespace PAP
 						    { 25, 25, -1.5},
 						    { 12.5, 12.5, -1.5},
 						    { 12.5, 12.5, 0},
-						    { 12.5, 12.5, 1.5} } ;
+						    { 12.5, 12.5, 0.9} } ;
       auto stepbuttonlayout = new QHBoxLayout{} ;
       hlayout->addLayout(stepbuttonlayout) ;
       for(size_t i=0; i<refpoints.size(); ++i) {
@@ -113,7 +113,8 @@ namespace PAP
   // calibrate from a number of measurements
   void StackCalibration::calibrate()
   {
-    qDebug() << "Number of measurements: " << m_measurements.size() ;
+    std::stringstream text ;
+    text << "Number of measurements: " << m_measurements.size() ;
     // below we use transforms to go from one frame to another. but
     // to compute the parameters we need to explicitly model the
     // transforms, compute derivatives etc. in that process, we
@@ -215,15 +216,15 @@ namespace PAP
 	  // now we do the same, but with inverse transformations, compute residual, etc
 	  Coordinates2D markerglobalposref = geomsvc->toGlobal( m.main ) ;
 	  
-	  const Coordinates2D stackaxisorig = geomsvc->stackAxisInGlobal( m.stack ) ;
+	  //const Coordinates2D stackaxisorig = geomsvc->stackAxisInGlobal( m.stack ) ;
 	  const Coordinates2D stackaxis = {
 	    pars(2) + std::cos( pars(4) ) * m.stack.x + std::sin( pars(5) ) * m.stack.y,
 	    pars(3) + std::sin( pars(4) ) * m.stack.x + std::cos( pars(5) ) * m.stack.y,
 	    pars(6) + m.stack.phi } ;
-	  qDebug() << "stackaxis orig: "
-		   << stackaxisorig.x() << stackaxisorig.y() <<  stackaxisorig.phi() ;
-	  qDebug() << "stackaxis new : "
-		   << stackaxis.x() << stackaxis.y() <<  stackaxis.phi() ;
+	  // qDebug() << "stackaxis orig: "
+	  // 	   << stackaxisorig.x() << stackaxisorig.y() <<  stackaxisorig.phi() ;
+	  // qDebug() << "stackaxis new : "
+	  // 	   << stackaxis.x() << stackaxis.y() <<  stackaxis.phi() ;
 	  
 	  
 	  const double sinphi = std::sin(stackaxis.phi()) ;
@@ -233,7 +234,7 @@ namespace PAP
 	  
 	  double residualX = x - markerglobalposref.x() ;
 	  double residualY = y - markerglobalposref.y() ;
-	  qDebug() << "Residual: " << residualX << residualY ;
+	  //qDebug() << "Residual: " << residualX << residualY ;
 	  
 	  // x and y factorise, so just do them one by one
 	  Vector7d deriv ;
@@ -267,14 +268,16 @@ namespace PAP
 	  }
 	}
 	
-	std::cout << "1st derivative: " << halfdchi2dpar << std::endl ;
-	std::cout << "2nd derivative: " << halfd2chi2dpar2 << std::endl ;
+	text << "1st derivative: " << halfdchi2dpar << std::endl ;
+	text << "2nd derivative: " << halfd2chi2dpar2 << std::endl ;
+
+	text << "determinant: " << halfd2chi2dpar2.determinant() << std::endl ;
 	
 	Vector7d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
-	std::cout << "Delta: " << delta << std::endl ;
+	text << "Delta: " << delta << std::endl ;
 	double dchi2 = delta.dot(halfdchi2dpar) ;
 	
-	std::cout << "deltachi2 (module factor 2): " << istep << " " << delta.dot(halfdchi2dpar) << std::endl ;
+	text << "deltachi2 (module factor 2): " << istep << " " << delta.dot(halfdchi2dpar) << std::endl ;
 	
 	pars -= delta ;
 	if(dchi2<0.01) break ;
@@ -285,6 +288,7 @@ namespace PAP
 				       pars(6) ) ;
       m_measurements.clear() ;
     }
+    std::cout << text.str() << std::endl ;
   }
 
   void StackCalibration::initialize()
