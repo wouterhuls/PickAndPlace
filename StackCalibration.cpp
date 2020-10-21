@@ -209,18 +209,21 @@ namespace PAP
       // 6. m_stackXB
       // 6: m_stackYB
 
-      std::vector<std::string> parnames = { "tag X", "tag Y", "stack X0", "stack Y0", "stack theta X", "stack theta Y", "stack phi0" } ;
+      std::vector<std::string> parnames = {
+	"tag X", "tag Y",
+	"stack X0", "stack XA", "stack XB",
+	"stack Y0", "stack YA", "stack YB" } ;
       enum { DIM = 8 } ;
       using VectorNd = Eigen::Matrix<double,DIM,1> ;
       using MatrixNd = Eigen::Matrix<double,DIM,DIM> ;
       VectorNd pars ;
       pars(0) = markerposstackframe.x() ;
       pars(1) = markerposstackframe.y() ;
-      pars(2) = geomsvc->stackX0() ;
-      pars(3) = geomsvc->stackY0() ;
-      pars(4) = geomsvc->stackXA() ;
-      pars(5) = geomsvc->stackYA() ;
-      pars(6) = geomsvc->stackXB() ;
+      pars(2) = geomsvc->stackX0() ; 
+      pars(3) = geomsvc->stackXA() ;
+      pars(4) = geomsvc->stackXB() ;
+      pars(5) = geomsvc->stackY0() ;
+      pars(6) = geomsvc->stackYA() ;
       pars(7) = geomsvc->stackYB() ;
             
       const int maxnsteps = 5 ; 
@@ -234,9 +237,9 @@ namespace PAP
 	  // now we do the same, but with inverse transformations, compute residual, etc
 	  Coordinates2D markerglobalposref = geomsvc->toGlobal( m.main ) ;
 	  const Coordinates2D stackaxis = {
-	    pars(2) + pars(4) * m.stack.x + pars(6) * m.stack.y,
-	    pars(3) + pars(5) * m.stack.x + pars(7) * m.stack.y,
-	    pars(6) + m.stack.phi } ;
+	    pars(2) + pars(3) * m.stack.x + pars(4) * m.stack.y,
+	    pars(5) + pars(6) * m.stack.x + pars(7) * m.stack.y,
+	    m.stack.phi } ;
 	  const double sinphi = std::sin(stackaxis.phi()) ;
 	  const double cosphi = std::cos(stackaxis.phi()) ;
 	  const double x = stackaxis.x() + pars(0) * cosphi + pars(1) * sinphi ;
@@ -252,14 +255,14 @@ namespace PAP
 	    deriv(0) = cosphi ;
 	    deriv(1) = sinphi ;
 	    deriv(2) = 1 ;
-	    deriv(3) = 0 ;
-	    deriv(4) = m.stack.x ;
+	    deriv(3) = m.stack.x ;
+	    deriv(4) = m.stack.y ;
 	    deriv(5) = 0 ;
-	    deriv(6) = m.stack.y ;
+	    deriv(6) = 0 ;
 	    deriv(7) = 0 ;
 	    halfdchi2dpar += residualX/sigma2 * deriv ;
-	    for(int irow=0; irow<7; ++irow)
-	      for(int icol=0; icol<7; ++icol)
+	    for(int irow=0; irow<DIM; ++irow)
+	      for(int icol=0; icol<DIM; ++icol)
 		halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol)  / sigma2;
 	  }
 	  {
@@ -267,14 +270,14 @@ namespace PAP
 	    deriv(0) = -sinphi ;
 	    deriv(1) =  cosphi ;
 	    deriv(2) = 0 ;
-	    deriv(3) = 1 ;
+	    deriv(3) = 0 ;
 	    deriv(4) = 0 ;
-	    deriv(5) = m.stack.x ;
-	    deriv(6) = 0 ;
+	    deriv(5) = 1 ;
+	    deriv(6) = m.stack.x ;
 	    deriv(7) = m.stack.y ;
 	    halfdchi2dpar += residualY/sigma2* deriv ;
-	    for(int irow=0; irow<7; ++irow)
-	      for(int icol=0; icol<7; ++icol)
+	    for(int irow=0; irow<DIM; ++irow)
+	      for(int icol=0; icol<DIM; ++icol)
 		halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol)  / sigma2;
 	  }
 	}
@@ -301,9 +304,9 @@ namespace PAP
 		  << "phivalues: " << phivalues.size() << std::endl ;
 	// now create the projection matrix.
 	std::vector<bool> isactive(DIM,true) ;
-	isactive[4] = isactive[5] = xvalues.size()>1 ;
-	isactive[6] = isactive[7] = yvalues.size()>1 ;
-	isactive[0] = isactive[1] = isactive[2] = isactive[3] = phivalues.size()>1 ;
+	isactive[3] = isactive[6] = xvalues.size()>1 ;
+	isactive[4] = isactive[7] = yvalues.size()>1 ;
+	isactive[0] = isactive[1] = isactive[2] = isactive[5] = phivalues.size()>1 ;
 	auto numactive = std::count_if(isactive.begin(),isactive.end(),[=](const auto& b) { return b; }) ;
 	Eigen::Matrix<double,Eigen::Dynamic,DIM> projmatrix = Eigen::Matrix<double,Eigen::Dynamic,DIM>::Zero(numactive,DIM) ;
 	int iactive{0} ;
@@ -332,8 +335,8 @@ namespace PAP
 	if(dchi2<0.01) break ;
       }
       text << "Updating stack calibration" << std::endl ;
-      geomsvc->updateStackCalibration( pars(2), pars(4) , pars(6),
-				       pars(3), pars(5) , pars(7) ,
+      geomsvc->updateStackCalibration( pars(2), pars(3) , pars(4),
+				       pars(5), pars(6) , pars(7) ,
 				       geomsvc->stackPhi0() ) ;
     }
   }
