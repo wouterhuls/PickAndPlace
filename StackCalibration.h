@@ -29,6 +29,8 @@ namespace PAP
     void initialize() ;
     void update() ;
     void updateTable() ;
+    void exportToFile() const ;
+    void importFromFile() ;
     
   } ;
 }

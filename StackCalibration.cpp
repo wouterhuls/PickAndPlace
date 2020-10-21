@@ -7,10 +7,14 @@
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QTableWidget>
+#include <QFileDialog>
+#include <QStringList>
 
 #include <cmath>
 #include <Eigen/Dense>
 #include <iostream>
+#include <fstream>
+#include <set>
 
 namespace PAP
 {
@@ -32,6 +36,15 @@ namespace PAP
     tmptext1->setWordWrap(true);
     hlayout->addWidget( tmptext1 ) ;
 
+    auto tagbutton = new QPushButton{"Tag"} ;
+    hlayout->addWidget(tagbutton) ;
+    connect(tagbutton,&QPushButton::clicked,[=]{ this->tag() ; } ) ;
+    
+    auto trackbutton = new QPushButton{"Track"} ;
+    hlayout->addWidget(trackbutton) ;
+    connect(trackbutton,&QPushButton::clicked,
+	    [=]{ this->track() ; } ) ;
+
     auto recordbutton = new QPushButton{"Record"} ;
     hlayout->addWidget(recordbutton) ;
     connect(recordbutton,&QPushButton::clicked,
@@ -50,9 +63,6 @@ namespace PAP
     hlayout->addWidget(initbutton) ;
     connect(initbutton,&QPushButton::clicked,[=]{ this->initialize() ; } ) ;
     
-    auto tagbutton = new QPushButton{"Tag"} ;
-    hlayout->addWidget(tagbutton) ;
-    connect(tagbutton,&QPushButton::clicked,[=]{ this->tag() ; } ) ;
 
     auto filterbutton = new QPushButton{"Filter"} ;
     hlayout->addWidget(filterbutton) ;
@@ -62,11 +72,17 @@ namespace PAP
     hlayout->addWidget(updatebutton) ;
     connect(filterbutton,&QPushButton::clicked,[=]{ this->update() ; } ) ;
     
-    auto trackbutton = new QPushButton{"Track"} ;
-    hlayout->addWidget(trackbutton) ;
-    connect(trackbutton,&QPushButton::clicked,
-	    [=]{ this->track() ; } ) ;
-
+    {
+      auto filelayout = new QHBoxLayout{} ;
+      auto exportbutton = new QPushButton{"Export"} ;
+      filelayout->addWidget(exportbutton) ;
+      connect(trackbutton,&QPushButton::clicked,[=]{ this->exportToFile() ; } ) ;
+      auto importbutton = new QPushButton{"Import"} ;
+      filelayout->addWidget(importbutton) ;
+      connect(trackbutton,&QPushButton::clicked,[=]{ this->exportToFile() ; } ) ;
+      hlayout->addLayout( filelayout ) ;
+    }
+    
     m_table = new QTableWidget{9,2,this} ;
     m_table->setHorizontalHeaderLabels( { "value","error"} ) ;
     m_table->setVerticalHeaderLabels( { "tagX","tagY","X0","XA","XB","Y0","YA","YB","Phi0"} ) ;
@@ -111,6 +127,7 @@ namespace PAP
   }
   
   // calibrate from a number of measurements
+  
   void StackCalibration::calibrate()
   {
     std::stringstream text ;
@@ -149,26 +166,24 @@ namespace PAP
       
     */
     
-    // In the following we need to compute stackX?, stackY? and
-    // stackPhi0. These are 7 parameters in total. However, we
-    // assume that the X and Y axis scale are well
-    // calibrated, so that we only need to calibrate the angles of both axis with the global system axes.
+    // In the following we need to compute stackX{0,A,B},
+    // stackY{0,A,B} and stackPhi0. These are 7 parameters in
+    // total. However, we assume that the X and Y axis scale are well
+    // calibrated, so that we only need to calibrate the angles of
+    // both axis with the global system axes. That means that there
+    // are 5 parameters left.
     
     auto geomsvc = GeometrySvc::instance() ;
     if(m_measurements.size()>0) {
-      // for every measurement we do
+      // for every measurement we
       // - compute the global coordinates from MSMain coordinates
       // - compute the prediction of this by using the transforms
       // - compute the residuals to the transform parameters
-      
-      // the first measurement has zero residual: this is what
-      // defines the marker in the stack frame. but it also cannot
-      // be right to exclude it from the measurement, can it?
-      
-      // but of course: the position of the marker in the stack
-      // frame is also unknown: so these are two extra
-      // parameters. we need to initialize them with something, so
-      // we do that with the first measurement.
+           
+      // the position of the marker in the stack frame is also
+      // unknown: so these are two extra parameters. we need to
+      // initialize them with something, so we do that with the first
+      // measurement.
       
       // compute the markerposition in the stack frame from the first measurement.
       QPointF markerposstackframe ;
@@ -184,7 +199,7 @@ namespace PAP
 	double dxprime = cosphi*dx - sinphi*dy ; 
 	double dyprime = sinphi*dx + cosphi*dy ; 
 	markerposstackframe = QPointF{dxprime,dyprime} ;
-	qDebug() << "Position of marker in stack frame: " << markerposstackframe ;
+	text << "Approximate position of marker in stack frame: " << markerposstackframe.x() << "," << markerposstackframe.y() << std::endl ;
       }
       // the parameters are:
       // 0: marker pos stack frame x
@@ -194,6 +209,9 @@ namespace PAP
       // 4. thetaX: m_stackXA = cos(thetaX); m_stackYA = sin(thetaX) 
       // 5. thetaY: m_stackXB = sin(thetaY); m_stackYB = cos(thetaY) 
       // 6: m_stackPhi0
+
+      std::vector<std::string> parnames = { "tag X", "tag Y", "stack X0", "stack Y0", "stack theta X", "stack theta Y", "stack phi0" } ;
+      
       using Vector7d = Eigen::Matrix<double,7,1> ;
       using Matrix7d = Eigen::Matrix<double,7,7> ;
       Vector7d pars ;
@@ -272,17 +290,57 @@ namespace PAP
 	text << "2nd derivative: " << halfd2chi2dpar2 << std::endl ;
 
 	text << "determinant: " << halfd2chi2dpar2.determinant() << std::endl ;
+
+	//we need to build in something to 'protect' the problem if
+	//parameters are unconstrained. If all measurements have the
+	//same stack angle, then we cannot determine the stackX0,
+	//stackY0 and stackphi0, so we need to leave them
+	//out. Likewise, if all measurements have the same stack X
+	//position, then we cannot determine thetaX, and if all have
+	//the same stackY, we cannot determine thetaY. So, let's first
+	//just test that. We need to add something about 'sufficiently
+	//different', so I'll multiply with some number, then round.
+	std::set<int> phivalues, xvalues, yvalues ;
+	for( const auto& m : m_measurements) {
+	  phivalues.insert( m.stack.phi*100) ;
+	  xvalues.insert(m.stack.x*1) ;
+	  yvalues.insert(m.stack.y*1) ;
+	}
+	// now create the projection matrix.
+	std::vector<bool> isactive(7,true) ;
+	isactive[4] = xvalues.size()>1 ;
+	isactive[5] = yvalues.size()>1 ;
+	isactive[0] = isactive[1] = isactive[6] = phivalues.size()>1 ;
+	auto numactive = std::count_if(isactive.begin(),isactive.end(),[=](const auto& b) { return b; }) ;
+	Eigen::Matrix<double,Eigen::Dynamic,7> projmatrix = Eigen::Matrix<double,Eigen::Dynamic,7>::Zero(numactive,7) ;
+	int iactive{0} ;
+	for(int i=0; i<7;++i) {
+	  if( isactive[i] ) {
+	    projmatrix(iactive,i) = 1.0 ;
+	    ++iactive ;
+	  }
+	}
+	text << "Projection matrix: " << projmatrix << std::endl ;
 	
-	Vector7d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
+	const auto halfdchi2dparsub    = projmatrix * halfdchi2dpar ;
+	const auto halfd2chi2dpar2sub = projmatrix * halfd2chi2dpar2 * projmatrix.transpose() ;
+	const auto deltasub = halfd2chi2dpar2sub.ldlt().solve(halfdchi2dparsub) ;
+	const Vector7d delta = projmatrix.transpose() * deltasub ;
+	
+	//Vector7d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
 	text << "Delta: " << delta << std::endl ;
-	double dchi2 = delta.dot(halfdchi2dpar) ;
+
+	
+	const double dchi2 = delta.dot(halfdchi2dpar) ;
 	
 	text << "deltachi2 (module factor 2): " << istep << " " << delta.dot(halfdchi2dpar) << std::endl ;
-	
+	for(int ipar = 0; ipar<7; ++ipar )
+	  text << parnames[ipar] << " : " << pars[ipar] << " " << pars[ipar] - delta[ipar] << std::endl ;
 	pars -= delta ;
 	if(dchi2<0.01) break ;
 	
       }
+      text << "Updating stack calibration" << std::endl ;
       geomsvc->updateStackCalibration( pars(2), std::cos( pars(4) ), std::sin( pars(5) ),
 				       pars(3), std::sin( pars(4) ), std::cos( pars(5) ),
 				       pars(6) ) ;
@@ -443,5 +501,52 @@ namespace PAP
     // is exactly in opposite direction!
   } ;
   
+  // temporary, for debugging the fitting routine
+  void StackCalibration::exportToFile() const
+  {
+    auto filename = QFileDialog::getSaveFileName(nullptr, tr("Save data"),
+						 "stackcalibdata.dat",
+						 tr("dat files (*.dat)"));
+    QFile f( filename );
+    f.open(QIODevice::WriteOnly) ;
+    QTextStream data( &f );
+    for( const auto& m : m_measurements ) {
+      QStringList strList;
+      strList << QString::number(m.main.x) << QString::number(m.main.y) << QString::number(m.stack.x) << QString::number(m.stack.y) << QString::number(m.stack.phi) ;
+      data << strList.join(";") << "\n";
+    }
+    f.close() ;
+    qDebug() << "Wrote to file: " << m_measurements.size() ;
+  }
+
+  void StackCalibration::importFromFile()
+  {
+    // pop up a dialog to get a file name
+    auto filename = QFileDialog::getOpenFileName(nullptr, tr("Save data"),
+						 "stackcalibdata.dat",
+						 tr("dat files (*.dat)"));
+    m_measurements.clear();
+    QFile f( filename );
+    if( f.open(QIODevice::ReadOnly) ) {
+      while (!f.atEnd()){
+	QString line = f.readLine();
+	QStringList columns = line.split(";") ;
+	columns = columns.replaceInStrings(" ","") ;
+	columns = columns.replaceInStrings("\"","") ;
+	columns = columns.replaceInStrings("\n","") ;
+	if( columns.size()==5 ) {
+	  MSCoordinates m ;
+	  m.main.x = columns.at(0).toDouble() ;
+	  m.main.y = columns.at(0).toDouble() ;
+	  m.stack.x = columns.at(0).toDouble() ;
+	  m.stack.y = columns.at(0).toDouble() ;
+	  m.stack.phi = columns.at(0).toDouble() ;
+	  m_measurements.push_back( m ) ;
+	}
+      }
+    }
+    f.close();
+    qDebug() << "Read from file: " << m_measurements.size() ;
+  }
 }
 
