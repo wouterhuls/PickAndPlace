@@ -76,10 +76,10 @@ namespace PAP
       auto filelayout = new QHBoxLayout{} ;
       auto exportbutton = new QPushButton{"Export"} ;
       filelayout->addWidget(exportbutton) ;
-      connect(trackbutton,&QPushButton::clicked,[=]{ this->exportToFile() ; } ) ;
+      connect(exportbutton,&QPushButton::clicked,[=]{ this->exportToFile() ; } ) ;
       auto importbutton = new QPushButton{"Import"} ;
       filelayout->addWidget(importbutton) ;
-      connect(trackbutton,&QPushButton::clicked,[=]{ this->exportToFile() ; } ) ;
+      connect(importbutton,&QPushButton::clicked,[=]{ this->importFromFile() ; } ) ;
       hlayout->addLayout( filelayout ) ;
     }
     
@@ -130,8 +130,9 @@ namespace PAP
   
   void StackCalibration::calibrate()
   {
-    std::stringstream text ;
-    text << "Number of measurements: " << m_measurements.size() ;
+    //std::stringstream text ;
+    auto& text = std::cout ;
+    text << "Number of measurements: " << m_measurements.size() << std::endl ;
     // below we use transforms to go from one frame to another. but
     // to compute the parameters we need to explicitly model the
     // transforms, compute derivatives etc. in that process, we
@@ -306,11 +307,15 @@ namespace PAP
 	  xvalues.insert(m.stack.x*1) ;
 	  yvalues.insert(m.stack.y*1) ;
 	}
+	std::cout << "xvalues: " << xvalues.size() << std::endl
+		  << "yvalues: " << yvalues.size() << std::endl
+		  << "phivalues: " << phivalues.size() << std::endl ;
 	// now create the projection matrix.
 	std::vector<bool> isactive(7,true) ;
 	isactive[4] = xvalues.size()>1 ;
 	isactive[5] = yvalues.size()>1 ;
-	isactive[0] = isactive[1] = isactive[6] = phivalues.size()>1 ;
+	isactive[0] = isactive[1] = isactive[2] = isactive[3] = isactive[6] = phivalues.size()>1 ;
+	isactive[6] = false ; // I realized that stackPhi0 is perhaps not a parameter in this problem :-(
 	auto numactive = std::count_if(isactive.begin(),isactive.end(),[=](const auto& b) { return b; }) ;
 	Eigen::Matrix<double,Eigen::Dynamic,7> projmatrix = Eigen::Matrix<double,Eigen::Dynamic,7>::Zero(numactive,7) ;
 	int iactive{0} ;
@@ -321,10 +326,16 @@ namespace PAP
 	  }
 	}
 	text << "Projection matrix: " << projmatrix << std::endl ;
-	
-	const auto halfdchi2dparsub    = projmatrix * halfdchi2dpar ;
-	const auto halfd2chi2dpar2sub = projmatrix * halfd2chi2dpar2 * projmatrix.transpose() ;
-	const auto deltasub = halfd2chi2dpar2sub.ldlt().solve(halfdchi2dparsub) ;
+
+	Eigen::Matrix<double,Eigen::Dynamic,1> 
+	  /*const auto*/ halfdchi2dparsub    = projmatrix * halfdchi2dpar ;
+	text << "Sub first: " << std::endl << halfdchi2dparsub << std::endl ;
+	Eigen::Matrix<double,Eigen::Dynamic,Eigen::Dynamic>
+	  /*const auto*/ halfd2chi2dpar2sub = projmatrix * halfd2chi2dpar2 * projmatrix.transpose() ;
+	text << "Sub second: " << std::endl<< halfd2chi2dpar2sub << std::endl ;
+	Eigen::Matrix<double,Eigen::Dynamic,1> 
+	  /*const auto*/ deltasub = halfd2chi2dpar2sub.ldlt().solve(halfdchi2dparsub) ;
+	text << "Sub delta: " << std::endl << deltasub << std::endl ;
 	const Vector7d delta = projmatrix.transpose() * deltasub ;
 	
 	//Vector7d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
@@ -346,7 +357,7 @@ namespace PAP
 				       pars(6) ) ;
       m_measurements.clear() ;
     }
-    std::cout << text.str() << std::endl ;
+    //std::cout << text.str() << std::endl ;
   }
 
   void StackCalibration::initialize()
@@ -522,7 +533,7 @@ namespace PAP
   void StackCalibration::importFromFile()
   {
     // pop up a dialog to get a file name
-    auto filename = QFileDialog::getOpenFileName(nullptr, tr("Save data"),
+    auto filename = QFileDialog::getOpenFileName(nullptr, tr("Read data"),
 						 "stackcalibdata.dat",
 						 tr("dat files (*.dat)"));
     m_measurements.clear();
@@ -537,10 +548,10 @@ namespace PAP
 	if( columns.size()==5 ) {
 	  MSCoordinates m ;
 	  m.main.x = columns.at(0).toDouble() ;
-	  m.main.y = columns.at(0).toDouble() ;
-	  m.stack.x = columns.at(0).toDouble() ;
-	  m.stack.y = columns.at(0).toDouble() ;
-	  m.stack.phi = columns.at(0).toDouble() ;
+	  m.main.y = columns.at(1).toDouble() ;
+	  m.stack.x = columns.at(2).toDouble() ;
+	  m.stack.y = columns.at(3).toDouble() ;
+	  m.stack.phi = columns.at(4).toDouble() ;
 	  m_measurements.push_back( m ) ;
 	}
       }
