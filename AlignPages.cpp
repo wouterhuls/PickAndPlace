@@ -529,7 +529,7 @@ namespace PAP
     CameraWindow* m_camerasvc{0} ;
     Status m_status{Inactive} ;
     //const std::vector<MSMainCoordinates> refcoordinates{ {-100,-10},{-100,120},{80,120},{80,-10} } ;
-    const std::vector<FiducialDefinition> m_refcoordinates ;
+    std::vector<FiducialDefinition> m_refcoordinates ;
     std::vector<MSCoordinates> m_measurements ;
     std::vector<QMetaObject::Connection> m_conns ;
     QTableWidget* m_measurementtable{0} ;
@@ -543,6 +543,7 @@ namespace PAP
     void focus() ;
     void measure() ;
     void calibrate() ;
+    void setRefCoordinates() ;
   } ;
 
 
@@ -550,6 +551,7 @@ namespace PAP
     : QWidget{&camerasvc},m_viewdirection{view},m_camerasvc(&camerasvc),
       m_refcoordinates{view==ViewDirection::NSideView ? PAP::Markers::jigSurfaceNSide() : PAP::Markers::jigSurfaceCSide()}
   {
+    
     // just two buttons: start and stop + a label to tell that it is
     // ready, running, done or something like that.
     auto vlayout = new QVBoxLayout{} ;
@@ -589,9 +591,38 @@ namespace PAP
     // add a table with the results of the measurements
     auto hlayout = new QHBoxLayout{} ;
     vlayout->addLayout(hlayout) ;
-    int nrow = m_refcoordinates.size() ;
-    m_measurementtable = new QTableWidget{nrow,5,this} ;
+    m_measurementtable = new QTableWidget{1,5,this} ;
     m_measurementtable->setHorizontalHeaderLabels(QStringList{"Main X","Main Y","Nominal Z","Focus Z","Residual"}) ;
+    hlayout->addWidget(m_measurementtable) ;
+    setRefCoordinates() ;
+    QObject::connect(&GeometrySvc::instance()->turnJigVersion(),&NamedValueBase::valueChanged,
+		     this,&AlignMainJigZPage::setRefCoordinates);
+    
+    m_textbox = new QPlainTextEdit{this} ;
+    hlayout->addWidget( m_textbox ) ;
+    m_textbox->resize(300,150) ;
+    // connect( &(MotionSystemSvc::instance()->mainXAxis()), &MotionAxis::movementStopped,this, &AlignMainJigZPage::focus) ;
+    // connect( &(MotionSystemSvc::instance()->mainYAxis()), &MotionAxis::movementStopped,this, &AlignMainJigZPage::focus) ;
+    
+  }
+
+  void AlignMainJigZPage::setRefCoordinates()
+  {
+    // set the coordinates based on the turnjig version
+    auto jigversion = GeometrySvc::instance()->turnJigVersion().value() ;
+    switch( jigversion ) {
+    case GeometrySvc::TurnJigVersion::VersionA:
+      m_refcoordinates =
+	m_viewdirection==ViewDirection::NSideView ?
+	PAP::Markers::jigSurfaceNSide() : PAP::Markers::jigSurfaceCSide() ;
+      break;
+    case GeometrySvc::TurnJigVersion::VersionB:
+      m_refcoordinates =
+	m_viewdirection==ViewDirection::NSideView ?
+	PAP::Markers::jigBSurfaceNSide() : PAP::Markers::jigBSurfaceCSide() ;
+      break;
+    }
+    // update the table
     QTableWidgetItem prototype ;
     prototype.setBackground( QBrush{ QColor{Qt::gray} } ) ;
     prototype.setFlags( Qt::ItemIsSelectable ) ;
@@ -606,16 +637,8 @@ namespace PAP
       m_measurementtable->item(row,1)->setText( QString::number( r.y, 'g', 5 ) ) ;
       m_measurementtable->item(row,2)->setText( QString::number( r.z, 'g', 5 ) ) ;
     }
-    hlayout->addWidget(m_measurementtable) ;
-    
-    m_textbox = new QPlainTextEdit{this} ;
-    hlayout->addWidget( m_textbox ) ;
-    m_textbox->resize(300,150) ;
-    // connect( &(MotionSystemSvc::instance()->mainXAxis()), &MotionAxis::movementStopped,this, &AlignMainJigZPage::focus) ;
-    // connect( &(MotionSystemSvc::instance()->mainYAxis()), &MotionAxis::movementStopped,this, &AlignMainJigZPage::focus) ;
-    
   }
-
+ 
   void AlignMainJigZPage::disconnectsignals()
   {
     for( auto& c : m_conns ) QObject::disconnect(c) ;
@@ -667,7 +690,12 @@ namespace PAP
 	!MotionSystemSvc::instance()->mainXAxis().isMoving() &&
 	!MotionSystemSvc::instance()->mainYAxis().isMoving() ) {
       //emit m_camerasvc->autofocus()->focus() ;
-      m_camerasvc->autofocus()->startFocusSequence(12.2,12.6) ;
+      //      m_camerasvc->autofocus()->startFocusSequence(12.2,12.6) ;
+      double modulez = 12.5 ;
+      auto n = m_measurements.size() ;
+      if( n<m_refcoordinates.size() ) modulez = m_refcoordinates[n].z ;
+      const auto focusz  = m_camerasvc->autofocus()->focusFromZ(modulez) ;
+      m_camerasvc->autofocus()->startFocusSequence(focusz-0.5,focusz+0.5) ;
       //MotionSystemSvc::instance()->focusAxis().move(0.2) ;
       //emit m_camerasvc->autofocus()->focussed() ;
     } ;
