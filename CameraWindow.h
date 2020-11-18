@@ -31,6 +31,8 @@ namespace PAP
     //MetrologyReport* measurementreport() { return m_measurementreport ; }
 
     QString moduleName() const { return m_moduleName.value(); }
+    QString moduleDataDir() const {
+      return QString{"/home/velouser/Documents/PickAndPlaceData/"} + moduleName() + "/" ; }
   signals:
     void viewToggled( int view ) ;
   public slots:

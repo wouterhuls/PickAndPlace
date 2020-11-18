@@ -27,6 +27,7 @@
 #include <QTableWidget>
 #include <QMenuBar>
 #include <QProcessEnvironment>
+#include <QDir>
 #include "MotionSystemWidget.h"
 #include "PropertySvc.h"
 #include "VideoRecorder.h"
@@ -93,6 +94,9 @@ namespace PAP
       // update the label if the value changes
       connect(&m_moduleName,&MonitoredValueBase::valueChanged,[&]() {
 	  m_moduleNameButton->setText( m_moduleName.value() ) ;
+	  // create a directory if it does not exist yet
+	  QDir dir{moduleDataDir()} ;
+	  if( !dir.exists()) dir.mkpath(".") ;
 	}) ;
       // pop up a dialog to change the name if the label is pressed
       connect(m_moduleNameButton,&QPushButton::clicked, [&]() {
