@@ -48,22 +48,22 @@ namespace PAP
 
   // Measure the tilemarkers and sensor markers for one side
 
-  class MarkerMetrologyPage : public QWidget
+  class MarkerMetrologyPage : public MarkerMetrologyPageBase
   {
   protected:
     //SideMetrologyReport* m_report ;
-    QTableWidget* m_markertable{0} ;
+    QTableWidget* m_markertable{nullptr} ;
     int m_activerow{-1} ;
-    CameraWindow* m_camerasvc{0} ;
+    CameraWindow* m_camerasvc{nullptr} ;
     ViewDirection m_viewdir{ViewDirection::NumViews} ;
-    QHBoxLayout* m_buttonlayout{0} ;
-    QPlainTextEdit* m_textbox{0} ;
+    QHBoxLayout* m_buttonlayout{nullptr} ;
+    QPlainTextEdit* m_textbox{nullptr} ;
     QDialog m_settingsdialog ;
   protected:
     std::vector<ReportCoordinate> m_measurements ;
     void fillTable() ;
     virtual void definemarkers() = 0 ;
-    CameraWindow* camerasvc() { return m_camerasvc ; } ;
+    CameraWindow* camerasvc() { return m_camerasvc ; }
     virtual QString pageName() const { return QString{"unknown"} ; }
     void addMarker() ;
   public:
@@ -82,13 +82,15 @@ namespace PAP
       m_textbox->setPlainText("") ;
       definemarkers();
     }
+    QString moduleDataDir() const {
+      return m_camerasvc->moduleDataDir() ; }
+        
     QString defaultFileName() const {
-      return QString("/home/velouser/Documents/PickAndPlaceData/") +
-	m_camerasvc->moduleName() + "/" + pageName() + ".csv" ;
+      return moduleDataDir() + pageName() + ".csv" ;
     }
     QString autoSaveFileName() const {
-      return QString{ pageName() + "_" + QDateTime::currentDateTime().toString("yyyyMMdd.hhmmss") + ".csv" } ;
-    }
+      return  moduleDataDir() + pageName() + "_" + QDateTime::currentDateTime().toString("yyyyMMdd.hhmmss") + ".csv" ;
+      }
     virtual void focus() const ;
     void move() const ;
     const std::vector<ReportCoordinate>& measurements() const { return  m_measurements ; }
@@ -96,10 +98,11 @@ namespace PAP
     void resetall() { for(auto&m:m_measurements) m.setStatus( ReportCoordinate::Initialized ) ; updateTableColors() ; }
     void updateTableColors() ;
     void updateRowColors(int row) ;
+    virtual double focusrange() const { return 0.3 ; }
   } ;
   
   MarkerMetrologyPage::MarkerMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
-    : QWidget{&camerasvc}, m_camerasvc{&camerasvc}, m_viewdir{viewdir},
+    : MarkerMetrologyPageBase{&camerasvc}, m_camerasvc{&camerasvc}, m_viewdir{viewdir},
       m_settingsdialog{this}
   {
     //this->resize(500,300);
@@ -178,8 +181,6 @@ namespace PAP
       m_buttonlayout->addWidget(button) ;
       connect(button,&QPushButton::clicked,this,[=]{ this->reset() ; }) ;
     }
-
-
   }
   
   void MarkerMetrologyPage::focus() const
@@ -187,7 +188,8 @@ namespace PAP
     if( !MotionSystemSvc::instance()->mainXAxis().isMoving() &&
 	!MotionSystemSvc::instance()->mainYAxis().isMoving() ) {
       const double currentfocus = m_camerasvc->autofocus()->currentFocus() ;
-      m_camerasvc->autofocus()->startFocusSequence(currentfocus-0.3,currentfocus+0.3) ;
+      const auto df = focusrange() ;
+      m_camerasvc->autofocus()->startFocusSequence(currentfocus-df,currentfocus+df) ;
     } ;
   }
   
@@ -301,6 +303,7 @@ namespace PAP
       const auto& m = m_measurements[m_activerow] ;
       m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.x(),m.y()} ) ;
       m_markertable->item(m_activerow,0)->setBackground( QBrush{ QColor{m.status() ==  ReportCoordinate::Status::Ready ? Qt::blue : Qt::yellow} } ) ;
+      m_markertable->item(m_activerow,0)->setForeground( QBrush{Qt::black} ) ;
     }
   }
   
@@ -343,6 +346,7 @@ namespace PAP
   {
     QFile f( filename );
     f.open(QIODevice::WriteOnly) ;
+    qDebug() << "Writing file: " << filename ;
     QTextStream data( &f );
     // first the header. those we get from the table.
     {
@@ -449,14 +453,7 @@ namespace PAP
     {
       {
 	auto startbutton = new QPushButton{"Auto",this} ;
-	connect(startbutton,&QPushButton::clicked,[&]() {
-	    //m_activerow = 0 ;
-	    this->connectsignals() ;
-	    // if active row outside range, reset. otherwise start from where we are.
-	    if(m_activerow<0 || m_activerow>=int(m_measurements.size()))
-	      m_activerow = 0 ;
-	    move() ;
-	  });
+	connect(startbutton,&QPushButton::clicked,[&]() { this->runauto() ; }) ;
 	m_buttonlayout->addWidget(startbutton) ;
       }
       {
@@ -477,16 +474,30 @@ namespace PAP
 	m_buttonlayout->addWidget(button) ;
 	connect(button,&QPushButton::clicked,this,[=]{ this->fitPlane(FitModel::CurvedPlane) ; }) ;
       }
+      {
+	auto layout = m_settingsdialog.layout() ;
+	layout->addWidget(&m_ignoreFocusFailed) ;
+      }
     }
     PlaneFitResult fitPlane(FitModel mode = FitModel::Plane, double originx=0, double originy=0) ;
     void disconnectsignals() ;
     void connectsignals() ;
     void measure() ;
+    double focusrange() const { return m_activerow==0 ? 1.0 : 0.1 ; }
+  public slots:
+    void runauto() {
+      m_activerow = 0 ;
+      this->connectsignals() ;
+      // if active row outside range, reset. otherwise start from where we are.
+      if(m_activerow<0 || m_activerow>=int(m_measurements.size()))
+	m_activerow = 0 ;
+      move() ;
+    }
   private:
     // fit result. is there a better place to keep this? do we need to keep it at all?
     std::vector<QMetaObject::Connection> m_conns ;
   protected:
-    QCheckBox m_ignoreFocusFailed{"Ignore focus failed",this} ;
+    QCheckBox m_ignoreFocusFailed{"Ignore focus failed",&(this->m_settingsdialog)} ;
   } ;
   
   void SurfaceMetrologyPage::disconnectsignals()
@@ -508,8 +519,9 @@ namespace PAP
     if( m_activerow<int(m_measurements.size())) move() ;
     else {
       disconnectsignals();
+      this->fitPlane(FitModel::CurvedPlane) ;
       exportToFile(autoSaveFileName()) ;
-      this->fitPlane(FitModel::Plane) ;
+      emit autoready() ;
     }
   }
     
@@ -587,9 +599,16 @@ namespace PAP
       double dx = m.x()-originx ;
       double dy = m.y()-originy ;
       double residual = m.z() - (delta(0) + delta(1)*dx + delta(2)*dy + delta(3)*dx*dx + delta(4)*dx*dy+ delta(5)*dy*dy ) ;
-      if( !m_markertable->item(row,4) )
+      auto item = m_markertable->item(row,4) ;
+      if( !item ) {
 	m_markertable->setItem(row,4,new QTableWidgetItem{}) ;
-      m_markertable->item(row,4)->setText( QString::number( residual, 'g', 5 ) ) ;
+	item = m_markertable->item(row,4) ;
+      }
+      item->setText( QString::number( residual, 'g', 5 ) ) ;
+      // give the residual a color if it is larger than 10
+      // micron. those points we would like to measure again.
+      item->setForeground(std::abs(residual) > 0.1 ? Qt::red : Qt::green);
+            
       ++row ;
       if(  m.status() == ReportCoordinate::Status::Ready )
 	sumr2 += residual*residual ;
@@ -690,6 +709,7 @@ namespace PAP
       for( const auto& m: markers )
 	if(m->toolTip().contains("SensorSurface") && m->toolTip().contains(m_tilename))
 	   m_measurements.emplace_back( m->toolTip(), m->pos().x(), m->pos().y(), sensorZ ) ;
+      //m_measurements.resize(2) ;
       fillTable() ;
     }
     QString pageName() const override {
@@ -760,7 +780,6 @@ namespace PAP
 	  layout->addWidget(button) ;
 	  connect(button,&QPushButton::clicked,[=]() { this->run() ; } ) ;
 	}
-	layout->addWidget(&m_ignoreFocusFailed) ;
       }
     }
     //
@@ -996,20 +1015,31 @@ namespace PAP
     {
       TileMetrologyPage* tilemarkerpage = new TileMetrologyPage{camerasvc,view} ;
       this->addTab(tilemarkerpage,"Tile metrology") ;
+
+      //auto sensorsurfacepages = new SensorSurfaceMetrologyPages(camerasvc,view) ;
+      //this->addTab(sensorsurfacepages,"Sensor surface metrology") ;
       
-      SensorSurfaceMetrologyPage* sensorsurfacepage[2] ;
+      SensorSurfaceMetrologyPage* sensorsurfacepage[2] = { 0,0 } ;
       for(int tile=0; tile<2; ++tile) {
-	const auto name = getTileInfo(view,TileType(tile)).name ;
-	sensorsurfacepage[tile] =
-	  new SensorSurfaceMetrologyPage{camerasvc,view,name} ;
-	this->addTab( sensorsurfacepage[tile],name + " surface metrology") ;
+      	const auto name = getTileInfo(view,TileType(tile)).name ;
+      	sensorsurfacepage[tile] =
+      	  new SensorSurfaceMetrologyPage{camerasvc,view,name} ;
+      	this->addTab( sensorsurfacepage[tile],name + " surface metrology") ;
       }
+
+      connect( sensorsurfacepage[0], &SensorSurfaceMetrologyPage::autoready,
+	       sensorsurfacepage[1], &SensorSurfaceMetrologyPage::runauto ) ;
+      //connect( sensorsurfacepage[0], &SensorSurfaceMetrologyPage::autoready,
+      //       sensorsurfacepage[1], [=] () { sensorsurfacepage[1]->runauto() ; } ) ;
+
+      
+      
       SubstrateSurfaceMetrologyPage* 
 	substratesurfacepage = new SubstrateSurfaceMetrologyPage{camerasvc,view} ;
       this->addTab(substratesurfacepage,"Substrate surface metrology") ;
       
-      this->addTab(new SideReportPage{this,tilemarkerpage,
-	    sensorsurfacepage[0],sensorsurfacepage[1],substratesurfacepage},"Report") ;
+      // this->addTab(new SideReportPage{this,tilemarkerpage,
+      // 	    sensorsurfacepage[0],sensorsurfacepage[1],substratesurfacepage},"Report") ;
 
       this->addTab(new LineScanPage{camerasvc,view}, "Line surface") ;
       this->addTab(new GenericSurfaceMetrologyPage{camerasvc,view}, "Grid surface") ;
