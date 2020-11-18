@@ -38,8 +38,8 @@ namespace PAP
       layout->setContentsMargins(0, 0, 0, 0);
       this->setLayout(layout) ;
       
-      layout->addWidget( new NamedValueInputWidget<double>{zmin,18.0,25.0,2} ) ;
-      layout->addWidget( new NamedValueInputWidget<double>{zmax,18.0,26.0,2} ) ;
+      layout->addWidget( new NamedValueInputWidget<double>{zmin,-3,39.0,2} ) ;
+      layout->addWidget( new NamedValueInputWidget<double>{zmax,-3,39.0,2} ) ;
       layout->addWidget( new NamedValueInputWidget<double>{slowspeed,0,0.4,2} ) ;
       layout->addWidget( new NamedValueInputWidget<double>{fastspeed,0,0.4,2} ) ;
       layout->addWidget( new NamedValueInputWidget<double>{movespeed,0,0.4,2} ) ;
@@ -781,8 +781,8 @@ namespace PAP
       // Take the fast series, until it is right
       double z1 = std::min(zmin,zmax) ;
       double z2 = std::max(zmin,zmax) ;
-      if( z2 - z1 > 0.11 ) {
-	qDebug() << "Starting fast search loop" ;
+      if( z2 - z1 > 0.21 ) {
+	qDebug() << "Starting fast search loop" << z1 << " --> " << z2 ;
 	int ntries{0} ;
 	do {
 	  qDebug() << "Fast search iteration: " << ntries ;
@@ -805,9 +805,10 @@ namespace PAP
       }
       
       // now perform a slow search
+      qDebug() << "Starting slow search loop" << z1 << " --> " << z2 ;
       int ntries = 0 ;
       do {
-	qDebug() << "FastSlow search iteration: " << ntries ;
+	qDebug() << "Slow search iteration: " << ntries ;
 	takeSeries(z1,z2,m_settings->slowspeed.value()) ;
       } while(!testseries( m_fastfocusmeasurements, axisvelocity->getValue().value().toDouble() ) &&
 	      ++ntries<=maxtries ) ;
