@@ -134,6 +134,7 @@ namespace PAP
     PAP::PropertySvc::instance()->add( m_stackYA ) ;
     PAP::PropertySvc::instance()->add( m_stackYB ) ;
     PAP::PropertySvc::instance()->add( m_stackPhi0 ) ;
+    PAP::PropertySvc::instance()->add( m_turnJigVersion ) ;
 
     // these are the stack parameters for the CSI chip. not yet
     // exactly clear what I mean by that, but it works, for now

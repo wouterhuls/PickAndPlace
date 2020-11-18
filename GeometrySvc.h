@@ -106,7 +106,7 @@ namespace PAP
 
   private:
     // Some flags
-    NamedInteger m_turnJigVersion{"Geo.TurnJigVersion",TurnJigVersion::VersionA} ;
+    NamedInteger m_turnJigVersion{"Geo.TurnJigVersion",TurnJigVersion::VersionB} ;
     
     // various calibration parameters
     NamedDouble m_mainX0 ;
