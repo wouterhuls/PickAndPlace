@@ -149,6 +149,8 @@ namespace PAP
       } ;
     } ;
     
+ 
+    
     inline std::vector<FiducialDefinition> jigSurfaceNSide()
     {
       return std::vector<FiducialDefinition>{
@@ -161,6 +163,43 @@ namespace PAP
 	{"JigSurfaceNSidePoint2",	109.7,	 56.2,	12.6209},
 	{"JigSurfaceNSidePoint3",	110.6,	-54.7,	12.6108},
 	{"JigSurfaceNSidePoint4",	-49.9,	-49.3,	12.6863}};
+    } ;
+
+    inline std::vector<FiducialDefinition> jigBSurfaceCSide()
+    {
+      return std::vector<FiducialDefinition>{
+        // these were measured with a caliper assuming that the Nside surface is nominal (-12.5)
+	// they suggest a level of precision that is not there :-)
+	//{"JigBSurfaceCSidePoint1",	-50,	 73,	12.468},
+	//{"JigBSurfaceCSidePoint2",	-50,	-73,	12.462},
+	//{"JigBSurfaceCSidePoint3",	 32,	-70.5,	-0.114},
+        //{"JigBSurfaceCSidePoint4",	 6,	-58,	-0.127},
+        //{"JigBSurfaceCSidePoint5",	 -32,	64,	-0.176},
+	//{"JigBSurfaceCSidePoint6",	 -50,	45,	-0.194},
+	//{"JigBSurfaceCSidePoint7",	110,	 65,	-10.578},
+	//{"JigBSurfaceCSidePoint8",	110,	-65,	-10.564},
+	//{"JigBSurfaceCSidePoint9",	 35,	-65,	-10.610}
+	{"JigBSurfaceCSidePoint1",	-50,	 73,	12.460}, // first three I trust. is three enough?
+	{"JigBSurfaceCSidePoint2",	-50,	-73,	12.460},
+	{"JigBSurfaceCSidePoint3",	  7,	-73,	12.460},
+	{"JigBSurfaceCSidePoint4",	 32,	-70.5,	-0.126},
+        {"JigBSurfaceCSidePoint5",	 6,	-58,	-0.138},
+        {"JigBSurfaceCSidePoint6",	 -32,	64,	-0.187},
+	{"JigBSurfaceCSidePoint7",	 -50,	45,	-0.195},
+	{"JigBSurfaceCSidePoint8",	110,	 65,	-10.590},
+	{"JigBSurfaceCSidePoint9",	110,	-65,	-10.567}, // this one comes out really bad: is jig bended?110
+	{"JigBSurfaceCSidePoint10",	 35,	-65,	-10.620}
+      } ;
+    } ;
+    
+    inline std::vector<FiducialDefinition> jigBSurfaceNSide()
+    {
+      return std::vector<FiducialDefinition>{
+	{"JigBSurfaceNSidePoint1",	-50,	 73,	12.5},
+	{"JigBSurfaceNSidePoint2",	155,	 73,	12.5},
+	{"JigBSurfaceNSidePoint3",	155,	-73,	12.5},
+	{"JigBSurfaceNSidePoint4",	-50,	-73,	12.5}
+      } ;
     } ;
     
     // Measured on NRD007
