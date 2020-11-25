@@ -17,12 +17,12 @@ namespace PAP
       {
 	return std::vector<FiducialDefinition>
 	  {
-            {"CLI_VP02_Fid2", 18.993,11.371},
+            {"CLI_VP02_Fid2", 18.9932,11.3706},
 	    {"CLI_VP00_Fid2", -1.152,31.516},
 	    {"CLI_VP01_Fid1", -0.997,31.361},
 	    {"CLI_VP01_Fid2",  8.920,21.444},
 	    {"CLI_VP02_Fid1",  9.076,21.288},
-	    {"CLI_VP00_Fid1",-11.069,41.433}
+	    {"CLI_VP00_Fid1",-11.0695,41.4332}
 	  } ;
       }
 
@@ -30,12 +30,12 @@ namespace PAP
       {
 	return std::vector<FiducialDefinition>
 	  {
-	    {"CSO_VP32_Fid2", 21.210,-28.599},
+	    {"CSO_VP32_Fid2", 21.2100,-28.5992},
             {"CSO_VP30_Fid2", 41.355, -8.454},
             {"CSO_VP31_Fid1", 41.200, -8.609},
             {"CSO_VP31_Fid2", 31.283,-18.526},
             {"CSO_VP32_Fid1", 31.127,-18.682},
-	    {"CSO_VP30_Fid1", 51.273,  1.464}
+	    {"CSO_VP30_Fid1", 51.2726,  1.4634}
 	  } ;
       }
 
@@ -43,12 +43,12 @@ namespace PAP
       {
 	return std::vector<FiducialDefinition>
 	  {
-	    {"NSI_VP20_Fid1", 11.487,-18.876},
+	    {"NSI_VP20_Fid1", 11.4873,-18.8765},
             {"NSI_VP20_Fid2", 21.404, -8.959},
             {"NSI_VP21_Fid1", 21.560, -8.804},
             {"NSI_VP21_Fid2", 31.477,  1.113},
             {"NSI_VP22_Fid1", 31.633,  1.269},
-            {"NSI_VP22_Fid2", 41.550, 11.186}
+            {"NSI_VP22_Fid2", 41.5499, 11.1861}
 	  } ;
       }
 
@@ -56,12 +56,12 @@ namespace PAP
       {
 	return std::vector<FiducialDefinition>
 	  {
-	    {"NLO_VP10_Fid1", 27.744, 22.066},
+	    {"NLO_VP10_Fid1", 27.7436, 22.0656},
 	    {"NLO_VP10_Fid2", 17.826, 31.983},
             {"NLO_VP11_Fid1", 17.671, 32.138},
             {"NLO_VP11_Fid2",  7.754, 42.055},
             {"NLO_VP12_Fid1",  7.598, 42.211},
-            {"NLO_VP12_Fid2", -2.319, 52.128}
+            {"NLO_VP12_Fid2", -2.3190, 52.1282}
 	  } ;
       }
 
@@ -69,11 +69,11 @@ namespace PAP
       {
 	return std::vector<FiducialDefinition>
 	  {
-	    {"CLI_Sensor_Fid1",-22.794,29.479},
-	    {"CLI_Sensor_Fid2",-22.794,30.257},
-	    {"CLI_Sensor_T40",+5.6374,1.0483},//+5.676,1.009},
-	    {"CSO_Sensor_Fid3",19.200,-27.115},
-	    {"CSO_Sensor_L230",10.382,-18.319}
+	    {"CLI_Sensor_Fid1",-22.7936,29.4793},
+	    {"CLI_Sensor_Fid2",-22.7936,30.2571},
+	    {"CLI_Sensor_T40",+5.6374,1.0483},
+	    {"CSO_Sensor_Fid3",19.1732,-27.1105},
+	    {"CSO_Sensor_L230",10.3821,-18.3194}
 	  } ;
       }
     
@@ -81,10 +81,10 @@ namespace PAP
       {
 	return std::vector<FiducialDefinition>
 	  {
-	    {"NSI_Sensor_Fid1",-0.237,-6.923},
-	    {"NSI_Sensor_Fid2",-0.237,-7.700},
-	    {"NSI_Sensor_T610",5.793,-0.893},
-	    {"NSI_Sensor_R30",8.437,-16.374}
+	    {"NSI_Sensor_Fid1",-0.2369,-6.9226},
+	    {"NSI_Sensor_Fid2",-0.2369,-7.7004},
+	    {"NSI_Sensor_T610",5.7930,-0.8927},
+	    {"NSI_Sensor_R30",8.4376,-16.3748}
 	  } ;
       }
 
