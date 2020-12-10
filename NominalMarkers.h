@@ -117,7 +117,6 @@ namespace PAP
 	    {"MainJigMarker1",-50.017, -59.897}, // Averaged over N and C side
 	    {"MainJigMarker2",109.854, 45.296}   // idem 
 	  } ;
-	
       }
 
     // Measured by Martijn in September 2020.
@@ -127,8 +126,8 @@ namespace PAP
       {
 	return std::vector<FiducialDefinition>
 	  {
-	    {"MainJigMarker1", -50.418, -60.426},
-	    {"MainJigMarker2",  19.632, 70.501}
+	    {"MainJigMarker1", -50.418, 60.426},
+	    {"MainJigMarker2",  19.632, -70.501}
 	  } ;
       }
     // Measured by Martijn in November 2018, then translated into the
