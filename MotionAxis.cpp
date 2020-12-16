@@ -49,8 +49,11 @@ namespace PAP
 
     // initialize the set position the first time the position is read
     QObject::connect(&m_position,&NamedValueBase::valueChanged,
-		     [&]() { if(m_setPosition.value()==0) m_setPosition.setValue( m_position.value() ) ; } ) ;
-          
+		     [&]() { if(m_setPosition.value()==0) m_setPosition.setWithoutSignal( m_position.value() ) ; } ) ;
+    // connect the set position to the moveTo command
+    QObject::connect(&m_setPosition,&NamedValueBase::valueChanged,
+		     [&]() { this->moveTo( m_setPosition.value() ) ; } ) ;
+    
     // create the list of motion axis parameters.
     m_parameters.reserve( MSCommandLibrary::Parameters.size() ) ;
     for( const auto& p: MSCommandLibrary::Parameters ) {
@@ -135,7 +138,7 @@ namespace PAP
 
   void MotionAxis::move( double delta )
   {
-    m_setPosition.setValue(m_position.value() + delta) ;
+    m_setPosition.setWithoutSignal(m_position.value() + delta) ;
     setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PR",delta) ;
   }
@@ -172,13 +175,13 @@ namespace PAP
   void MotionAxis::stop()
   {
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"ST") ;
-    m_setPosition.setValue( m_position.value() ) ;
+    m_setPosition.setWithoutSignal( m_position.value() ) ;
   }
   
   void MotionAxis::moveTo( double position )
   {
     qDebug() << "MotionAxis::moveTo: " << position ;
-    m_setPosition.setValue( position ) ;
+    m_setPosition.setWithoutSignal( position ) ;
     setIsMoving( true ) ;
     MotionSystemSvc::instance()->applyAxisCommand(m_id,"PA",position) ;
   }
