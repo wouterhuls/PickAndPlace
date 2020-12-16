@@ -182,12 +182,12 @@ namespace PAP
 	{"JigBSurfaceCSidePoint1",	-50,	 73,	12.460}, // first three I trust. is three enough?
 	{"JigBSurfaceCSidePoint2",	-50,	-73,	12.460},
 	{"JigBSurfaceCSidePoint3",	  7,	-73,	12.460},
-	{"JigBSurfaceCSidePoint4",	 32,	-70.5,	-0.126},
-        {"JigBSurfaceCSidePoint5",	 6,	-58,	-0.138},
-        {"JigBSurfaceCSidePoint6",	 -32,	64,	-0.187},
-	{"JigBSurfaceCSidePoint7",	 -50,	45,	-0.195},
+	//{"JigBSurfaceCSidePoint4",	 32,	-70.5,	-0.126}, // These four are nice, but I don't think they help.
+        //{"JigBSurfaceCSidePoint5",	 6,	-58,	-0.138},
+        //{"JigBSurfaceCSidePoint6",	 -32,	64,	-0.187},
+	//{"JigBSurfaceCSidePoint7",	 -50,	45,	-0.195},
 	{"JigBSurfaceCSidePoint8",	110,	 65,	-10.590},
-	{"JigBSurfaceCSidePoint9",	110,	-65,	-10.567}, // this one comes out really bad: is jig bended?110
+	{"JigBSurfaceCSidePoint9",	110,	-65,	-10.567}, // this one comes out really bad: is jig bent ?
 	{"JigBSurfaceCSidePoint10",	 35,	-65,	-10.620}
       } ;
     } ;
