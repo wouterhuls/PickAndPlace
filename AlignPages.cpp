@@ -18,6 +18,7 @@
 #include <QTableWidget>
 #include <QSignalSpy>
 #include <QVideoProbe>
+#include <QFileDialog>
 
 #include <opencv2/opencv.hpp>
 
@@ -544,6 +545,7 @@ namespace PAP
     void measure() ;
     void calibrate() ;
     void setRefCoordinates() ;
+    void exportToFile() const ;
   } ;
 
 
@@ -587,6 +589,15 @@ namespace PAP
 	  //m_camerasvc->autofocus()->startNearFocusSequence() ;
 	});
       buttonlayout->addWidget(button) ;
+    }
+    {
+      auto button = new QPushButton{"Export",this} ;
+      connect(button,&QPushButton::clicked,[&]() {
+	  this->exportToFile() ;
+	  //m_camerasvc->autofocus()->startNearFocusSequence() ;
+	});
+      buttonlayout->addWidget(button) ;
+
     }
     // add a table with the results of the measurements
     auto hlayout = new QHBoxLayout{} ;
@@ -775,6 +786,41 @@ namespace PAP
     qDebug() << os.str().c_str() ;
     m_textbox->appendPlainText( os.str().c_str() ) ;
   }
+  
+  void AlignMainJigZPage::exportToFile() const
+  {
+    const QString defaultFileName = m_camerasvc->moduleDataDir() + "/MainJigZAlignment.csv" ;
+    auto filename = QFileDialog::getSaveFileName(nullptr, tr("Save data"),
+						 defaultFileName,
+						 tr("Csv files (*.csv)"));
+    QFile f( filename );
+    f.open(QIODevice::WriteOnly) ;
+    qDebug() << "Writing file: " << filename ;
+    QTextStream data( &f );
+    auto& table = m_measurementtable ;
+    // first the header. those we get from the table.
+    {
+      QStringList strList;
+      for( int c = 0; c < table->columnCount(); ++c ) {
+	if( table->horizontalHeaderItem(c) )
+	  strList <<  "\" " +
+	    table->horizontalHeaderItem(c)->data(Qt::DisplayRole).toString() +
+	    "\" ";
+      }
+      data << strList.join(";") << "\n";
+    }
+    // now the data. why would we take it from the table? only to add the residuals?
+    for(int irow=0; irow<= table->rowCount() ; ++irow ) {
+      QStringList strList;
+      for( int icol=0; icol < table->columnCount(); ++icol )
+	if( table->item(irow,icol) )
+	  strList << table->item(irow,icol)->text() ;
+      data << strList.join(";") << "\n";
+    }
+    f.close() ;
+    f.setPermissions( QFileDevice::ReadOther|QFileDevice::ReadGroup|QFileDevice::ReadOwner ) ;
+  }
+  
   
   QWidget* makeAlignMainJigZPage(ViewDirection view, CameraWindow& camerasvc) {
     return new AlignMainJigZPage(view,camerasvc) ;
