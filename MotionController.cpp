@@ -28,7 +28,7 @@ namespace PAP
   bool MotionController::hasMotorsOn() const
   {
     // analyse the status flag to see if the motors are on
-    return m_status & (1<<4) ;
+    return !(m_status & (1<<4)) ;
   }
 
   void MotionController::setStatus( unsigned int status )
