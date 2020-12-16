@@ -17,12 +17,12 @@ namespace PAP
       {
 	return std::vector<FiducialDefinition>
 	  {
-            {"CLI_VP02_Fid2", 18.9932,11.3706},
-	    {"CLI_VP00_Fid2", -1.152,31.516},
-	    {"CLI_VP01_Fid1", -0.997,31.361},
-	    {"CLI_VP01_Fid2",  8.920,21.444},
-	    {"CLI_VP02_Fid1",  9.076,21.288},
 	    {"CLI_VP00_Fid1",-11.0695,41.4332}
+	    {"CLI_VP00_Fid2", -1.1523,31.5161},
+	    {"CLI_VP01_Fid1", -0.9967,31.3605},
+	    {"CLI_VP01_Fid2",  8.9205,21.4433},
+	    {"CLI_VP02_Fid1",  9.0760,21.2878},
+            {"CLI_VP02_Fid2", 18.9932,11.3706},
 	  } ;
       }
 
@@ -30,12 +30,12 @@ namespace PAP
       {
 	return std::vector<FiducialDefinition>
 	  {
-	    {"CSO_VP32_Fid2", 21.2100,-28.5992},
-            {"CSO_VP30_Fid2", 41.355, -8.454},
-            {"CSO_VP31_Fid1", 41.200, -8.609},
-            {"CSO_VP31_Fid2", 31.283,-18.526},
-            {"CSO_VP32_Fid1", 31.127,-18.682},
 	    {"CSO_VP30_Fid1", 51.2726,  1.4634}
+            {"CSO_VP30_Fid2", 41.3554, -8.4538},
+            {"CSO_VP31_Fid1", 41.1999, -8.6093},
+            {"CSO_VP31_Fid2", 31.2827,-18.5265},
+            {"CSO_VP32_Fid1", 31.1271,-18.6821},
+	    {"CSO_VP32_Fid2", 21.2100,-28.5992},
 	  } ;
       }
 
@@ -44,10 +44,10 @@ namespace PAP
 	return std::vector<FiducialDefinition>
 	  {
 	    {"NSI_VP20_Fid1", 11.4873,-18.8765},
-            {"NSI_VP20_Fid2", 21.404, -8.959},
-            {"NSI_VP21_Fid1", 21.560, -8.804},
-            {"NSI_VP21_Fid2", 31.477,  1.113},
-            {"NSI_VP22_Fid1", 31.633,  1.269},
+            {"NSI_VP20_Fid2", 21.4044, -8.9593},
+            {"NSI_VP21_Fid1", 21.5600, -8.8038},
+            {"NSI_VP21_Fid2", 31.4772,  1.1134},
+            {"NSI_VP22_Fid1", 31.6327,  1.2690},
             {"NSI_VP22_Fid2", 41.5499, 11.1861}
 	  } ;
       }
@@ -57,10 +57,10 @@ namespace PAP
 	return std::vector<FiducialDefinition>
 	  {
 	    {"NLO_VP10_Fid1", 27.7436, 22.0656},
-	    {"NLO_VP10_Fid2", 17.826, 31.983},
-            {"NLO_VP11_Fid1", 17.671, 32.138},
-            {"NLO_VP11_Fid2",  7.754, 42.055},
-            {"NLO_VP12_Fid1",  7.598, 42.211},
+	    {"NLO_VP10_Fid2", 17.8265, 31.9827},
+            {"NLO_VP11_Fid1", 17.6709, 32.1383},
+            {"NLO_VP11_Fid2",  7.7537, 42.0555},
+            {"NLO_VP12_Fid1",  7.5982, 42.2110},
             {"NLO_VP12_Fid2", -2.3190, 52.1282}
 	  } ;
       }
@@ -206,17 +206,21 @@ namespace PAP
     inline std::vector<FiducialDefinition> microchannelNSide()
       {
 	return std::vector<FiducialDefinition> {
-	  {"MC_N19_NLO_Fid1",28.284, 22.061},
-	  {"MC_N16_NLO_Fid2",-2.237, 52.600},
-	  {"MC_N17_NLO_Fid3",-15.202, 39.696},
-	  {"MC_N18_NLO_Fid4", 14.741, 9.732},
-	  {"MC_N21_NSI_Fid1",11.474, -19.055},
-	  {"MC_N20_NSI_Fid2",42.007, 11.470},
+	  {"MC_N19_NLO_Fid1",28.18,   22.04},
+	  {"MC_N16_NLO_Fid2",-2.35,   52.57},
+	  {"MC_N17_NLO_Fid3",-15.31,   39.66},
+	  {"MC_N18_NLO_Fid4", 14.64,    9.70},
+	  {"MC_N21_NSI_Fid1",11.38,  -19.08},
+	  {"MC_N20_NSI_Fid2",41.91,   11.45},
 	  {"MC_NSI_Fid3",10.1,5.34},
-	  {"MC_N14",56.615, 68.018},
-	  {"MC_N15",13.104, 68.032},
-	  {"MC_N12",38.665, -44.478},
-	  {"MC_N13",80.084, -44.489}
+	  {"MC_N12",   38.58,  -44.50},
+	  {"MC_N13",   80.00,  -44.50},
+	  {"MC_N14",   56.50,   68.00},
+	  {"MC_N15",   12.99,   68.00},
+	  {"MC_N_B1",   88.10,   14.05}, // not sure these are visible: otherwise we should remove them
+	  {"MC_N_B2",   79.90,   14.05},
+	  {"MC_N_B3",   79.90,  -14.05},
+	  {"MC_N_B4",   88.10,  -14.05}
 	} ;
       }
     
@@ -224,25 +228,24 @@ namespace PAP
     inline std::vector<FiducialDefinition> microchannelCSide()
       {
 	return std::vector<FiducialDefinition> {
-	  {"MC_C04_CLI_Fid1",-11.304, 41.907},
-	  {"MC_C07_CLI_Fid2", 19.222, 11.371},
-	  {"MC_C06_CLI_Fid3", 13.350,  2.466},
-	  {"MC_C05_CLI_Fid4",-19.851, 35.682},
-	  {"MC_C09_CSO_Fid1", 51.885,  1.592},
-	  {"MC_C11_CSO_Fid2", 21.348,-28.934},
-	  {"MC_C10_CSO_Fid3",  8.926, -15.310},
-	  {"MC_C08_CSO_Fid4", 41.191, 14.114},
-	  {"MC_C00",  38.666, -44.476},
-	  {"MC_C01",  80.086, -44.487},
-	  {"MC_C_B1", 88.192, -14.040},
-	  {"MC_C_B2", 79.991, -14.036},
-	  {"MC_C_B3", 80.050, 14.012},
-	  {"MC_C_B4", 88.198, 14.059}
+	  {"MC_C04_CLI_Fid1",-11.41, 41.87},
+	  {"MC_C07_CLI_Fid2", 19.12, 11.34},
+	  {"MC_C06_CLI_Fid3", 13.25,  2.44},
+	  {"MC_C05_CLI_Fid4",-19.95, 35.64},
+	  {"MC_C09_CSO_Fid1", 51.79,  1.57},
+	  {"MC_C11_CSO_Fid2", 21.26,-28.96},
+	  {"MC_C10_CSO_Fid3",  8.83,-15.34},
+	  {"MC_C08_CSO_Fid4", 41.09, 14.09},
+	  {"MC_C00",  38.58, -44.50},
+	  {"MC_C01",  80.00, -44.50},
+	  {"MC_C02",  56.50,  68.00},
+	  {"MC_C03",  12.99,  68.00},
+	  {"MC_C_B1", 88.10, -14.05}   // actually B4
+	  {"MC_C_B2", 79.90, -14.05},  // actually B3
+	  {"MC_C_B3", 79.95, 14.00},   // actually B2
+	  {"MC_C_B4", 88.10, 14.05},   // atcually B1
 	} ;
       }
-
-
-    
   }
 }
 
