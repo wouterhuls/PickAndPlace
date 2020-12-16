@@ -105,7 +105,10 @@ namespace PAP
 
     void showNSideMarkers( int state ) { m_nsidemarkers->setVisible( state>0 ) ; }
     void showCSideMarkers( int state ) { m_csidemarkers->setVisible( state>0 ) ; }
-    void showGeometry( int state ) { m_detectorgeometry->setVisible( state>0 ) ; }
+    void showGeometry( int state ) {
+      m_detectorgeometry->setVisible( state>0 ) ;
+      m_globalgeometry->setVisible( state>0 ) ;
+    }
   private:
     void positionTextBox() ;
     void updatePositionText() ;
