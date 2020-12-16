@@ -17,7 +17,7 @@ namespace PAP
       {
 	return std::vector<FiducialDefinition>
 	  {
-	    {"CLI_VP00_Fid1",-11.0695,41.4332}
+	    {"CLI_VP00_Fid1",-11.0695,41.4332},
 	    {"CLI_VP00_Fid2", -1.1523,31.5161},
 	    {"CLI_VP01_Fid1", -0.9967,31.3605},
 	    {"CLI_VP01_Fid2",  8.9205,21.4433},
@@ -30,7 +30,7 @@ namespace PAP
       {
 	return std::vector<FiducialDefinition>
 	  {
-	    {"CSO_VP30_Fid1", 51.2726,  1.4634}
+	    {"CSO_VP30_Fid1", 51.2726,  1.4634},
             {"CSO_VP30_Fid2", 41.3554, -8.4538},
             {"CSO_VP31_Fid1", 41.1999, -8.6093},
             {"CSO_VP31_Fid2", 31.2827,-18.5265},
@@ -240,7 +240,7 @@ namespace PAP
 	  {"MC_C01",  80.00, -44.50},
 	  {"MC_C02",  56.50,  68.00},
 	  {"MC_C03",  12.99,  68.00},
-	  {"MC_C_B1", 88.10, -14.05}   // actually B4
+	  {"MC_C_B1", 88.10, -14.05},  // actually B4
 	  {"MC_C_B2", 79.90, -14.05},  // actually B3
 	  {"MC_C_B3", 79.95, 14.00},   // actually B2
 	  {"MC_C_B4", 88.10, 14.05},   // atcually B1
