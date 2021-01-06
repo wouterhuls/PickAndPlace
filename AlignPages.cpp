@@ -41,11 +41,11 @@ namespace PAP
     auto recordcentrebutton = new QPushButton{"record centre", this} ;
     recordcentrebutton->setToolTip("Record the current centre of the camera view as the position of this marker.") ;
     hlayout->addWidget( recordcentrebutton ) ;
-    connect(recordcentrebutton,&QPushButton::pressed,
-	    [=](){ setStatus(Active) ; camview->record( camview->localOrigin()) ; } ) ;
-    
+    //connect(recordcentrebutton,&QPushButton::pressed,
+    //[=](){ setStatus(Active) ; camview->record( camview->localOrigin()) ; } ) ;
+    connect(recordcentrebutton,&QPushButton::pressed, [&]() { record(camview->coordinateMeasurement()) ; } ) ;
     // catch measurement updates
-    connect( camview, &CameraView::recording, this, &MarkerRecorderWidget::record ) ;
+    // connect( camview, &CameraView::recording, this, &MarkerRecorderWidget::record ) ;
     
     // show a label with the status
     m_statuslabel = new QLabel{ this } ;
@@ -55,22 +55,22 @@ namespace PAP
   }
   
   void MarkerRecorderWidget::record( const CoordinateMeasurement& m ) {
-    if( m_status == Active ||
-	m.markername == objectName() ) {
-      m_markerposition = m_cameraview->globalPosition( objectName() ) ;
-      //emit ready() ;
-      qDebug() << "received measurement: " << objectName() << m.markername ;
-      qDebug() << "global coordinates: (" << m.globalcoordinates.x() << "," << m.globalcoordinates.y() << ")" ;
-      qDebug() << "marker position:      " << m_markerposition ;
-      if( m_status != Uninitialized) {
-	qDebug() << "Change in measurement: ("
-		 << m_measurement.globalcoordinates.x() - m.globalcoordinates.x() << ","
-		 << m_measurement.globalcoordinates.y() - m.globalcoordinates.y() << ")" ;
-      }
-      m_measurement = m ;
-      setStatus( Recorded ) ;
-      // store the markerfocus for later use ?
+    //if( m_status == Active ||
+    //m.markername == objectName() ) {
+    m_markerposition = m_cameraview->globalPosition( objectName() ) ;
+    //emit ready() ;
+    qDebug() << "received measurement: " << objectName() << m.markername ;
+    qDebug() << "global coordinates: (" << m.globalcoordinates.x() << "," << m.globalcoordinates.y() << ")" ;
+    qDebug() << "marker position:      " << m_markerposition ;
+    if( m_status != Uninitialized) {
+      qDebug() << "Change in measurement: ("
+	       << m_measurement.globalcoordinates.x() - m.globalcoordinates.x() << ","
+	       << m_measurement.globalcoordinates.y() - m.globalcoordinates.y() << ")" ;
     }
+    m_measurement = m ;
+    setStatus( Recorded ) ;
+    // store the markerfocus for later use ?
+    //}
   }
   
   void MarkerRecorderWidget::setStatus(Status s) {
@@ -114,6 +114,7 @@ namespace PAP
       // Now do the chi2 minimization
       Eigen::Vector3d halfdchi2dpar   = Eigen::Vector3d::Zero() ;
       Eigen::Matrix3d halfd2chi2dpar2 = Eigen::Matrix3d::Zero() ;
+      double chi2 = 0.0 ;
       for( const auto& r : recordings ) {
 	// the residual is '2D'. however, x and y are
 	// independent. so we could as well compute them separately.
@@ -129,6 +130,7 @@ namespace PAP
 	  for(int irow=0; irow<3; ++irow)
 	    for(int icol=0; icol<3; ++icol)
 	      halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
+	  chi2 += residual*residual ;
 	}
 	{
 	  // then y
@@ -141,6 +143,7 @@ namespace PAP
 	  for(int irow=0; irow<3; ++irow)
 	    for(int icol=0; icol<3; ++icol)
 	      halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
+	  chi2 += residual*residual ;
 	}
       }
       // now solve
@@ -161,6 +164,18 @@ namespace PAP
 	
       Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
       text << "Solution: dx=" << delta(0) << " dy=" << delta(1) << " dphi=" << delta(2) << std::endl ;
+      
+      // TODO: compute delta-chi2
+      // add convergence criterion: delta-chi2 < something, or residuals at marker < something
+      // add a statement that it has converged or not. 
+      const double sigma = 0.003 ;
+      const auto   weight = 1/(sigma*sigma) ;
+      const auto deltachi2 = weight*delta.dot( halfdchi2dpar ) ; // the factor 1/2 is correct once you take 2nd derivative into account
+      chi2 = chi2*weight + deltachi2 ;
+      text << "chi2, Delta-chi2: " << chi2 << " " << deltachi2 << std::endl ;
+      if( deltachi2 < 10 ) text << "Change in parameters: SMALL" << std::endl ;
+      else                 text << "Change in parameters: LARGE" << std::endl ;
+      
       if(textbox) {
         TextEditStream{*textbox} << text.str() ;
       }
