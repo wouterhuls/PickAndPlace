@@ -186,9 +186,9 @@ namespace PAP
         //{"JigBSurfaceCSidePoint5",	 6,	-58,	-0.138},
         //{"JigBSurfaceCSidePoint6",	 -32,	64,	-0.187},
 	//{"JigBSurfaceCSidePoint7",	 -50,	45,	-0.195},
-	{"JigBSurfaceCSidePoint8",	110,	 65,	-10.590},
-	{"JigBSurfaceCSidePoint9",	110,	-65,	-10.567}, // this one comes out really bad: is jig bent ?
-	{"JigBSurfaceCSidePoint10",	 35,	-65,	-10.620}
+	{"JigBSurfaceCSidePoint8",	110,	 67,	-10.590},
+	{"JigBSurfaceCSidePoint9",	110,	-67,	-10.567}, // this one comes out really bad: is jig bent ?
+	{"JigBSurfaceCSidePoint10",	 50,	-73,	-10.620}
       } ;
     } ;
     
