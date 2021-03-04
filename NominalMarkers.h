@@ -122,12 +122,13 @@ namespace PAP
     // Measured by Martijn in September 2020.
     // (This is acually for the third jig, but we'll never use he 2nd.)
     // Measurements were updated in November 2020. After that the dowelpin was still adjusted.
+    // Measurements updated 5/2/2021
     inline std::vector<FiducialDefinition> turnJigB()
       {
 	return std::vector<FiducialDefinition>
 	  {
-	    {"MainJigMarker1", -50.418, 60.426},
-	    {"MainJigMarker2",  19.632, -70.501}
+	    {"MainJigMarker1", -50.421, 60.420},
+	    {"MainJigMarker2",  19.628, -70.508}
 	  } ;
       }
     // Measured by Martijn in November 2018, then translated into the
