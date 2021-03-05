@@ -386,7 +386,7 @@ namespace PAP
       // pop up a window asking for a filename
       auto filename = QFileDialog::getSaveFileName(this, tr("Save image"),
 						   QString("/home/velouser/Documents/PickAndPlaceData/") +
-						   m_moduleName.value() + "/images/untitled.jpg",
+						   m_moduleName.value() + "/images/untitled.png",
 						   tr("Images (*.png *.xpm *.jpg)"));
       
       if(!filename.isEmpty()) {
