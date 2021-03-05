@@ -54,6 +54,34 @@ namespace PAP
       painter->drawEllipse( rectangle ) ;
     }
   } ;
+
+  class SubstrateMarker : public Marker
+  {
+  private:
+    const float m_size = 0.3 ; // size in micron
+  public:
+    SubstrateMarker(const FiducialDefinition& def, QGraphicsItem *parent = Q_NULLPTR)
+      : Marker(def,parent){}
+    virtual QRectF boundingRect() const
+    {
+      //qreal penWidth = 1 ;
+      qreal bound = 1.02 * m_size ;
+      return QRectF{-0.5*bound,-0.5*bound,bound,bound} ;
+    }
+    virtual void paint(QPainter *painter,
+		       const QStyleOptionGraphicsItem* /*option*/,
+		       QWidget* /*widget*/)
+    {
+      // let's draw a double circle. outer diameter is 300 micron. inner is 250 micron.
+      // semitransparent yellow??
+      QPen pen ;
+      pen.setColor( Qt::yellow ) ;
+      pen.setWidthF(0.02*m_size); // in which units?
+      painter->setPen(pen) ;
+      for( auto d : {0.3,0.25} )
+	painter->drawEllipse( QRectF{-d/2,-d/2,d,d}) ;
+    }
+  } ;
   
   
   // This is the actual jig marker to scale.

@@ -135,7 +135,7 @@ namespace PAP
     for( const auto& m : geosvc->velopixmarkersNSide() )
       m_nsidemarkers->addToGroup( new VelopixMarker{m,m_nsidemarkers} ) ;
     for( const auto& m : geosvc->mcpointsNSide() )
-      m_nsidemarkers->addToGroup( new ReferenceMarker{m,m_nsidemarkers} ) ;
+      m_nsidemarkers->addToGroup( new SubstrateMarker{m,m_nsidemarkers} ) ;
     
     m_csidemarkers = new QGraphicsItemGroup{} ;
     m_detectorgeometry->addToGroup( m_csidemarkers ) ;
@@ -144,7 +144,7 @@ namespace PAP
     for( const auto& m : geosvc->velopixmarkersCSide() )
       m_csidemarkers->addToGroup( new VelopixMarker{m,m_csidemarkers} ) ;
     for( const auto& m : geosvc->mcpointsCSide() )
-      m_csidemarkers->addToGroup( new ReferenceMarker{m,m_csidemarkers} ) ;
+      m_csidemarkers->addToGroup( new SubstrateMarker{m,m_csidemarkers} ) ;
  
     auto beamline = new SightMarker( FiducialDefinition{"Beamline",0,0}, 2.0 ) ;
     m_detectorgeometry->addToGroup( beamline ) ;
