@@ -167,25 +167,35 @@ namespace PAP
             
       // I want more: let's go for 12, 4 lines of 4 in a snake pattern
       //std::vector< QPointF > points ;
-      QString sensorname = QString{"SensorSurface"}+markerdefs.front().name.leftRef(3); 
+      const auto tilename{markerdefs.front().name.leftRef(3)} ; 
+      const QString sensorname = QString{"SensorSurface"}+tilename; 
       const int nX = 7 ;
       const int nY = 4 ;
       const float dY = orderedcorners[2].y() - orderedcorners[0].y() ;
       const float dX = orderedcorners[2].x() - orderedcorners[0].x() ;
       for(int iy=0; iy<nY; ++iy) {
-	float y = orderedcorners[0].y() + (dY*iy)/(nY-1) ;
+	const float y = orderedcorners[0].y() + (dY*iy)/(nY-1) ;
 	for(int ix=0;ix<nX; ++ix) {
-	  int jx = (iy%2) ? nX-1-ix : ix ;
-	  float x = orderedcorners[0].x() + (dX*jx)/(nX-1) ;
-	  QString refname = sensorname ;
-	  refname += QString::number( jx+1 ) ;
-	  refname += "_" ;
-	  refname += QString::number( iy+1 ) ;
-	  FiducialDefinition def{refname,x,y} ;
+	  const int jx = (iy%2) ? nX-1-ix : ix ;
+	  const float x = orderedcorners[0].x() + (dX*jx)/(nX-1) ;
+	  const QString refname = sensorname + QString::number( jx+1 ) + "_" + QString::number( iy+1 ) ;
+	  const FiducialDefinition def{refname,x,y} ;
 	  (static_cast<QGraphicsItemGroup*>(parent))->addToGroup( new ReferenceMarker{ def, this } ) ;
 	}
       }
-      
+
+      // Add reference markers for the FE hybrid glue thickness metrology
+      for(int iy=0; iy<2; ++iy) {
+	const double y = -2.2 -iy*12.0 ;
+	const int nX = 8 ;
+	for(int ix=0; ix<nX; ++ix) {
+	  const double x = -width/2 + 1.0 + ix * (width-2.0)/(nX-1) ;
+	  const QString refname = QString{"FEHybrid"} + tilename + QString::number(iy) + QString::number(ix) ;
+	  const FiducialDefinition def{refname,x,y} ;
+	  (static_cast<QGraphicsItemGroup*>(parent))->addToGroup( new ReferenceMarker{ def, this } ) ;
+	}
+      }
+	
       // add the sensor circular markers. because we define he
       // coordinate system looking from the tile side, we need to
       // replace x by minus x.
@@ -259,6 +269,27 @@ namespace PAP
 	  x0 += asicwidth + asicdist ;
 	}
       }
+
+      // draw the FE hybrid
+      // these are the FR hybrid corners relative to corner closest to the first
+      //ASIC marker. all y coordinates are zero or negative.
+      {
+	/* const double PIXEL_SIZE = 0.055 ; */
+	/* const double LONG_PIXEL_SIZE = (0.3300 - PIXEL_SIZE)/2 ; */
+	/* const double SENSOR_DIST_FIRST_LAST_PIXEL = (3*256-1) * PIXEL_SIZE + 4*(LONG_PIXEL_SIZE-PIXEL_SIZE) ; */
+	const double FEHYBRID_WIDTH = 43.25;	
+	const double fehybridcorners[][8] = { {0,0}, {FEHYBRID_WIDTH,0}, {FEHYBRID_WIDTH,-16},
+					     {FEHYBRID_WIDTH-3,-21}, {FEHYBRID_WIDTH-3,-25},
+					     {FEHYBRID_WIDTH-9,-31}, {4,-31},
+					     {0,-24} } ;
+	//const double fehybridoriginintileframe[2] = { -0.5*(FEHYBRID_WIDTH-SENSOR_DIST_FIRST_LAST_PIXEL), -0.4 } ;
+	const double fehybridoriginintileframe[2] = { -0.5*FEHYBRID_WIDTH, -0.4 } ;
+	QVector<QPointF> fepoints ;
+	for( const auto& p : fehybridcorners )
+	  fepoints.push_back( QPointF{p[0] + fehybridoriginintileframe[0], p[1] + fehybridoriginintileframe[1]} ) ;
+	QPolygonF fepolygon{ fepoints } ;
+	painter->drawPolygon( fepolygon ) ;
+      }
     }
     
     virtual QRectF boundingRect() const
@@ -269,14 +300,13 @@ namespace PAP
     }
   } ;
   
- class Substrate : public QGraphicsItem
+  class Substrate : public QGraphicsItem
   {
   private:
     const double Lx = 111.37 ;
     const double Ly = 116.5 ;
     const double Px = -Lx + 89.82  ;
-    const double Py = -46.025 ;
-    
+    const double Py = -46.5 ; // -46.025 ;
   public:
     Substrate(QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItem(parent) {
       setPos(0,0) ;
@@ -286,6 +316,7 @@ namespace PAP
     virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem* /*option*/,
 		       QWidget* /*widget*/)
     {
+      // Where do these come from? They are not quite right! Angles are not 45 degrees. 
       const QPointF points[] = {
         { Px + Lx - 51.42, Py },
 	{ Px + Lx - 10.00, Py },
@@ -307,10 +338,76 @@ namespace PAP
       painter->setPen(pen) ;
       painter->drawPolygon( points, 9 ) ;
     }
-     virtual QRectF boundingRect() const
+    virtual QRectF boundingRect() const
      { 
        return QRectF{Px,Py,Lx,Ly} ;
      }
+  } ;
+
+  class GBTxHybrid : public QGraphicsItem
+  {
+  private:
+    //const double gbtxcenter[2] = {58.6,27.1} ; // measured with the P&P!
+    const double gbtxpcbwidth = 17.0 ;
+    const double gbtxpcbwidthIn = 16.0 ;
+    const double gbldcenter[2] =  {14.4,-2.4} ;
+    
+  public:
+  GBTxHybrid(ViewDirection viewdir, QGraphicsItem *parent = Q_NULLPTR) : QGraphicsItem(parent) {
+      // this is so ugly. but I think that it is because I don't work in 3D
+      if( viewdir == ViewDirection::NSideView ) {
+	QTransform T = transform() ;
+	T.scale(1,-1) ;
+	setTransform(T) ;
+      }
+      setPos(58.6,27.1) ;
+      setToolTip("GBTxHybrid") ;
+      // add four reference markers for the pcb. these can be used for metrology.
+      for(unsigned int i=0; i<4; ++i) {
+	const unsigned int iy = i/2 ;
+	const unsigned int ix = i%2 + i/2 -2*((i%2)*(i/2)) ; //const int ixarray[] = {0,1,1,0}; const int ix = ixarray[i] ;
+	const double x = (-0.5 + ix )*gbtxpcbwidthIn ;
+	const double y = (-0.5 + iy )*gbtxpcbwidthIn ;
+	QString refname = QString{"GBTx_corner"} + QString::number(i+1) ;
+	FiducialDefinition def{refname,x,y} ;
+	(static_cast<QGraphicsItemGroup*>(parent))->addToGroup( new ReferenceMarker{ def, this } ) ;
+      }
+      (static_cast<QGraphicsItemGroup*>(parent))->
+	addToGroup(new ReferenceMarker{FiducialDefinition{"GBLD",gbldcenter[0],gbldcenter[1]},this}) ;
+    } ;
+    
+    virtual void paint(QPainter *painter, const QStyleOptionGraphicsItem* /*option*/,
+		       QWidget* /*widget*/)
+    {
+      QPen pen ;
+      pen.setCosmetic(true) ;
+      pen.setWidthF(1);
+      pen.setColor( Qt::blue ) ;//Qt::yellow ) ;
+      painter->setPen(pen) ;
+      painter->setPen(pen) ;
+      // first just the PCB square
+      painter->drawRect( QRectF{ -0.5*gbtxpcbwidth, -0.5*gbtxpcbwidth,gbtxpcbwidth,gbtxpcbwidth } ) ;
+      painter->drawRect( QRectF{ -0.5*gbtxpcbwidthIn, -0.5*gbtxpcbwidthIn,gbtxpcbwidthIn,gbtxpcbwidthIn } ) ;
+      // This is the GBLD
+      painter->drawRect( QRectF{ gbldcenter[0]-2.0, gbldcenter[1]-2.0,4.0,4.0} ) ;
+      
+      //gbtxcorners = [(0.,+0.),(0,28.7,0.),(7.6,36.3,),(30.3,36.3,),(43.9,22.7,),(43.9,6.5,),(37.4,0)]
+      //gbtxcenter  = (22.34,20.54) # from the drawing
+      // This doesn't yet work because it depends on the side from which we are watching! The same holds for the GBLD
+      {
+	// These look so odd because they are relative to the gbtx center
+	const double gbtxcornersX[] = {20.54,-8.16,-15.76,-15.76,-2.16,14.04,20.54} ;
+	const double gbtxcornersY[] = {+22.34,+22.34,+14.74,-7.96,-21.56,-21.56,-15.06} ;
+	QVector<QPointF> gbtxcornersglobalframe ;
+	for(int i=0; i<7; ++i) gbtxcornersglobalframe.push_back(QPointF{gbtxcornersX[i],gbtxcornersY[i]}) ;
+	painter->drawPolygon( QPolygonF{gbtxcornersglobalframe} ) ;
+	
+      }
+    }
+    virtual QRectF boundingRect() const
+    { 
+      return QRectF{-25.,-25.,50.,50.} ;
+    }
   } ;
   
   // Implements graphics item for a marker of the Jig.
