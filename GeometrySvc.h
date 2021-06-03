@@ -43,15 +43,27 @@ namespace PAP
     QTransform fromModuleToCamera( ViewDirection view ) const {
       return fromModuleToGlobal(view) * fromCameraToGlobal().inverted() ; 
     }
-
+    QTransform fromModuleToGlobal() const {
+      return fromModuleToGlobal(m_viewDirection.value()) ;
+    }
+    QTransform fromModuleToCamera() const {
+      return fromModuleToCamera(m_viewDirection.value()) ;
+    }
+				  
     // update calibration
     void applyModuleDelta(ViewDirection dir, double dx, double dy, double dphi ) ;
     void applyModuleZCalibration(ViewDirection dir, double z, double dzdx, double dzdy ) ;
+    std::array<double,3> getModuleZCalibration(ViewDirection dir) const ;
 
     // access to the camera z position in the module frame
     double moduleZ(ViewDirection dir ) const ;
     double moduleZ(ViewDirection view, double focus) const ;
-
+    double moduleZ(ViewDirection view, double focus, MSMainCoordinates main ) const ;
+    double moduleZ() const { return moduleZ(m_viewDirection) ; }
+    double moduleZ(double focus) const { return moduleZ(m_viewDirection,focus) ; }
+    double moduleZ(double focus, MSMainCoordinates main ) const { return moduleZ(m_viewDirection,focus,main); }
+    
+    
     // access to the rotation axis of the stack
     Coordinates2D stackAxisInGlobal() const ;
     Coordinates2D stackAxisInGlobal( const MSStackCoordinates& coord ) const ;
@@ -75,7 +87,9 @@ namespace PAP
     const auto& turnJigVersion() const { return m_turnJigVersion; }
     auto& turnJigVersion() { return m_turnJigVersion; }
     void setTurnJigVersion( int version ) { m_turnJigVersion = version ; }
-    
+    const auto& viewDirection() const { return m_viewDirection ; }
+    void setViewDirection( ViewDirection dir ) { m_viewDirection.setValue(dir) ; }
+
   public:
     // access to various marker positions in the 'Module' frame. these
     // have already been corrected for the 'view'.
@@ -104,9 +118,12 @@ namespace PAP
     const NamedDouble& stackYB() const { return m_stackYB ; }
     const NamedDouble& stackPhi0() const { return m_stackPhi0 ; }
 
+    const auto& resolutionXY() const { return m_resolutionXY ; }
+    const auto& resolutionZ() const { return m_resolutionZ ; }
   private:
     // Some flags
     NamedInteger m_turnJigVersion{"Geo.TurnJigVersion",TurnJigVersion::VersionB} ;
+    NamedValue<ViewDirection> m_viewDirection{"Geo.ViewDirection",ViewDirection::NSideView} ;
     
     // various calibration parameters
     NamedDouble m_mainX0 ;
@@ -129,6 +146,11 @@ namespace PAP
 
   // paramaters for all the stacks. we better tabulate these end access by name
     std::map<QString,TileStackPosition*> m_tileStackPositions ;
+
+    // Coordinate resolution
+    NamedDouble m_resolutionXY{"Geo.ResolutionXY",0.002} ;
+    NamedDouble m_resolutionZ{"Geo.ResolutionZ",0.002} ;
+        
   } ;
 
 

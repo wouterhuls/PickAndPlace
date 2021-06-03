@@ -97,6 +97,7 @@ namespace PAP
       m_dzdx = dzdx ;
       m_dzdy = dzdy ;
     }
+    std::array<double,3> getZParameters() const { return {m_z,m_dzdx,m_dzdy} ; }
   } ;
   
   GeometrySvc::GeometrySvc()
@@ -135,6 +136,7 @@ namespace PAP
     PAP::PropertySvc::instance()->add( m_stackYB ) ;
     PAP::PropertySvc::instance()->add( m_stackPhi0 ) ;
     PAP::PropertySvc::instance()->add( m_turnJigVersion ) ;
+    PAP::PropertySvc::instance()->add( m_viewDirection ) ;
 
     // these are the stack parameters for the CSI chip. not yet
     // exactly clear what I mean by that, but it works, for now
@@ -226,10 +228,18 @@ namespace PAP
   void GeometrySvc::applyModuleZCalibration(ViewDirection view, double z, double dzdx, double dzdy) {
     m_moduleposition[view]->setZ(z,dzdx,dzdy) ;
   }
+
+  std::array<double,3> GeometrySvc::getModuleZCalibration(ViewDirection view) const {
+    return m_moduleposition[view]->getZParameters() ;
+  }
+  
+  double GeometrySvc::moduleZ(ViewDirection view, double focus, MSMainCoordinates main ) const {
+    return m_moduleposition[view]->z(main) - focus ;
+  }
   
   double GeometrySvc::moduleZ(ViewDirection view, double focus) const {
     MSMainCoordinates main = MotionSystemSvc::instance()->maincoordinates() ;
-    return m_moduleposition[view]->z(main) - focus ;
+    return moduleZ(view,focus,main) ;
   }
   
   double GeometrySvc::moduleZ(ViewDirection view) const {
@@ -420,5 +430,13 @@ namespace PAP
   std::vector<FiducialDefinition>
   GeometrySvc::mcpointsCSide() const { return Markers::microchannelCSide() ; }
 
-  
+    // template specializations
+  template<>
+  bool MonitoredValue<ViewDirection>::fromString( const QString& val ) {
+    QVariant qval(val) ;
+    bool success = qval.convert(QVariant::Int) ;
+    if( success ) setValue( ViewDirection(val.toInt()) ) ;
+    return success ;
+  }
+
 }
