@@ -62,8 +62,6 @@ namespace PAP
     QTransform fromCameraToPixel() const ;
     QTransform fromModuleToPixel() const ;
 
-    ViewDirection currentViewDirection() const { return m_currentViewDirection ; }
-
     const QPointF& localOrigin() const { return m_localOrigin ; }
     QPointF globalCoordinates( QPointF localpoint ) const ;
     CoordinateMeasurement coordinateMeasurement( QPointF localpoint ) const ;
@@ -100,7 +98,6 @@ namespace PAP
     void record( QPointF localpoint ) const ;
     void zoomReset() ;
     void zoomOut() ;
-    void setViewDirection( ViewDirection view ) ;
     void updateTurnJigMarkers() ;
 
     void showNSideMarkers( int state ) { m_nsidemarkers->setVisible( state>0 ) ; }
@@ -141,8 +138,6 @@ namespace PAP
     NamedDouble m_rotation ;
     double m_nominalscale ;
 
-    // some info on the view direction
-    ViewDirection m_currentViewDirection ;
     QGraphicsItemGroup* m_detectorgeometry ; // this contains items in the module frame
     QGraphicsItemGroup* m_nsidemarkers ;
     QGraphicsItemGroup* m_csidemarkers ;

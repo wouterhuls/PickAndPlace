@@ -6,6 +6,7 @@
 #include "CoordinateMeasurement.h"
 #include "AutoFocus.h"
 #include "VideoRecorder.h"
+#include "PropertySvc.h"
 
 #include <QCamera>
 #include <QCameraInfo>
@@ -43,7 +44,6 @@ namespace PAP
       m_magnification("Cam.Magnification",4.865),
       //m_magnification("Cam.Magnification",2.159),
       m_rotation("Cam.Rotation",+M_PI/2),
-      m_currentViewDirection(NSideView),
       m_numScheduledScalings{0},
       m_videorecorder{ new VideoRecorder{this} }
   {
@@ -123,7 +123,7 @@ namespace PAP
     m_detectorgeometry = new QGraphicsItemGroup{} ;
     m_scene->addItem( m_detectorgeometry ) ;
 
-    m_detectorgeometry->addToGroup( new Substrate() ) ;
+    m_detectorgeometry->addToGroup( new Substrate{m_detectorgeometry} ) ;
     auto geosvc = GeometrySvc::instance() ;
     for( const auto& m : geosvc->jigmarkers() )
       m_detectorgeometry->addToGroup( new JigMarker{m,m_detectorgeometry} ) ;
@@ -132,6 +132,7 @@ namespace PAP
     m_detectorgeometry->addToGroup( m_nsidemarkers ) ;
     m_nsidemarkers->addToGroup( new Tile( geosvc->velopixmarkersNSI(),m_nsidemarkers) ) ;
     m_nsidemarkers->addToGroup( new Tile( geosvc->velopixmarkersNLO(),m_nsidemarkers ) ) ;
+    m_nsidemarkers->addToGroup( new GBTxHybrid( ViewDirection::NSideView, m_nsidemarkers ) ) ;
     for( const auto& m : geosvc->velopixmarkersNSide() )
       m_nsidemarkers->addToGroup( new VelopixMarker{m,m_nsidemarkers} ) ;
     for( const auto& m : geosvc->mcpointsNSide() )
@@ -141,6 +142,7 @@ namespace PAP
     m_detectorgeometry->addToGroup( m_csidemarkers ) ;
     m_csidemarkers->addToGroup( new Tile{geosvc->velopixmarkersCLI(),m_csidemarkers}) ;
     m_csidemarkers->addToGroup( new Tile{geosvc->velopixmarkersCSO(),m_csidemarkers} ) ;
+    m_csidemarkers->addToGroup( new GBTxHybrid( ViewDirection::CSideView, m_csidemarkers ) ) ;
     for( const auto& m : geosvc->velopixmarkersCSide() )
       m_csidemarkers->addToGroup( new VelopixMarker{m,m_csidemarkers} ) ;
     for( const auto& m : geosvc->mcpointsCSide() )
@@ -277,7 +279,6 @@ namespace PAP
       m_camera->setViewfinderSettings( settings ) ;
       m_viewfinder->setSize( QSize{2448, 2048} ) ;
     }
-
     
     QCameraImageProcessing *imageProcessing = m_camera->imageProcessing();
     if (imageProcessing->isAvailable()) {
@@ -316,7 +317,7 @@ namespace PAP
     const auto geomsvc = GeometrySvc::instance() ;
     // Now watch the order!
     const QTransform T1 = geomsvc->fromCameraToGlobal() ;
-    const QTransform T2 = geomsvc->fromModuleToGlobal( m_currentViewDirection ) ;
+    const QTransform T2 = geomsvc->fromModuleToGlobal() ;
     const QTransform T1inv = T1.inverted() ;
     const QTransform fromModuleToCamera = T2 * T1inv ;
     // I am totally confused that this works:-)
@@ -327,7 +328,7 @@ namespace PAP
 
     // update camera coordinates (such that we can display them elsewhere)
     const QTransform fromCameraToModule = fromModuleToCamera.inverted() ;
-    //QTransform fromModuleToGlobal = geomsvc->fromModuleToGlobal(m_currentViewDirection) ;
+    //QTransform fromModuleToGlobal = geomsvc->fromModuleToGlobal() ;
     //QTransform fromCameraToModule = geomsvc->fromCameraToGlobal() * fromModuleToGlobal.inverted() ;
     auto modulepoint = fromCameraToModule.map( QPointF{0,0} ) ;
     m_cameraCentreInModuleFrame.setValue( modulepoint ) ;
@@ -355,18 +356,6 @@ namespace PAP
   //   else     m_camera->unlock(QCamera::LockWhiteBalance) ;
   //   */
   // }
-
-  void CameraView::setViewDirection( ViewDirection dir )
-  {
-    if( true || m_currentViewDirection != dir ) {
-      // reverse the Y axis
-      // QTransform T = m_detectorgeometry->transform() ;
-      // T.scale(1,-1) ;
-      // m_detectorgeometry->setTransform( T ) ;
-      m_currentViewDirection = dir ;
-      updateGeometryView() ;
-    }
-  }
 
   void CameraView::updateTurnJigMarkers()
   {
@@ -406,7 +395,7 @@ namespace PAP
   {
     float x = m_cameraCentreInModuleFrame.value().x() ;
     float y = m_cameraCentreInModuleFrame.value().y() ;
-    float z = GeometrySvc::instance()->moduleZ(currentViewDirection()) ;
+    float z = GeometrySvc::instance()->moduleZ() ;
     char textje[256] ;
     sprintf(textje,"camera : (%7.3f,%7.3f,%7.3f)", x,y,z) ;
     m_positiontext->setText(textje) ;
@@ -469,7 +458,7 @@ namespace PAP
 	// 	(local.x()-m_localOrigin.x())*pixelSize(),
 	// 	(local.y()-m_localOrigin.y())*pixelSize()
 	// 	) ;
-	QTransform fromModuleToGlobal = GeometrySvc::instance()->fromModuleToGlobal(m_currentViewDirection) ;
+	QTransform fromModuleToGlobal = GeometrySvc::instance()->fromModuleToGlobal() ;
 	QTransform fromPixelToGlobal =
 	  fromCameraToPixel().inverted() * GeometrySvc::instance()->fromCameraToGlobal() ;
 	QTransform fromLocalToModule = fromPixelToGlobal * fromModuleToGlobal.inverted() ;
@@ -662,7 +651,7 @@ namespace PAP
     const QGraphicsItem* marker = finditemByToolTipText(*m_detectorgeometry, markername) ;
     if(marker) {
       // get the global coordinates
-      QTransform T = GeometrySvc::instance()->fromModuleToGlobal(m_currentViewDirection) ;
+      QTransform T = GeometrySvc::instance()->fromModuleToGlobal() ;
       rc = T.map( marker->pos() ) ;
     }
     return rc ;
@@ -717,13 +706,12 @@ namespace PAP
     // Let's also add the name of the marker
     measurement.markername = closestMarkerName() ;
     // let's fill the module coordinates
-    const auto viewdir = currentViewDirection() ;
     const auto& geosvc = GeometrySvc::instance() ;
-    const QTransform fromGlobalToModule = geosvc->fromModuleToGlobal(viewdir).inverted() ;
+    const QTransform fromGlobalToModule = geosvc->fromModuleToGlobal().inverted() ;
     const auto modulecoordinatesXY = fromGlobalToModule.map( measurement.globalcoordinates ) ;
     measurement.modulecoordinates.setX( modulecoordinatesXY.x() ) ;
     measurement.modulecoordinates.setY( modulecoordinatesXY.y() ) ;
-    measurement.modulecoordinates.setZ( geosvc->moduleZ( viewdir, mscoord.focus ) ) ;
+    measurement.modulecoordinates.setZ( geosvc->moduleZ( mscoord.focus ) ) ;
     
     return measurement ;
   }
