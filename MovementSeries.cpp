@@ -155,8 +155,7 @@ namespace PAP
 					      tr("Measurement label:"), QLineEdit::Normal, "Unknown", &ok);
     if (ok && !label.isEmpty()) {
       auto measurement = camerasvc()->cameraview()->coordinateMeasurement() ;
-      const auto viewdir = camerasvc()->cameraview()->currentViewDirection() ;
-      const QTransform fromGlobalToModule = GeometrySvc::instance()->fromModuleToGlobal(viewdir).inverted() ;
+      const QTransform fromGlobalToModule = GeometrySvc::instance()->fromModuleToGlobal().inverted() ;
       const auto modulecoordinates = fromGlobalToModule.map( measurement.globalcoordinates ) ;
       const auto z = GeometrySvc::instance()->moduleZ( m_viewdir, measurement.mscoordinates.focus ) ;
       m_coordinates.emplace_back( label, modulecoordinates.x(), modulecoordinates.y(),
