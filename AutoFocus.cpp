@@ -174,18 +174,6 @@ namespace PAP
     for( const auto& m : geosvc->mcpointsCSide() )
       m_markerfocuspoints.insert( {m.name,NamedDouble{prefix + m.name,24.} } ) ;
 
-    // const auto currentviewdirection = m_cameraView->currentViewDirection();
-    // for(int i=0; i<2; ++i) {
-    //   QString prefix = i==0 ? "Focus.NSide." : "Focus.CSide." ;
-    //   m_cameraView->setViewDirection( i==0 ? ViewDirection::NSideView :  ViewDirection::CSideView) ;
-    //   auto markers = m_cameraView->visibleMarkers() ;
-    //   for( const auto& m : markers ) {
-    // 	auto it = m_markerfocuspoints[i].insert( {m,NamedDouble{prefix + m,24.0} } ) ;
-    // 	PropertySvc::instance()->add( it.first->second ) ;
-    //   }
-    // }
-    // m_cameraView->setViewDirection( currentviewdirection ) ;
-
     for(auto& it: m_markerfocuspoints)
       PropertySvc::instance()->add( it.second ) ;
   }
@@ -199,12 +187,12 @@ namespace PAP
 
   double AutoFocus::focusFromZ( double z ) const
   {
-    return GeometrySvc::instance()->moduleZ( m_cameraView->currentViewDirection(), 0 ) - z ;
+    return GeometrySvc::instance()->moduleZ( 0.0 ) - z ;
   }
 
   double AutoFocus::zFromFocus( double focus ) const
   {
-    return GeometrySvc::instance()->moduleZ( m_cameraView->currentViewDirection(), focus ) ;
+    return GeometrySvc::instance()->moduleZ( focus ) ;
   }
 
   double AutoFocus::currentFocus() const
@@ -232,7 +220,8 @@ namespace PAP
   {
     QString name = markername ;
     if( markername.contains( "MainJigMarker") )
-      name.append(turnjigMarkerFocusSuffix( GeometrySvc::instance()->turnJigVersion(), m_cameraView->currentViewDirection() )) ;
+      name.append(turnjigMarkerFocusSuffix( GeometrySvc::instance()->turnJigVersion(),
+					    GeometrySvc::instance()->viewDirection() )) ;
     auto it = m_markerfocuspoints.find( name ) ;
     if( it != m_markerfocuspoints.end() ) it->second.setValue( focus ) ;
   }
@@ -241,7 +230,8 @@ namespace PAP
   {
     QString name = markername ;
     if( markername.contains( "MainJigMarker") )
-      name.append(turnjigMarkerFocusSuffix( GeometrySvc::instance()->turnJigVersion(), m_cameraView->currentViewDirection() )) ;
+      name.append(turnjigMarkerFocusSuffix( GeometrySvc::instance()->turnJigVersion(),
+					    GeometrySvc::instance()->viewDirection() )) ;
     auto it = m_markerfocuspoints.find( name ) ;
     if( it != m_markerfocuspoints.end() )
       moveFocusTo( it->second.value()  ) ;
