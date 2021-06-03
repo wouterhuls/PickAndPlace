@@ -39,6 +39,8 @@ namespace PAP
       m_moduleName{"ModuleName","NRD999"},
       m_stillImageTriggered{false}
   {
+    PAP::PropertySvc::instance()->add(m_moduleName) ;
+    
     resize(700,500);
     setWindowTitle("Velo Pick&Place") ;
 
@@ -107,6 +109,7 @@ namespace PAP
 	}) ;
     }
     // buttons to switch turnjig. this is a really complicated way to make a switch button.
+    auto geosvc = GeometrySvc::instance() ;
     {
       auto togglehlayout = new QHBoxLayout{} ;
       buttonlayout->addLayout( togglehlayout ) ;
@@ -117,7 +120,6 @@ namespace PAP
       togglehlayout->setSpacing(0) ;
       togglehlayout->addWidget(jigAbutton) ;
       togglehlayout->addWidget(jigBbutton) ;
-      auto geosvc = GeometrySvc::instance() ;
       if( geosvc->turnJigVersion()==GeometrySvc::TurnJigVersion::VersionA ) {
 	jigAbutton->setChecked(true ) ;
       } else {
@@ -145,27 +147,20 @@ namespace PAP
       togglehlayout->setSpacing(0) ;
       togglehlayout->addWidget(nsidebutton) ;
       togglehlayout->addWidget(csidebutton) ;
-      if( m_cameraview->currentViewDirection()==PAP::CSideView ) {
-	csidebutton->setChecked(true ) ;
-      } else {
-	nsidebutton->setChecked(true ) ;
-      }
       connect( csidebutton,  &QAbstractButton::clicked, [=]() {
-	  csidebutton->setChecked(true ) ;
-	  nsidebutton->setChecked(false) ;
-	  toggleView( ViewDirection::CSideView ) ;
-	  qDebug() << "C:" << csidebutton->isChecked() << nsidebutton->isChecked() ;
+	  geosvc->setViewDirection( ViewDirection::CSideView ) ;
 	} ) ;
       connect( nsidebutton,  &QAbstractButton::clicked, [=]() {
-	  csidebutton->setChecked(false ) ;
-	  nsidebutton->setChecked(true) ;
-	  toggleView( ViewDirection::NSideView ) ;
-	  //csidebutton->setChecked(!nsidebutton->isChecked()) ;
-	  qDebug() << "N: " << nsidebutton->isChecked() << csidebutton->isChecked() ;
+	  geosvc->setViewDirection( ViewDirection::NSideView ) ;
+	} ) ;
+      connect( &(geosvc->viewDirection()),&NamedValueBase::valueChanged,[=](){
+	  m_cameraview->updateGeometryView() ;
+	  ViewDirection view = geosvc->viewDirection() ;
+	  csidebutton->setChecked( view==PAP::CSideView ) ;
+	  nsidebutton->setChecked( view==PAP::NSideView ) ;
+	  emit viewToggled(view) ;
 	} ) ;
     }
-    
-
     // auto msbutton = new QPushButton("Motion System",this) ;
     // connect( msbutton, &QPushButton::clicked, [=](){ m_motionsystemdialog->show() ; }) ;
     // buttonlayout->addWidget( msbutton ) ;
@@ -238,15 +233,7 @@ namespace PAP
     connect( m_showCSideTiles, &QCheckBox::stateChanged,m_cameraview,&CameraView::showCSideMarkers ) ;
     buttonlayout->addWidget( m_showNSideTiles ) ;
     buttonlayout->addWidget( m_showCSideTiles ) ;
-    if( m_cameraview->currentViewDirection()==PAP::CSideView ) {
-      m_cameraview->showNSideMarkers( false ) ;
-      m_showNSideTiles->setCheckState( Qt::Unchecked ) ;
-      m_showCSideTiles->setCheckState( Qt::Checked ) ;
-    } else {
-      m_cameraview->showCSideMarkers( false ) ;
-      m_showNSideTiles->setCheckState( Qt::Checked ) ;
-      m_showCSideTiles->setCheckState( Qt::Unchecked ) ;
-    }
+
     auto showGeometryButton = new QCheckBox{"Outlines",this} ;
     connect( showGeometryButton, &QCheckBox::stateChanged,m_cameraview,&CameraView::showGeometry ) ;
     showGeometryButton->setCheckState( Qt::Checked ) ;
@@ -324,12 +311,23 @@ namespace PAP
 	      taskpages->addTab(ppages[view],"Tile positioning") ;
 	      taskpages->addTab(mpages[view],"Metrology") ;
 	      taskpages->addTab(photopages[view],"Photo booth") ;
+	      if( view == int(PAP::NSideView) ) {
+		m_showNSideTiles->setCheckState( Qt::Checked ) ;
+		m_showCSideTiles->setCheckState( Qt::Unchecked ) ;
+	      } else {
+		m_showNSideTiles->setCheckState( Qt::Unchecked ) ;
+		m_showCSideTiles->setCheckState( Qt::Checked ) ;
+	      }
 	    } ) ;
-    // need to bootstrap this
-    viewToggled(m_cameraview->currentViewDirection()) ;
 
+    // We need to bootstrap the viewdirection somehow. If I trigger
+    // trigger ViewDirection::valueChanged then it crashes.
+    //emit m_cameraview->viewDirection().valueChanged() ;
+    geosvc->setViewDirection( ViewDirection::CSideView ) ;
+    geosvc->setViewDirection( ViewDirection::NSideView ) ;
+    
     createMenus() ;
-   
+
     //connect( taskpages, &QTabWidget::tabBarClicked, this, &CameraWindow::toggleView ) ;
     
     QMetaObject::connectSlotsByName(this);
@@ -351,21 +349,6 @@ namespace PAP
     //m_autofocus->startFocusSequence() ;
   }
 
-  void CameraWindow::toggleView( int view )
-  {
-    if(m_cameraview->currentViewDirection() != view ) {
-      if( view == int(PAP::NSideView) ) {
-	m_cameraview->setViewDirection( PAP::NSideView ) ;
-	m_showNSideTiles->setCheckState( Qt::Checked ) ;
-	m_showCSideTiles->setCheckState( Qt::Unchecked ) ;
-      } else {
-	m_cameraview->setViewDirection( PAP::CSideView ) ;
-	m_showNSideTiles->setCheckState( Qt::Unchecked ) ;
-	m_showCSideTiles->setCheckState( Qt::Checked ) ;
-      }
-      emit viewToggled(view) ;
-    }
-  }
 
   void CameraWindow::moveToMarker()
   {
@@ -492,9 +475,20 @@ namespace PAP
 	      }) ;
     }
     {
+      auto action = new QAction(tr("&Load last configuration file"), this);
+      fileMenu->addAction(action);
+      action->setStatusTip(tr("Load the last configuration file"));
+      connect(action, &QAction::triggered, []()
+	      {
+		QProcessEnvironment env = QProcessEnvironment::systemEnvironment() ;
+		QString filename = env.value("HOME") + "/.papconfig_last" ;
+		PAP::PropertySvc::instance()->read(filename.toLatin1()) ;
+	      }) ;
+    }
+    {
       auto action = new QAction(tr("&Save config"), this);
       fileMenu->addAction(action);
-      action->setStatusTip(tr("Save a configuration from file"));
+      action->setStatusTip(tr("Save a configuration to file"));
       connect(action, &QAction::triggered, []()
 	      {
 		auto filename = QFileDialog::getSaveFileName(nullptr, tr("Configuration file"),
