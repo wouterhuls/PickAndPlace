@@ -43,7 +43,7 @@ namespace PAP
     hlayout->addWidget( recordcentrebutton ) ;
     //connect(recordcentrebutton,&QPushButton::pressed,
     //[=](){ setStatus(Active) ; camview->record( camview->localOrigin()) ; } ) ;
-    connect(recordcentrebutton,&QPushButton::pressed, [&]() { record(camview->coordinateMeasurement()) ; } ) ;
+    connect(recordcentrebutton,&QPushButton::pressed, [=]() { this->record(camview->coordinateMeasurement()) ; } ) ;
     // catch measurement updates
     // connect( camview, &CameraView::recording, this, &MarkerRecorderWidget::record ) ;
     
@@ -89,6 +89,7 @@ namespace PAP
 
     // routine that computes dx,dy,dphi from a set of marker measurements
     Eigen::Vector3d computeAlignment( const std::vector<MarkerRecorderWidget* >& recordings,
+				      const double sigma,
 				      Coordinates2D pivot = Coordinates2D{},
 				      QPlainTextEdit* textbox=0)
     {
@@ -165,15 +166,14 @@ namespace PAP
       Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
       text << "Solution: dx=" << delta(0) << " dy=" << delta(1) << " dphi=" << delta(2) << std::endl ;
       
-      // TODO: compute delta-chi2
-      // add convergence criterion: delta-chi2 < something, or residuals at marker < something
-      // add a statement that it has converged or not. 
-      const double sigma = 0.003 ;
+      // Add some information on 'convergence'
       const auto   weight = 1/(sigma*sigma) ;
-      const auto deltachi2 = weight*delta.dot( halfdchi2dpar ) ; // the factor 1/2 is correct once you take 2nd derivative into account
+      const auto deltachi2 = -weight*delta.dot( halfdchi2dpar ) ; // the factor 1/2 is correct once you take 2nd derivative into account. the minus sig is because we signed gave the delta the wrong sign :-)
       chi2 = chi2*weight + deltachi2 ;
       text << "chi2, Delta-chi2: " << chi2 << " " << deltachi2 << std::endl ;
-      if( deltachi2 < 10 ) text << "Change in parameters: SMALL" << std::endl ;
+      if( chi2 < 9       ) text << "2D distance: GOOD" << std::endl ;
+      else                 text << "2D distance: BAD" << std::endl ;
+      if( -deltachi2 < 9 ) text << "Change in parameters: SMALL" << std::endl ;
       else                 text << "Change in parameters: LARGE" << std::endl ;
       
       if(textbox) {
@@ -235,10 +235,11 @@ namespace PAP
     // I decided to do everything in the 'global' frame. we then simply compute dx,dy and phi, and finally update the transform:
     if( m_marker1recorder->status() == MarkerRecorderWidget::Recorded &&
 	m_marker2recorder->status() == MarkerRecorderWidget::Recorded ) {
+      auto geosvc = GeometrySvc::instance() ;
       std::vector< MarkerRecorderWidget* > recordings = { m_marker1recorder, m_marker2recorder } ;
-      Eigen::Vector3d deltaXYPhi = computeAlignment(recordings,Coordinates2D{},m_textbox) ;
+      Eigen::Vector3d deltaXYPhi = computeAlignment(recordings,geosvc->resolutionXY(),Coordinates2D{},m_textbox) ;
       // now update the geometry
-      GeometrySvc::instance()->applyModuleDelta(m_viewdirection,deltaXYPhi(0),deltaXYPhi(1),deltaXYPhi(2)) ;
+      geosvc->applyModuleDelta(m_viewdirection,deltaXYPhi(0),deltaXYPhi(1),deltaXYPhi(2)) ;
       m_cameraview->updateGeometryView() ;
       // and don't forget to reset
       m_marker1recorder->setStatus( MarkerRecorderWidget::Calibrated ) ;
@@ -505,12 +506,13 @@ namespace PAP
       // then work from there. However, for now I'll compute with
       // respect to the known pivot point, which is the axis in the
       // global frame. We can do it more correctly later.
-      
-      Coordinates2D pivot = GeometrySvc::instance()->stackAxisInGlobal() ;
-      Eigen::Vector3d delta = computeAlignment(recordings,pivot,m_textbox) ;
+
+      auto geosvc = GeometrySvc::instance() ;
+      Coordinates2D pivot = geosvc->stackAxisInGlobal() ;
+      Eigen::Vector3d delta = computeAlignment(recordings,geosvc->resolutionXY(),pivot,m_textbox) ;
       // Fixme: this does not take the stack calibration into account
       // (apart from the position of the stack axis)
-      GeometrySvc::instance()->applyStackDeltaForTile( m_tilename, delta(0), delta(1), delta(2) ) ;
+      geosvc->applyStackDeltaForTile( m_tilename, delta(0), delta(1), delta(2) ) ;
       
       // this is in the global frame. all we now need to do, is
       // compute it in the stack frame (with respect to the stack
@@ -705,6 +707,7 @@ namespace PAP
       auto mscoordinates = geomsvc->toMSMain( globalpos ) ;
       MotionSystemSvc::instance()->mainXAxis().moveTo(mscoordinates.x) ;
       MotionSystemSvc::instance()->mainYAxis().moveTo(mscoordinates.y) ;
+      m_camerasvc->autofocus()->moveFocusToModuleZ( ref.z ) ;
     }
   }
   
@@ -752,6 +755,18 @@ namespace PAP
     }
   }
 
+  // template<typename T, size_t UD>
+  // Eigen::Matrix<T,std::make_signed<UD>,1> toeigen( const std::array<T,UD>& v) {
+  //   Eigen::Matrix<T,std::make_signed<UD>,1> rc = Eigen::Map<Eigen::Matrix<T,std::make_signed<UD>,1> >(v.data());
+  //   return rc ;
+  // }
+  Eigen::Matrix<double,3,1> toeigen( const std::array<double,3>& v) {
+    //return Eigen::Map<Eigen::Matrix<double,3,1> >(v.data());
+    auto copy = v ;
+    return Eigen::Map<Eigen::Matrix<double,3,1> >(copy.data());
+  }
+  
+  
   void AlignMainJigZPage::calibrate() {
     qDebug() << "AlignMainJigZPage::calibrate()"
 	     << m_measurements.size() << " " << m_refcoordinates.size() ;
@@ -760,10 +775,17 @@ namespace PAP
     for( const auto& m : m_measurements ) 
       os << m.main.x << "," << m.main.y << "," << m.focus << std::endl ;
     qDebug() << os.str().c_str() ;
+    auto geosvc = GeometrySvc::instance() ;
     // for now really simple:
     //   z = z0 + aX * x + aY * y
+    const auto curpars = toeigen(geosvc->getModuleZCalibration(m_viewdirection)) ;
+    os << "Old calibration (z0,aX,aY): "
+       << curpars[0] << " " << curpars[1] << " " << curpars[2] << std::endl ;
     Eigen::Vector3d halfdchi2dpar   = Eigen::Vector3d::Zero() ;
     Eigen::Matrix3d halfd2chi2dpar2 = Eigen::Matrix3d::Zero() ;
+    double chi2 = 0 ;
+    const auto sigmaZ = geosvc->resolutionZ() ;
+    const auto W = 1/( sigmaZ*sigmaZ) ;
     for(unsigned int i=0; i<m_measurements.size(); ++i) {
       const auto& m   = m_measurements[i] ;
       const auto& ref =  m_refcoordinates[i] ;
@@ -771,29 +793,40 @@ namespace PAP
       deriv(0) = 1 ;
       deriv(1) = m.main.x ;
       deriv(2) = m.main.y ;
-      double residual = ref.z + m.focus ; // take into account the factor -1 for focus
-      halfdchi2dpar += residual * deriv ;
+      const double residual = ref.z + m.focus ; // take into account the factor -1 for focus
+      halfdchi2dpar += W * residual * deriv ;
       for(int irow=0; irow<3; ++irow)
 	for(int icol=0; icol<3; ++icol)
-	  halfd2chi2dpar2(irow,icol) += deriv(irow)*deriv(icol) ;
+	  halfd2chi2dpar2(irow,icol) += W * deriv(irow)*deriv(icol) ;
+      chi2 += W*residual*residual ;
     }
-    Eigen::Vector3d delta = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
-    os << "Solution: " << delta(0) << ", " << delta(1) << ", " << delta(2) << std::endl ;
+    Eigen::Vector3d pars = halfd2chi2dpar2.ldlt().solve(halfdchi2dpar) ;
+    os << "New calibration (z0,aX,aY): " << pars(0) << ", " << pars(1) << ", " << pars(2) << std::endl ;
+    const auto delta = pars - curpars ;
+    os << "Delta                     : " << delta(0) << ", " << delta(1) << ", " << delta(2) << std::endl ;
+    
     qDebug() << os.str().c_str() ;
     // fill the column with residuals
     for(unsigned int i=0; i<m_measurements.size(); ++i) {
       const auto& m   = m_measurements[i] ;
       const auto& ref =  m_refcoordinates[i] ;
-      double residual =  ref.z + m.focus - (delta(0) + delta(1)*m.main.x + delta(2)*m.main.y) ; 
+      double residual =  ref.z + m.focus - (pars(0) + pars(1)*m.main.x + pars(2)*m.main.y) ; 
       m_measurementtable->item(i,4)->setText( QString::number( residual, 'g', 5 ) ) ;
     }
     // sanity check
-    if( std::abs(delta(1))<0.01 && std::abs(delta(2))<0.01 ) {
+    if( std::abs(pars(1))<0.01 && std::abs(pars(2))<0.01 ) {
       // now we need to think waht we want the measurements to mean ...
       // ... which xy position?
       // ... what plane, or view?
-      GeometrySvc::instance()->applyModuleZCalibration(m_viewdirection,delta(0),delta(1),delta(2)) ;
+      geosvc->applyModuleZCalibration(m_viewdirection,pars(0),pars(1),pars(2)) ;
       m_status = Calibrated ;
+      // Let's make sure that we apply the calibration with the correct signs
+      for(unsigned int i=0; i<m_measurements.size(); ++i) {
+	const auto& m   = m_measurements[i] ;
+	const auto& ref =  m_refcoordinates[i] ;
+	double residual = ref.z - geosvc->moduleZ(m_viewdirection,m.focus,m.main) ;
+	os << "check point: " << i << " " << residual << std::endl ;
+      }
       m_measurements.clear() ;
     } else {
       os << "Calibration failed!" << std::endl ;
