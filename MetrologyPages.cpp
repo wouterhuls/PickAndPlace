@@ -59,6 +59,7 @@ namespace PAP
     QHBoxLayout* m_buttonlayout{nullptr} ;
     QPlainTextEdit* m_textbox{nullptr} ;
     QDialog m_settingsdialog ;
+    mutable double m_focusrange{1.0} ;
   protected:
     std::vector<ReportCoordinate> m_measurements ;
     void fillTable() ;
@@ -98,7 +99,7 @@ namespace PAP
     void resetall() { for(auto&m:m_measurements) m.setStatus( ReportCoordinate::Initialized ) ; updateTableColors() ; }
     void updateTableColors() ;
     void updateRowColors(int row) ;
-    virtual double focusrange() const { return 0.3 ; }
+    double focusrange() const { return m_focusrange ; }
   } ;
   
   MarkerMetrologyPage::MarkerMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
@@ -190,6 +191,7 @@ namespace PAP
       const double currentfocus = m_camerasvc->autofocus()->currentFocus() ;
       const auto df = focusrange() ;
       m_camerasvc->autofocus()->startFocusSequence(currentfocus-df,currentfocus+df) ;
+      m_focusrange = 0.1 ; // after we have focussed, reduce the range for the next measurement
     } ;
   }
   
@@ -221,8 +223,7 @@ namespace PAP
 					      tr("Measurement label:"), QLineEdit::Normal, "Unknown", &ok);
     if (ok && !label.isEmpty()) {
       auto measurement = m_camerasvc->cameraview()->coordinateMeasurement() ;
-      const auto viewdir = m_camerasvc->cameraview()->currentViewDirection() ;
-      const QTransform fromGlobalToModule = GeometrySvc::instance()->fromModuleToGlobal(viewdir).inverted() ;
+      const QTransform fromGlobalToModule = GeometrySvc::instance()->fromModuleToGlobal().inverted() ;
       const auto modulecoordinates = fromGlobalToModule.map( measurement.globalcoordinates ) ;
       const auto z = m_camerasvc->autofocus()->zFromFocus( measurement.mscoordinates.focus ) ;
       m_measurements.emplace_back( label, modulecoordinates.x(), modulecoordinates.y(),
@@ -300,10 +301,15 @@ namespace PAP
   void MarkerMetrologyPage::move() const
   {
     if( m_activerow < int(m_measurements.size()) ) {
+      const auto lastposition = m_camerasvc->cameraview()->coordinateMeasurement() ;
       const auto& m = m_measurements[m_activerow] ;
       m_camerasvc->cameraview()->moveCameraToPointInModule( QPointF{m.x(),m.y()} ) ;
       m_markertable->item(m_activerow,0)->setBackground( QBrush{ QColor{m.status() ==  ReportCoordinate::Status::Ready ? Qt::blue : Qt::yellow} } ) ;
       m_markertable->item(m_activerow,0)->setForeground( QBrush{Qt::black} ) ;
+      // if we move more than a certain amount, adjust the focus range
+      const double dx = lastposition.modulecoordinates.x() - m.x() ;
+      const double dy = lastposition.modulecoordinates.y() - m.y() ;
+      if( std::sqrt(dx*dx+dy*dy)>10.0 ) m_focusrange = 1.0 ;
     }
   }
   
@@ -477,13 +483,15 @@ namespace PAP
       {
 	auto layout = m_settingsdialog.layout() ;
 	layout->addWidget(&m_ignoreFocusFailed) ;
+	// make the default value true
+	m_ignoreFocusFailed.setChecked(true) ;
       }
     }
     PlaneFitResult fitPlane(FitModel mode = FitModel::Plane, double originx=0, double originy=0) ;
     void disconnectsignals() ;
     void connectsignals() ;
     void measure() ;
-    double focusrange() const { return m_activerow==0 ? 1.0 : 0.1 ; }
+    //double focusrange() const { return m_activerow==0 ? 1.0 : 0.1 ; }
   public slots:
     void runauto() {
       m_activerow = 0 ;
@@ -722,6 +730,71 @@ namespace PAP
     return new SensorSurfaceMetrologyPage{camerasvc,viewdir,tilename} ;
   }
 
+  
+  //****************************************************************************//
+  class FEHybridMetrologyPage : public SurfaceMetrologyPage
+  {
+  private:
+    QString m_name ;
+  public:
+    FEHybridMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir/*, const QString& tilename*/)
+      : SurfaceMetrologyPage{camerasvc,viewdir},m_name{viewdir==ViewDirection::NSideView ? "NSideFEHybrids" : "CSideFEHybrids"}
+    {
+      definemarkers() ;
+    }
+    void definemarkers() final
+    {
+      m_measurements.clear() ;
+      // now I need to think, because I created these 'reference'
+      // position only inside the displayed geometry. there is no
+      // concept of a tile anywhere else. perhaps we can extract them
+      // from the full list, then filter on view by marker name?
+      std::vector<const PAP::ReferenceMarker*> markers ;
+      const auto& camview = camerasvc()->cameraview() ;
+      collectReferenceMarkers( *(viewdir() == ViewDirection::NSideView ? camview->nsidemarkers() : camview->csidemarkers()),
+			       markers) ;
+      const double hybridz = 0.25 + 0.1 + 0.38 ;
+      for( const auto& m: markers )
+	if(m->toolTip().contains("FEHybrid") /*&& m->toolTip().contains(m_tilename)*/)
+	   m_measurements.emplace_back( m->toolTip(), m->pos().x(), m->pos().y(), hybridz ) ;
+      //m_measurements.resize(2) ;
+      fillTable() ;
+    }
+    QString pageName() const override { return m_name ; }
+  } ;
+  //****************************************************************************//
+  class GBTXHybridMetrologyPage : public SurfaceMetrologyPage
+  {
+  private:
+    QString m_name ;
+    
+  public:
+    GBTXHybridMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir)
+      : SurfaceMetrologyPage{camerasvc,viewdir},m_name{viewdir==ViewDirection::NSideView ? "NSideGBTx" : "CSideGBTx"}
+    {
+      definemarkers() ;
+    }
+    void definemarkers() final
+    {
+      m_measurements.clear() ;
+      // now I need to think, because I created these 'reference'
+      // position only inside the displayed geometry. there is no
+      // concept of a tile anywhere else. perhaps we can extract them
+      // from the full list, then filter on view by marker name?
+      std::vector<const PAP::ReferenceMarker*> markers ;
+      const auto& camview = camerasvc()->cameraview() ;
+      collectReferenceMarkers( *(viewdir() == ViewDirection::NSideView ? camview->nsidemarkers() : camview->csidemarkers()),
+			       markers) ;
+      const double gbtxpcbz = 0.25 + 0.1 + 1.95 ;
+      for( const auto& m: markers )
+	if(m->toolTip().contains("GBTx") || m->toolTip().contains("GBLD"))
+	  m_measurements.emplace_back( m->toolTip(), m->pos().x(), m->pos().y(), gbtxpcbz ) ;
+      //m_measurements.resize(2) ;
+      fillTable() ;
+    }
+    QString pageName() const override { return m_name ; }
+  } ;
+  
   //****************************************************************************//
 
   class SubstrateSurfaceMetrologyPage : public SurfaceMetrologyPage
@@ -1014,7 +1087,7 @@ namespace PAP
     SideMetrologyPage( CameraWindow& camerasvc, ViewDirection view)
     {
       TileMetrologyPage* tilemarkerpage = new TileMetrologyPage{camerasvc,view} ;
-      this->addTab(tilemarkerpage,"Tile metrology") ;
+      this->addTab(tilemarkerpage,"Tile markers") ;
 
       //auto sensorsurfacepages = new SensorSurfaceMetrologyPages(camerasvc,view) ;
       //this->addTab(sensorsurfacepages,"Sensor surface metrology") ;
@@ -1024,7 +1097,7 @@ namespace PAP
       	const auto name = getTileInfo(view,TileType(tile)).name ;
       	sensorsurfacepage[tile] =
       	  new SensorSurfaceMetrologyPage{camerasvc,view,name} ;
-      	this->addTab( sensorsurfacepage[tile],name + " surface metrology") ;
+      	this->addTab( sensorsurfacepage[tile],name + " surface") ;
       }
 
       connect( sensorsurfacepage[0], &SensorSurfaceMetrologyPage::autoready,
@@ -1036,11 +1109,13 @@ namespace PAP
       
       SubstrateSurfaceMetrologyPage* 
 	substratesurfacepage = new SubstrateSurfaceMetrologyPage{camerasvc,view} ;
-      this->addTab(substratesurfacepage,"Substrate surface metrology") ;
+      this->addTab(substratesurfacepage,"Substrate surface") ;
       
       // this->addTab(new SideReportPage{this,tilemarkerpage,
       // 	    sensorsurfacepage[0],sensorsurfacepage[1],substratesurfacepage},"Report") ;
 
+      this->addTab(new FEHybridMetrologyPage{camerasvc,view},"FE hybrids"); 
+      this->addTab(new GBTXHybridMetrologyPage{camerasvc,view}, "GBTx hybrid") ;
       this->addTab(new LineScanPage{camerasvc,view}, "Line surface") ;
       this->addTab(new GenericSurfaceMetrologyPage{camerasvc,view}, "Grid surface") ;
     }
