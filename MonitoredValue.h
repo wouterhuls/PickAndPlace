@@ -37,7 +37,7 @@ namespace PAP
     void setTimeStamp( const QDateTime& timestamp ) { m_timestamp = timestamp ; }
     const QDateTime& timestamp() const { return m_timestamp ; }
   signals:
-    void valueChanged() ;
+    void valueChanged() const ;
   private:
     QDateTime m_timestamp ;
   } ;
