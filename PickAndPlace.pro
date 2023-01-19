@@ -81,7 +81,7 @@ HEADERS  += \
     MetrologyPages.h \
     VideoRecorder.h \
     MovementSeries.h
-
+    
 FORMS    += SerialPortSettingsDialog.ui
 
 #mainwindow.ui \

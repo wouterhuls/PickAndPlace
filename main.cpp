@@ -77,10 +77,10 @@ int main(int argc, char *argv[])
   
   // load the setup file
   QProcessEnvironment env = QProcessEnvironment::systemEnvironment() ;
-  QString filename = env.value("HOME") + "/.papconfig" ;
-  PAP::PropertySvc::instance()->read(filename.toLatin1()) ;
+  const QString configfilefinish = env.value("HOME") + "/.papconfig_last" ;
+  const QString configfilestart = env.value("HOME") + "/.papconfig_last" ;
+  PAP::PropertySvc::instance()->read(configfilestart.toLatin1()) ;
   auto rc = a.exec() ;
-  PAP::PropertySvc::instance()->write("papconfig_last.txt") ;
-  
+  PAP::PropertySvc::instance()->write(configfilefinish.toLatin1()) ;
   return rc;
 }

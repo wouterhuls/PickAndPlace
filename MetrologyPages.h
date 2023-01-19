@@ -3,6 +3,7 @@
 
 #include "Coordinates.h"
 #include <QWidget>
+#include <QTabWidget>
 
 class QTabWidget ;
 
@@ -20,17 +21,16 @@ namespace PAP
   signals:
     void autoready() ;
   } ;
-  
-  
-  class CameraWindow ;
-  QWidget* createTileMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) ;
-  QWidget* createSensorSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir, QString tilename) ;
-  QWidget* createSubstrateSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) ;
-  QWidget* createGenericSurfaceMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) ;
-  QTabWidget* createSideMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) ;
 
-  QWidget* createPhotoBoothPage(CameraWindow& camerasvc, ViewDirection viewdir) ;
+  class CameraWindow ;
+  class SideMetrologyPage : public QTabWidget
+  {
+  public:
+    SideMetrologyPage( CameraWindow& camerasvc, ViewDirection view ) ;
+    void reset() ;
+  } ;
   
+  QWidget* createPhotoBoothPage(CameraWindow& camerasvc, ViewDirection viewdir) ; 
 }
 
 #endif

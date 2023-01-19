@@ -90,10 +90,10 @@ namespace PAP
 	  //m_activerow = 0 ;
 	  this->connectsignals() ;
 	  // if active row outside range, reset. otherwise start from where we are.
-	  if(m_currentcoordinate<0 || m_currentcoordinate>=int(m_coordinates.size())) {
-	    this->initialize() ;
-	    m_currentcoordinate = 0 ;
-	  }
+	  //if(m_currentcoordinate<0 || m_currentcoordinate>=int(m_coordinates.size())) {
+	  this->initialize() ;
+	  m_currentcoordinate = 0 ;
+	  //}
 	  move() ;
 	});
       m_buttonlayout->addWidget(startbutton) ;

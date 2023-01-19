@@ -180,26 +180,29 @@ namespace PAP
 	//{"JigBSurfaceCSidePoint7",	110,	 65,	-10.578},
 	//{"JigBSurfaceCSidePoint8",	110,	-65,	-10.564},
 	//{"JigBSurfaceCSidePoint9",	 35,	-65,	-10.610}
-	{"JigBSurfaceCSidePoint1",	-50,	 73,	12.460}, // first three I trust. is three enough?
-	{"JigBSurfaceCSidePoint2",	-50,	-73,	12.460},
-	{"JigBSurfaceCSidePoint3",	  7,	-73,	12.460},
-	//{"JigBSurfaceCSidePoint4",	 32,	-70.5,	-0.126}, // These four are nice, but I don't think they help.
-        //{"JigBSurfaceCSidePoint5",	 6,	-58,	-0.138},
-        //{"JigBSurfaceCSidePoint6",	 -32,	64,	-0.187},
-	//{"JigBSurfaceCSidePoint7",	 -50,	45,	-0.195},
-	{"JigBSurfaceCSidePoint8",	110,	 67,	-10.590},
-	{"JigBSurfaceCSidePoint9",	110,	-67,	-10.567}, // this one comes out really bad: is jig bent ?
-	{"JigBSurfaceCSidePoint10",	 50,	-73,	-10.620}
+	{"JigBSurfaceCSidePoint1",	-50,	 73,	12.6026}, // first three I trust. is three enough?
+	{"JigBSurfaceCSidePoint2",	-50,	-73,	12.5786},
+	{"JigBSurfaceCSidePoint3",	  7,	-73,	12.5428},
+	//{"JigBSurfaceCSidePoint4",	110,	 67,	-10.4993},
+	//{"JigBSurfaceCSidePoint5",	110,	-67,	-10.5258}, // this one comes out really bad: is jig bent ?
+	//{"JigBSurfaceCSidePoint6",	155,	-73,	-10.5399},
+	//{"JigBSurfaceCSidePoint7",	155,	 73,	-10.5258},
+	{"JigBSurfaceCSidePoint8",	155,	  0,	-10.5464}
+	    
       } ;
     } ;
     
     inline std::vector<FiducialDefinition> jigBSurfaceNSide()
     {
       return std::vector<FiducialDefinition>{
-	{"JigBSurfaceNSidePoint1",	-50,	 73,	12.5},
-	{"JigBSurfaceNSidePoint2",	155,	 73,	12.5},
-	{"JigBSurfaceNSidePoint3",	155,	-73,	12.5},
-	{"JigBSurfaceNSidePoint4",	-50,	-73,	12.5}
+	{"JigBSurfaceNSidePoint1",	-50,	 73,	12.3746},
+	  //{"JigBSurfaceNSidePoint2",	155,	 73,	12.4606},
+	  //{"JigBSurfaceNSidePoint3",	155,	-73,	12.4807},
+	{"JigBSurfaceNSidePoint4",	-50,	-73,	12.3997},
+	  {"JigBSurfaceNSidePoint5",	  7,	-73,	12.4323},
+	  //{"JigBSurfaceNSidePoint6",	110,	-67,	12.4501},
+	  //{"JigBSurfaceNSidePoint7",	110,	 67,	12.4297},
+	{"JigBSurfaceNSidePoint8",	155,	  0,	12.4699}
       } ;
     } ;
     
@@ -247,6 +250,7 @@ namespace PAP
 	  {"MC_C_B4", 88.10, 14.05},   // atcually B1
 	} ;
       }
+
   }
 }
 

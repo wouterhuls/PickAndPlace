@@ -15,7 +15,12 @@ namespace PAP
   
   MotionSystemSvc::~MotionSystemSvc()
   {
-    if(gInstance==this) gInstance = 0 ;
+    if(gInstance==this) {
+      gInstance = 0 ;
+      // new: switch the motor axes off if we leave the program
+      if( m_serialport->isOpen() )
+	for( auto& m : m_controllers ) m.second->switchMotorsOn(false) ;
+    }
   }
   
   MotionSystemSvc::MotionSystemSvc()

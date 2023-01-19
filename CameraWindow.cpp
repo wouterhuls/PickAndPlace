@@ -276,7 +276,7 @@ namespace PAP
     //auto mainjigalignwidget = new AlignMainJigPage{m_cameraview} ;
     
     QTabWidget* apages[2] ;
-    QTabWidget* mpages[2] ;
+    SideMetrologyPage* mpages[2] ;
     QTabWidget* ppages[2] ;
     QWidget* photopages[2] ; // not sure why I would split this page. but let's leave for now.
 
@@ -297,7 +297,7 @@ namespace PAP
 			     QString{"Position "} + ti.name) ;
       }
       
-      mpages[view] = createSideMetrologyPage(*this,view) ;
+      mpages[view] = new SideMetrologyPage{*this,view} ;
       photopages[view] = createPhotoBoothPage(*this,view) ;
     }
 
@@ -320,6 +320,11 @@ namespace PAP
 	      }
 	    } ) ;
 
+    // connect( &m_moduleName,&MonitoredValueBase::valueChanged,[=]() {
+    // 	mpages[0]->reset() ;
+    // 	mpages[1]->reset() ;
+    //   } ) ;
+    
     // We need to bootstrap the viewdirection somehow. If I trigger
     // trigger ViewDirection::valueChanged then it crashes.
     //emit m_cameraview->viewDirection().valueChanged() ;

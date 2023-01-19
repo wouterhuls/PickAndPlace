@@ -208,9 +208,9 @@ namespace PAP
     //Q_OBJECT
   public:
     PhotoBooth( PAP::CameraWindow& parent, ViewDirection viewdir) ;
-    virtual void initialize() ;
-    virtual void execute() ;
-    virtual void finalize() ;
+    void initialize() override ;
+    void execute() override ;
+    void finalize() override ;
   public slots: 
     void addToStack( const QVideoFrame& frame ) ;
   private:
@@ -368,7 +368,8 @@ namespace PAP
 	// because otherwise it will never fit in memory
 	const int totalysize = nY*pictureheight ;
 	const int totalxsize = int(nX*picturewidth+totalysize*pars(1)) ;
-	m_scale = 10000./totalxsize ;
+	m_scale = std::min(10000./totalxsize,1.0) ;
+	qDebug() << "Picture size: " << totalxsize << totalysize << m_scale  ;
 	m_combinedimage = cv::Mat::zeros(cv::Size{int(totalxsize*m_scale),int(totalysize*m_scale)},CV_8UC4) ;
 
 	qDebug() << "transform: " << m_fromModuleToPixel ;
@@ -512,7 +513,10 @@ namespace PAP
     const auto& w = image.cols ;
     const auto& h = image.rows ;
     cv::Rect ROI{int(m_scale*pixelcentre.x()),int(m_scale*pixelcentre.y()),int(m_scale*w),int(m_scale*h)} ;
-    qDebug() << "pixelcentre: " << pixelcentre << ROI.x << ROI.y << m_combinedimage.cols << m_combinedimage.rows ;
+    qDebug() << "pixelcentre: " << pixelcentre
+	     << ROI.x << ROI.y << ROI.width << ROI.height
+	     <<  ROI.x + ROI.width <<  ROI.y + ROI.height
+	     << m_combinedimage.cols << m_combinedimage.rows ;
     cv::Mat temp;
     cv::resize(image,temp, cv::Size(ROI.width, ROI.height));
     

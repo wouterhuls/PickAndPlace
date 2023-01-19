@@ -1081,132 +1081,47 @@ namespace PAP
   } ;
   
   //****************************************************************************//
-  class SideMetrologyPage : public QTabWidget
+  SideMetrologyPage::SideMetrologyPage( CameraWindow& camerasvc, ViewDirection view)
   {
-  public:
-    SideMetrologyPage( CameraWindow& camerasvc, ViewDirection view)
-    {
-      TileMetrologyPage* tilemarkerpage = new TileMetrologyPage{camerasvc,view} ;
-      this->addTab(tilemarkerpage,"Tile markers") ;
-
-      //auto sensorsurfacepages = new SensorSurfaceMetrologyPages(camerasvc,view) ;
-      //this->addTab(sensorsurfacepages,"Sensor surface metrology") ;
-      
-      SensorSurfaceMetrologyPage* sensorsurfacepage[2] = { 0,0 } ;
-      for(int tile=0; tile<2; ++tile) {
-      	const auto name = getTileInfo(view,TileType(tile)).name ;
-      	sensorsurfacepage[tile] =
-      	  new SensorSurfaceMetrologyPage{camerasvc,view,name} ;
-      	this->addTab( sensorsurfacepage[tile],name + " surface") ;
-      }
-
-      connect( sensorsurfacepage[0], &SensorSurfaceMetrologyPage::autoready,
-	       sensorsurfacepage[1], &SensorSurfaceMetrologyPage::runauto ) ;
-      //connect( sensorsurfacepage[0], &SensorSurfaceMetrologyPage::autoready,
-      //       sensorsurfacepage[1], [=] () { sensorsurfacepage[1]->runauto() ; } ) ;
-
-      
-      
-      SubstrateSurfaceMetrologyPage* 
-	substratesurfacepage = new SubstrateSurfaceMetrologyPage{camerasvc,view} ;
-      this->addTab(substratesurfacepage,"Substrate surface") ;
-      
-      // this->addTab(new SideReportPage{this,tilemarkerpage,
-      // 	    sensorsurfacepage[0],sensorsurfacepage[1],substratesurfacepage},"Report") ;
-
-      this->addTab(new FEHybridMetrologyPage{camerasvc,view},"FE hybrids"); 
-      this->addTab(new GBTXHybridMetrologyPage{camerasvc,view}, "GBTx hybrid") ;
-      this->addTab(new LineScanPage{camerasvc,view}, "Line surface") ;
-      this->addTab(new GenericSurfaceMetrologyPage{camerasvc,view}, "Grid surface") ;
+    TileMetrologyPage* tilemarkerpage = new TileMetrologyPage{camerasvc,view} ;
+    this->addTab(tilemarkerpage,"Tile markers") ;
+    
+    //auto sensorsurfacepages = new SensorSurfaceMetrologyPages(camerasvc,view) ;
+    //this->addTab(sensorsurfacepages,"Sensor surface metrology") ;
+    
+    SensorSurfaceMetrologyPage* sensorsurfacepage[2] = { 0,0 } ;
+    for(int tile=0; tile<2; ++tile) {
+      const auto name = getTileInfo(view,TileType(tile)).name ;
+      sensorsurfacepage[tile] =
+	new SensorSurfaceMetrologyPage{camerasvc,view,name} ;
+      this->addTab( sensorsurfacepage[tile],name + " surface") ;
     }
-  } ;
-  
-  QTabWidget* createSideMetrologyPage(CameraWindow& camerasvc, ViewDirection viewdir) {
-    return new SideMetrologyPage{camerasvc,viewdir} ;
+    
+    connect( sensorsurfacepage[0], &SensorSurfaceMetrologyPage::autoready,
+	     sensorsurfacepage[1], &SensorSurfaceMetrologyPage::runauto ) ;
+    //connect( sensorsurfacepage[0], &SensorSurfaceMetrologyPage::autoready,
+    //       sensorsurfacepage[1], [=] () { sensorsurfacepage[1]->runauto() ; } ) ;
+    
+    
+    
+    SubstrateSurfaceMetrologyPage* 
+      substratesurfacepage = new SubstrateSurfaceMetrologyPage{camerasvc,view} ;
+    this->addTab(substratesurfacepage,"Substrate surface") ;
+    
+    // this->addTab(new SideReportPage{this,tilemarkerpage,
+    // 	    sensorsurfacepage[0],sensorsurfacepage[1],substratesurfacepage},"Report") ;
+    
+    this->addTab(new FEHybridMetrologyPage{camerasvc,view},"FE hybrids"); 
+    this->addTab(new GBTXHybridMetrologyPage{camerasvc,view}, "GBTx hybrid") ;
+    this->addTab(new LineScanPage{camerasvc,view}, "Line surface") ;
+    this->addTab(new GenericSurfaceMetrologyPage{camerasvc,view}, "Grid surface") ;
   }
   
+  void SideMetrologyPage::reset() {
+    for(int ipage = 0; ipage < this->count(); ++ipage){
+      auto page = dynamic_cast<MarkerMetrologyPage*>( this->widget(ipage) ) ;
+      if(page) page->reset() ;
+    }
+  }
   
-  /*
-    I have the pages that do most of the actual work. Now we need
-    todecide what is the best way to store the data, and keep track
-    of the fact that all measurements need to be done before the
-    actual report is exported.
-    
-    What is the minimum that we want in the report:
-    - x, y coordinates of tile/sensor markers in LHCb frame
-    - estimates of distance between sensor surface and substrate surface
-
-    Other relevant information would be:
-    - curvature of substrate ?
-    - curvature of sensors?
-
-
-  */
-
-    
-  
-  
-  // class MetrologyReportPage : public QDialog
-  // {
-  // public:
-  //   Q_OBJECT
-  // private:
-  //   //CameraWindow* m_parent ;
-  //   QStandardItem m_modulename ;
-  //   TileMetrologyPage* m_reports[2] ; // for both sides
-  // public:
-  // MetrologyReportPage( CameraWindow& parent )
-  //   : QDialog{&parent}, m_modulename{QString{"Unknown"}}
-  //   {
-  //     this->resize(500,500);
-  //     this->move(50,500) ;
-  //     auto layout =  new QVBoxLayout{} ;
-  //     this->setLayout(layout) ;
-  //     layout->setContentsMargins(0, 0, 0, 0);
-
-  //     auto tmptext1 = new QLabel{this} ;
-  //     tmptext1->setText("Add field to enter module name") ;
-  //     tmptext1->setWordWrap(true);
-  //     layout->addWidget( tmptext1 ) ;
-      
-  //     // need a text field where we can change the name
-  //     /*{
-  // 	auto namemodel = new QStandardItemModel{1,1,this} ;
-  // 	namemodel->setItem(0,0,&m_modulename) ;
-  // 	auto nameview = new QTableView{this} ;
-  // 	nameview->SetModel(namemodel) ;
-  // 	nameview->setHeaderData(0,Qt::Horizontal,QString{"Module name"}) ;
-  // 	layout->addWidget( nameview ) ;
-  //     }
-  //     */
-      
-  //     // add pages for N side and C side
-  //     auto taskpages = new QTabWidget{this} ;
-  //     layout->addWidget( taskpages ) ;
-  //     for(int i=0; i<2; ++i) {
-  // 	m_reports[i] = new TileMetrologyPage{parent,ViewDirection(i)} ;
-  // 	taskpages->addTab( m_reports[i], i==ViewDirection::NSideView?"N-side":"C-side") ;
-  //     }
-
-  //     //layout->addWidget( new TileMetrologyPage{ViewDirection(0),this} ) ;
-  //     //connect( taskpages, &QTabWidget::tabBarClicked, this, &CameraWindow::toggleView ) ;
-  //   }
-  // } ;
-
- 
-
-  /* class MetrologyReportWindow : public QMainWindow */
-  /* { */
-    
-  /*   Q_OBJECT */
-  /* public: */
-  /*   MetrologyReportWindow(QWidget *parent = 0) */
-  /*     : QMainWindow(parent) */
-  /*   { */
-  /*     resize(500,500); */
-  /*     setWindowTitle("Measurement report") ; */
-      
-      
-  /*   } ; */
-  /* } ; */
 }

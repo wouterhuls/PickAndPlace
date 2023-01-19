@@ -35,6 +35,7 @@ namespace PAP
       return QString{"/home/velouser/Documents/PickAndPlaceData/"} + moduleName() + "/" ; }
   signals:
     void viewToggled( int view ) ;
+    
   public slots:
     void on_focusButton_clicked() ;
     //void on_quitButton_clicked();
